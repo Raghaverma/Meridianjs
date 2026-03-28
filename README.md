@@ -1,7 +1,5 @@
 # Meridian
 
-> **⚠️ v2.0.0 establishes the safe-by-default contract. Previous versions (<2.0.0) are deprecated and contain unsafe defaults. Upgrade to >=2.0.0.**
-
 A TypeScript SDK that normalizes third-party API interactions through a unified request pipeline, enforcing consistent error handling, rate limiting, and response shapes across providers.
 
 ## Problem Statement
@@ -23,7 +21,7 @@ Meridian provides a single abstraction layer that normalizes these differences, 
 ## Installation
 
 ```bash
-npm install meridian-sdk
+npm install meridianjs
 ```
 
 ## Requirements
@@ -35,7 +33,7 @@ npm install meridian-sdk
 **IMPORTANT**: Meridian requires async initialization. Always use `Meridian.create()`:
 
 ```typescript
-import { Meridian } from "meridian-sdk";
+import { Meridian } from "meridianjs";
 
 // ✅ CORRECT: Async initialization
 const meridian = await Meridian.create({
@@ -56,7 +54,7 @@ console.log(meta.rateLimit.remaining);
 For distributed deployments (serverless, multiple instances), you **must** provide a `StateStorage` implementation:
 
 ```typescript
-import { Meridian } from "meridian-sdk";
+import { Meridian } from "meridianjs";
 import { RedisStateStorage } from "./your-redis-storage.js";
 
 const meridian = await Meridian.create({
@@ -119,7 +117,7 @@ Each configured provider exposes a client with:
 
 ## Project Status
 
-**v2.0.0** - Production-ready safety contract established. Core functionality is stable. Provider coverage is expanding. API stability guaranteed for 2.x releases.
+**v0.1.0** - Early release. Core functionality is stable and tested. Provider support includes Anthropic, OpenAI, Stripe, and GitHub out of the box. API may evolve based on real-world feedback before v1.0.
 
 ## License
 
