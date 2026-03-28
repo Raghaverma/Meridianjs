@@ -63,15 +63,15 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   constructor(config: OpenTelemetryConfig) {
     this.tracer = config.tracer;
     this.meter = config.meter;
-    this.metricPrefix = config.metricPrefix ?? "boundary";
+    this.metricPrefix = config.metricPrefix ?? "meridian";
 
     
     this.requestCounter = this.meter.createCounter(`${this.metricPrefix}.requests`, {
-      description: "Total number of Boundary API requests",
+      description: "Total number of Meridian API requests",
     });
 
     this.errorCounter = this.meter.createCounter(`${this.metricPrefix}.errors`, {
-      description: "Total number of Boundary API errors",
+      description: "Total number of Meridian API errors",
     });
 
     this.durationHistogram = this.meter.createHistogram(`${this.metricPrefix}.duration`, {
@@ -84,10 +84,10 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
     
     const span = this.tracer.startSpan(`${context.provider}.${context.method}`, {
       attributes: {
-        "boundary.provider": context.provider,
+        "meridian.provider": context.provider,
         "http.method": context.method,
         "http.url": context.endpoint,
-        "boundary.request_id": context.requestId,
+        "meridian.request_id": context.requestId,
       },
     });
 
@@ -106,7 +106,7 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
     const span = this.activeSpans.get(context.requestId);
     if (span) {
       span.setAttribute("http.status_code", context.statusCode);
-      span.setAttribute("boundary.duration_ms", context.duration);
+      span.setAttribute("meridian.duration_ms", context.duration);
       span.setStatus({ code: SpanStatusCode.OK });
       span.end();
       this.activeSpans.delete(context.requestId);
@@ -124,9 +124,9 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
     
     const span = this.activeSpans.get(context.requestId);
     if (span) {
-      span.setAttribute("boundary.error.category", context.error.category);
-      span.setAttribute("boundary.error.retryable", context.error.retryable);
-      span.setAttribute("boundary.duration_ms", context.duration);
+      span.setAttribute("meridian.error.category", context.error.category);
+      span.setAttribute("meridian.error.retryable", context.error.retryable);
+      span.setAttribute("meridian.duration_ms", context.duration);
       span.setStatus({
         code: SpanStatusCode.ERROR,
         message: context.error.message,
@@ -134,7 +134,7 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
 
       
       const error = new Error(context.error.message);
-      error.name = `BoundaryError.${context.error.category}`;
+      error.name = `MeridianError.${context.error.category}`;
       span.recordException(error);
 
       span.end();
@@ -159,7 +159,7 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   logWarning(message: string, metadata?: Record<string, unknown>): void {
     
     
-    console.warn(`[Boundary OTel] ${message}`, metadata);
+    console.warn(`[Meridian OTel] ${message}`, metadata);
   }
 
   recordMetric(metric: Metric): void {

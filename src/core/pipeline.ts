@@ -10,12 +10,12 @@ import type {
   ErrorContext,
   RawResponse,
 } from "./types.js";
-import { BoundaryError } from "./types.js";
+import { MeridianError } from "./types.js";
 import { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
 import { RateLimiter } from "../strategies/rate-limit.js";
 import { RetryStrategy } from "../strategies/retry.js";
 import { IdempotencyResolver } from "../strategies/idempotency.js";
-import { sanitizeBoundaryError } from "./error-sanitizer.js";
+import { sanitizeMeridianError } from "./error-sanitizer.js";
 import { sanitizeObject, sanitizeMetric } from "./observability-sanitizer.js";
 import { sanitizeRequestOptions } from "./request-sanitizer.js";
 import { randomUUID } from "crypto";
@@ -33,7 +33,8 @@ export interface PipelineConfig {
   observability: ObservabilityAdapter[];
   timeout: number | undefined;
   autoGenerateIdempotencyKeys?: boolean;
-  sanitizerOptions?: { redactedKeys?: string[] };
+  sanitizerOptions?: { redactedKeys?: string[]; piiRedaction?: boolean | undefined } | undefined;
+  compliance?: { piiRedaction?: boolean | undefined; auditLog?: boolean | undefined } | undefined;
 }
 
 export class RequestPipeline {
@@ -72,7 +73,7 @@ export class RequestPipeline {
         .join("\n");
 
       console.error(
-        `[Boundary] Observability failure in ${actionName} (${errors.length}/${this.config.observability.length} adapters failed):\n${errorSummary}`
+        `[Meridian] Observability failure in ${actionName} (${errors.length}/${this.config.observability.length} adapters failed):\n${errorSummary}`
       );
     }
   }
@@ -96,8 +97,17 @@ export class RequestPipeline {
       endpoint,
       options
     );
+    
+    
+    const identity = options.identity;
+    
+    
+    const sanitizerOpts = {
+      ...this.config.sanitizerOptions,
+      piiRedaction: this.config.compliance?.piiRedaction || this.config.sanitizerOptions?.piiRedaction
+    };
 
-    const sanitizedOptions = sanitizeRequestOptions(options, this.config.sanitizerOptions);
+    const sanitizedOptions = sanitizeRequestOptions(options, sanitizerOpts);
 
     const requestContext: RequestContext = {
       provider: this.config.provider,
@@ -106,6 +116,7 @@ export class RequestPipeline {
       requestId,
       timestamp: new Date(),
       options: sanitizedOptions,
+      identity,
     };
 
     
@@ -167,6 +178,7 @@ export class RequestPipeline {
         statusCode: response.status,
         duration,
         timestamp: new Date(),
+        identity,
       };
 
       
@@ -178,7 +190,7 @@ export class RequestPipeline {
       
       this.safelyBroadcastObservability(
         (obs) => obs.recordMetric(sanitizeMetric({
-          name: "boundary.request.count",
+          name: "meridian.request.count",
           value: 1,
           tags: {
             provider: this.config.provider,
@@ -193,7 +205,7 @@ export class RequestPipeline {
       
       this.safelyBroadcastObservability(
         (obs) => obs.recordMetric(sanitizeMetric({
-          name: "boundary.request.duration",
+          name: "meridian.request.duration",
           value: duration,
           tags: {
             provider: this.config.provider,
@@ -210,15 +222,15 @@ export class RequestPipeline {
 
 
 
-      let boundaryError: BoundaryError;
+      let meridianError: MeridianError;
       try {
         const adapterError = this.config.adapter.parseError(error);
 
 
-        boundaryError = sanitizeBoundaryError(adapterError, this.config.provider, requestId);
+        meridianError = sanitizeMeridianError(adapterError, this.config.provider, requestId);
       } catch (parseError) {
 
-        boundaryError = sanitizeBoundaryError(
+        meridianError = sanitizeMeridianError(
           {
             message: error instanceof Error ? error.message : String(error),
             metadata: {
@@ -232,10 +244,10 @@ export class RequestPipeline {
       }
 
       
-      if (boundaryError.category === "rate_limit" && boundaryError.retryAfter) {
+      if (meridianError.category === "rate_limit" && meridianError.retryAfter) {
         this.config.rateLimiter.handle429(
           Math.floor(
-            (boundaryError.retryAfter.getTime() - Date.now()) / 1000
+            (meridianError.retryAfter.getTime() - Date.now()) / 1000
           )
         );
       }
@@ -245,9 +257,10 @@ export class RequestPipeline {
         endpoint,
         method,
         requestId,
-        error: boundaryError,
+        error: meridianError,
         duration,
         timestamp: new Date(),
+        identity,
       };
 
       
@@ -255,7 +268,7 @@ export class RequestPipeline {
       
       
       try {
-        const sanitizedError = { ...boundaryError } as any;
+        const sanitizedError = { ...meridianError } as any;
         if (sanitizedError.metadata) {
           sanitizedError.metadata = sanitizeObject(sanitizedError.metadata, this.config.sanitizerOptions) as Record<string, unknown>;
         }
@@ -273,19 +286,19 @@ export class RequestPipeline {
       
       this.safelyBroadcastObservability(
         (obs) => obs.recordMetric(sanitizeMetric({
-          name: "boundary.request.error",
+          name: "meridian.request.error",
           value: 1,
           tags: {
             provider: this.config.provider,
             endpoint,
-            errorCategory: boundaryError.category,
+            errorCategory: meridianError.category,
           },
           timestamp: new Date(),
         }, this.config.sanitizerOptions)),
         "recordMetric:request.error"
       );
 
-      throw boundaryError;
+      throw meridianError;
     }
   }
 
@@ -357,7 +370,7 @@ export class RequestPipeline {
     } catch (error) {
 
       if (error instanceof Error && error.name === "AbortError") {
-        throw new BoundaryError(
+        throw new MeridianError(
           `Request timeout after ${timeout}ms`,
           "network",
           this.config.provider,

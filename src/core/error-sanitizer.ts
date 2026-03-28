@@ -1,6 +1,6 @@
 
 
-import { BoundaryError, type BoundaryErrorCategory } from "./types.js";
+import { MeridianError, type MeridianErrorCategory } from "./types.js";
 
 
 const SENSITIVE_METADATA_KEYS: readonly string[] = [
@@ -45,7 +45,7 @@ function sanitizeErrorMetadata(metadata: Record<string, unknown>): Record<string
 }
 
 
-const VALID_CATEGORIES: readonly BoundaryErrorCategory[] = [
+const VALID_CATEGORIES: readonly MeridianErrorCategory[] = [
   "auth",
   "rate_limit",
   "network",
@@ -55,12 +55,12 @@ const VALID_CATEGORIES: readonly BoundaryErrorCategory[] = [
 
 
 
-function isValidCategory(category: unknown): category is BoundaryErrorCategory {
-  return typeof category === "string" && VALID_CATEGORIES.includes(category as BoundaryErrorCategory);
+function isValidCategory(category: unknown): category is MeridianErrorCategory {
+  return typeof category === "string" && VALID_CATEGORIES.includes(category as MeridianErrorCategory);
 }
 
 
-function inferCategory(error: unknown): BoundaryErrorCategory {
+function inferCategory(error: unknown): MeridianErrorCategory {
   if (error && typeof error === "object") {
     const err = error as Record<string, unknown>;
 
@@ -93,7 +93,7 @@ function inferCategory(error: unknown): BoundaryErrorCategory {
 }
 
 
-function inferRetryable(category: BoundaryErrorCategory, error: unknown): boolean {
+function inferRetryable(category: MeridianErrorCategory, error: unknown): boolean {
   
   if (category === "auth") return false;
 
@@ -118,11 +118,11 @@ function inferRetryable(category: BoundaryErrorCategory, error: unknown): boolea
 
 
 
-export function sanitizeBoundaryError(
+export function sanitizeMeridianError(
   error: unknown,
   expectedProvider: string,
   requestId: string = ""
-): BoundaryError {
+): MeridianError {
 
   if (!error) {
     return createFallbackError("Unknown error", expectedProvider, requestId);
@@ -142,7 +142,7 @@ export function sanitizeBoundaryError(
 
 
   const rawCategory = err.category;
-  const category: BoundaryErrorCategory = isValidCategory(rawCategory)
+  const category: MeridianErrorCategory = isValidCategory(rawCategory)
     ? rawCategory
     : inferCategory(error);
 
@@ -184,7 +184,7 @@ export function sanitizeBoundaryError(
   }
 
 
-  const sanitized = new BoundaryError(
+  const sanitized = new MeridianError(
     message,
     category,
     provider,
@@ -199,8 +199,8 @@ export function sanitizeBoundaryError(
 }
 
 
-function createFallbackError(message: string, provider: string, requestId: string = ""): BoundaryError {
-  return new BoundaryError(
+function createFallbackError(message: string, provider: string, requestId: string = ""): MeridianError {
+  return new MeridianError(
     message,
     "provider",
     provider,

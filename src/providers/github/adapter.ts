@@ -12,7 +12,7 @@ import type {
   AdapterInput,
   BuiltRequest,
 } from "../../core/types.js";
-import { BoundaryError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
 import { GitHubPaginationStrategy } from "./pagination.js";
 import { ResponseNormalizer } from "../../core/normalizer.js";
 import { parseRetryAfter, parseRateLimitHeaders } from "../../core/header-parser.js";
@@ -55,7 +55,7 @@ export class GitHubAdapter implements ProviderAdapter {
     
     const headers: Record<string, string> = {
       "Accept": "application/vnd.github.v3+json",
-      "User-Agent": `Boundary-SDK/${SDK_VERSION}`,
+      "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
 
@@ -112,7 +112,7 @@ export class GitHubAdapter implements ProviderAdapter {
   }
 
   
-  parseError(raw: unknown): BoundaryError {
+  parseError(raw: unknown): MeridianError {
     
     if (raw instanceof Error) {
       const errorMessage = raw.message.toLowerCase();
@@ -124,7 +124,7 @@ export class GitHubAdapter implements ProviderAdapter {
         errorMessage.includes("enotfound") ||
         errorMessage.includes("timeout")
       ) {
-        return this.createBoundaryError(
+        return this.createMeridianError(
           "network",
           true,
           "Network request failed. Check your connection and try again.",
@@ -151,7 +151,7 @@ export class GitHubAdapter implements ProviderAdapter {
     }
 
     
-    return this.createBoundaryError(
+    return this.createMeridianError(
       "provider",
       false,
       "An unexpected error occurred",
@@ -165,14 +165,14 @@ export class GitHubAdapter implements ProviderAdapter {
     headers?: Headers | Record<string, string>;
     body?: unknown;
     message?: string;
-  }): BoundaryError {
+  }): MeridianError {
     const status = error.status;
     const body = error.body as GitHubErrorResponse | undefined;
     const headers = error.headers;
 
     
     if (status === 401) {
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "auth",
         false,
         "Authentication failed. Check your token is valid and not expired.",
@@ -192,7 +192,7 @@ export class GitHubAdapter implements ProviderAdapter {
       const rateLimitRemaining = this.getHeaderValue(headers, "X-RateLimit-Remaining");
       if (rateLimitRemaining === "0") {
         const retryAfter = this.extractRetryAfter(headers);
-        return this.createBoundaryError(
+        return this.createMeridianError(
           "rate_limit",
           true,
           "Rate limit exceeded. Please wait before retrying.",
@@ -206,7 +206,7 @@ export class GitHubAdapter implements ProviderAdapter {
       }
 
 
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "auth",
         false,
         "Permission denied. Check your token has the required scopes.",
@@ -233,7 +233,7 @@ export class GitHubAdapter implements ProviderAdapter {
 
 
 
-        return this.createBoundaryError(
+        return this.createMeridianError(
           "validation",
           false,
           "Resource not found or not accessible.",
@@ -246,7 +246,7 @@ export class GitHubAdapter implements ProviderAdapter {
         );
       }
 
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "validation",
         false,
         "Resource not found.",
@@ -264,7 +264,7 @@ export class GitHubAdapter implements ProviderAdapter {
         ?.map((e) => `${e.field ?? "unknown"}: ${e.message ?? e.code ?? "validation error"}`)
         .join("; ");
 
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "validation",
         false,
         fieldErrors
@@ -282,7 +282,7 @@ export class GitHubAdapter implements ProviderAdapter {
 
     if (status === 429) {
       const retryAfter = this.extractRetryAfter(headers);
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "rate_limit",
         true,
         "Rate limit exceeded. Please wait before retrying.",
@@ -297,7 +297,7 @@ export class GitHubAdapter implements ProviderAdapter {
 
 
     if (status >= 500) {
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "provider",
         true,
         `GitHub API returned error ${status}. This may be temporary.`,
@@ -312,7 +312,7 @@ export class GitHubAdapter implements ProviderAdapter {
 
 
     if (status >= 400) {
-      return this.createBoundaryError(
+      return this.createMeridianError(
         "validation",
         false,
         body?.message ?? `Request failed with status ${status}.`,
@@ -326,7 +326,7 @@ export class GitHubAdapter implements ProviderAdapter {
     }
 
 
-    return this.createBoundaryError(
+    return this.createMeridianError(
       "provider",
       false,
       `Unexpected response status ${status}.`,
@@ -342,7 +342,7 @@ export class GitHubAdapter implements ProviderAdapter {
   
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
     if (!config.token) {
-      throw this.createBoundaryError(
+      throw this.createMeridianError(
         "auth",
         false,
         "GitHub authentication requires a token.",
@@ -411,15 +411,15 @@ export class GitHubAdapter implements ProviderAdapter {
   }
 
   
-  private createBoundaryError(
-    category: BoundaryError["category"],
+  private createMeridianError(
+    category: MeridianError["category"],
     retryable: boolean,
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
     status?: number
-  ): BoundaryError {
-    return new BoundaryError(
+  ): MeridianError {
+    return new MeridianError(
       message,
       category,
       "github",

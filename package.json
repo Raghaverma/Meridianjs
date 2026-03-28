@@ -1,7 +1,7 @@
 {
-  "name": "boundary-sdk",
-  "version": "2.0.1",
-  "description": "API Normalization SDK - A TypeScript-first SDK that enforces a single stable contract across all third-party API providers",
+  "name": "meridian",
+  "version": "0.1.0",
+  "description": "Meridian - A TypeScript-first SDK that enforces a single stable contract across all third-party API providers",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",
   "type": "module",
@@ -38,7 +38,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Raghaverma/Boundary"
+    "url": "https://github.com/Raghaverma/meridian"
   },
   "engines": {
     "node": ">=18.0.0"

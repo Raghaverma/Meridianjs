@@ -1,4 +1,4 @@
-# Boundary
+# Meridian
 
 > **⚠️ v2.0.0 establishes the safe-by-default contract. Previous versions (<2.0.0) are deprecated and contain unsafe defaults. Upgrade to >=2.0.0.**
 
@@ -8,7 +8,7 @@ A TypeScript SDK that normalizes third-party API interactions through a unified 
 
 Applications integrating multiple third-party APIs face inconsistent response formats, error structures, rate limit behaviors, and pagination strategies. This fragmentation requires provider-specific error handling, retry logic, and data transformation code that is difficult to maintain and test.
 
-Boundary provides a single abstraction layer that normalizes these differences, allowing applications to interact with any provider through a consistent interface while maintaining type safety and resilience patterns.
+Meridian provides a single abstraction layer that normalizes these differences, allowing applications to interact with any provider through a consistent interface while maintaining type safety and resilience patterns.
 
 ## Non-Goals
 
@@ -23,7 +23,7 @@ Boundary provides a single abstraction layer that normalizes these differences, 
 ## Installation
 
 ```bash
-npm install boundary-sdk
+npm install meridian-sdk
 ```
 
 ## Requirements
@@ -32,34 +32,34 @@ npm install boundary-sdk
 
 ## Usage
 
-**IMPORTANT**: Boundary requires async initialization. Always use `Boundary.create()`:
+**IMPORTANT**: Meridian requires async initialization. Always use `Meridian.create()`:
 
 ```typescript
-import { Boundary } from "boundary-sdk";
+import { Meridian } from "meridian-sdk";
 
 // ✅ CORRECT: Async initialization
-const boundary = await Boundary.create({
+const meridian = await Meridian.create({
   github: {
     auth: { token: process.env.GITHUB_TOKEN },
   },
   localUnsafe: true, // Required for local development without StateStorage
 });
 
-const { data, meta } = await boundary.github.get("/users/octocat");
+const { data, meta } = await meridian.github.get("/users/octocat");
 console.log(meta.rateLimit.remaining);
 ```
 
-**❌ NEVER use `new Boundary()`** - the constructor is private and will fail.
+**❌ NEVER use `new Meridian()`** - the constructor is private and will fail.
 
 ### Production Deployment
 
 For distributed deployments (serverless, multiple instances), you **must** provide a `StateStorage` implementation:
 
 ```typescript
-import { Boundary } from "boundary-sdk";
+import { Meridian } from "meridian-sdk";
 import { RedisStateStorage } from "./your-redis-storage.js";
 
-const boundary = await Boundary.create({
+const meridian = await Meridian.create({
   mode: "distributed",
   stateStorage: new RedisStateStorage(redisClient), // Required in distributed mode
   github: {
@@ -75,7 +75,7 @@ const boundary = await Boundary.create({
 For local development, explicitly opt-in to unsafe in-memory state:
 
 ```typescript
-const boundary = await Boundary.create({
+const meridian = await Meridian.create({
   mode: "local", // or omit mode
   localUnsafe: true, // Explicitly acknowledge unsafe state
   github: {
@@ -88,9 +88,9 @@ const boundary = await Boundary.create({
 
 ## Safety Guarantees
 
-Boundary enforces safety by default:
+Meridian enforces safety by default:
 
-1. **Fail-Fast Initialization**: SDK cannot be used before initialization completes. All methods throw if called before `Boundary.create()` resolves.
+1. **Fail-Fast Initialization**: SDK cannot be used before initialization completes. All methods throw if called before `Meridian.create()` resolves.
 
 2. **Fail-Closed State Management**: Distributed mode requires `StateStorage`. In-memory state is opt-in only via `localUnsafe: true`.
 
@@ -100,9 +100,9 @@ Boundary enforces safety by default:
 
 ## Public API
 
-### Boundary Class
+### Meridian Class
 
-- `static create(config: BoundaryConfig, adapters?: Map<string, ProviderAdapter>): Promise<Boundary>` - **Use this to create instances**
+- `static create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>): Promise<Meridian>` - **Use this to create instances**
 - `getCircuitStatus(provider: string): CircuitBreakerStatus | null`
 - `registerProvider(name: string, adapter: ProviderAdapter, config: ProviderConfig): Promise<void>`
 

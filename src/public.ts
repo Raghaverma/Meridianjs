@@ -1,17 +1,17 @@
 
 /**
- * Public API surface for Boundary SDK.
+ * Public API surface for Meridian SDK.
  *
  * This is the ONLY file consumers should import from.
  * All other modules are internal implementation details.
  */
 
 // Main client
-export { Boundary } from "./index.js";
+export { Meridian } from "./index.js";
 
 // Core types - consumer contracts
 export type {
-  BoundaryConfig,
+  MeridianConfig,
   ProviderConfig,
   NormalizedResponse,
   ResponseMeta,
@@ -22,8 +22,8 @@ export type {
 } from "./core/types.js";
 
 // Error type - frozen contract
-export { BoundaryError } from "./core/types.js";
-export type { BoundaryErrorCategory, BoundaryErrorCode } from "./core/types.js";
+export { MeridianError } from "./core/types.js";
+export type { MeridianErrorCategory, MeridianErrorCode } from "./core/types.js";
 
 // Auth types
 export type { AuthConfig, AuthToken } from "./core/types.js";
@@ -67,3 +67,9 @@ export type {
 
 // Pagination strategy interface for custom adapters
 export type { PaginationStrategy } from "./core/types.js";
+
+// Built-in provider adapters
+export { AnthropicAdapter } from "./providers/anthropic/adapter.js";
+export { OpenAIAdapter } from "./providers/openai/adapter.js";
+export { StripeAdapter } from "./providers/stripe/adapter.js";
+export { GitHubAdapter } from "./providers/github/adapter.js";

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Boundary } from "../index.js";
-import { BoundaryError, type ObservabilityAdapter, type Metric } from "../core/types.js";
+import { Meridian } from "../index.js";
+import { MeridianError, type ObservabilityAdapter, type Metric } from "../core/types.js";
 
 class MockObservability implements ObservabilityAdapter {
   public requests: any[] = [];
@@ -41,7 +41,7 @@ class TestAdapter {
     };
   }
   parseError(raw: any) {
-    return new BoundaryError(
+    return new MeridianError(
       "Provider error",
       "provider" as const,
       "test",
@@ -89,14 +89,14 @@ describe("Observability sanitizer", () => {
     const adapters = new Map();
     adapters.set("test", new (TestAdapter as any)());
 
-    const boundary = await Boundary.create({
+    const meridian = await Meridian.create({
       providers: { test: { auth: { token: "t" } } },
       observability: [mock as any],
       observabilitySanitizer: { redactedKeys: ["authorization", "apikey", "body"] },
       localUnsafe: true,
     }, adapters as any);
 
-    await (boundary as any).test.get("/endpoint", { headers: { Authorization: "Bearer secret", "X-Api-Key": "abc" }, body: { password: "p" } });
+    await (meridian as any).test.get("/endpoint", { headers: { Authorization: "Bearer secret", "X-Api-Key": "abc" }, body: { password: "p" } });
 
     
     expect(mock.requests.length).toBeGreaterThan(0);
@@ -107,7 +107,7 @@ describe("Observability sanitizer", () => {
 
     
     expect(mock.metrics.length).toBeGreaterThan(0);
-    const m = mock.metrics.find(mm => mm.name === "boundary.request.count");
+    const m = mock.metrics.find(mm => mm.name === "meridian.request.count");
     expect(m).toBeDefined();
     expect(m!.tags.provider).toBe("test");
   });
@@ -128,14 +128,14 @@ describe("Observability sanitizer", () => {
     const adapters = new Map();
     adapters.set("test", new (TestAdapter as any)());
 
-    const boundary = await Boundary.create({
+    const meridian = await Meridian.create({
       providers: { test: { auth: { token: "t" } } },
       observability: [mock as any],
       observabilitySanitizer: { redactedKeys: ["secret", "apikey"] },
       localUnsafe: true,
     }, adapters as any);
 
-    await expect((boundary as any).test.get("/endpoint")).rejects.toBeDefined();
+    await expect((meridian as any).test.get("/endpoint")).rejects.toBeDefined();
 
     
     expect(mock.errors.length).toBeGreaterThan(0);

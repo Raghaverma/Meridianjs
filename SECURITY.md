@@ -51,7 +51,7 @@ We follow responsible disclosure practices:
 
 ## Security Best Practices
 
-When using Boundary:
+When using Meridian:
 
 - Store API tokens in environment variables, not in code
 - Use least-privilege token scopes

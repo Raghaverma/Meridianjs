@@ -10,7 +10,7 @@ export type { SchemaStorage } from "../core/types.js";
 export class FileSystemSchemaStorage implements SchemaStorage {
   private basePath: string;
 
-  constructor(basePath: string = ".boundary/schemas") {
+  constructor(basePath: string = ".meridian/schemas") {
     this.basePath = basePath;
   }
 

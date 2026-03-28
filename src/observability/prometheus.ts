@@ -54,7 +54,7 @@ export class PrometheusObservability implements ObservabilityAdapter {
 
   constructor(config: PrometheusConfig = {}) {
     this.config = {
-      prefix: config.prefix ?? "boundary",
+      prefix: config.prefix ?? "meridian",
       includeHelp: config.includeHelp ?? true,
       defaultLabels: config.defaultLabels ?? {},
     };
@@ -67,7 +67,7 @@ export class PrometheusObservability implements ObservabilityAdapter {
     
     this.counters.set("requests_total", {
       name: `${this.config.prefix}_requests_total`,
-      help: "Total number of Boundary API requests",
+      help: "Total number of Meridian API requests",
       type: "counter",
       values: new Map(),
     });
@@ -75,7 +75,7 @@ export class PrometheusObservability implements ObservabilityAdapter {
     
     this.counters.set("errors_total", {
       name: `${this.config.prefix}_errors_total`,
-      help: "Total number of Boundary API errors",
+      help: "Total number of Meridian API errors",
       type: "counter",
       values: new Map(),
     });

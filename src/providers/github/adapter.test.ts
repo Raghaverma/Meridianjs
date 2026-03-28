@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 import { GitHubAdapter } from "./adapter.js";
 import type {
   RawResponse,
-  BoundaryError,
+  MeridianError,
   NormalizedResponse,
   AuthConfig,
   AuthToken,
@@ -332,7 +332,7 @@ describe("GitHub Adapter - Contract Tests", () => {
       });
     });
 
-    it("should throw BoundaryError for missing token", async () => {
+    it("should throw MeridianError for missing token", async () => {
       const config: AuthConfig = {};
 
       await expect(adapter.authStrategy(config)).rejects.toThrow();
@@ -341,9 +341,9 @@ describe("GitHub Adapter - Contract Tests", () => {
         await adapter.authStrategy(config);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        const boundaryError = error as BoundaryError;
-        expect(boundaryError.category).toBe("auth");
-        expect(boundaryError.provider).toBe("github");
+        const meridianError = error as MeridianError;
+        expect(meridianError.category).toBe("auth");
+        expect(meridianError.provider).toBe("github");
       }
     });
   });
@@ -400,7 +400,7 @@ describe("GitHub Adapter - Contract Tests", () => {
       }
     });
 
-    it("should ALWAYS normalize responses to Boundary structure", () => {
+    it("should ALWAYS normalize responses to Meridian structure", () => {
       const raw: RawResponse = {
         status: 200,
         headers: new Headers({

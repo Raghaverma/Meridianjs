@@ -17,11 +17,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 
 // CRITICAL: Only import from the public entry point
 import {
-  Boundary,
-  BoundaryError,
+  Meridian,
+  MeridianError,
   type NormalizedResponse,
   type ProviderClient,
-  type BoundaryConfig,
+  type MeridianConfig,
 } from "./public.js";
 
 describe("Consumer Contract - Public API Only", () => {
@@ -70,7 +70,7 @@ describe("Consumer Contract - Public API Only", () => {
 
   describe("1. Initialization", () => {
     it("should create client with minimal config", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -82,7 +82,7 @@ describe("Consumer Contract - Public API Only", () => {
     });
 
     it("should work with nested providers config", async () => {
-      const config: BoundaryConfig = {
+      const config: MeridianConfig = {
         providers: {
           github: {
             auth: { token: "test-token" },
@@ -91,7 +91,7 @@ describe("Consumer Contract - Public API Only", () => {
         localUnsafe: true,
       };
 
-      const client = await Boundary.create(config);
+      const client = await Meridian.create(config);
       expect(client).toBeDefined();
       expect(client.provider("github")).toBeDefined();
     });
@@ -99,7 +99,7 @@ describe("Consumer Contract - Public API Only", () => {
 
   describe("2. Response Contract", () => {
     it("should return normalized response with stable shape", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -135,7 +135,7 @@ describe("Consumer Contract - Public API Only", () => {
         result: string;
       }
 
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -151,8 +151,8 @@ describe("Consumer Contract - Public API Only", () => {
   });
 
   describe("3. Error Contract", () => {
-    it("should throw BoundaryError with stable shape", async () => {
-      const client = await Boundary.create({
+    it("should throw MeridianError with stable shape", async () => {
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -165,37 +165,37 @@ describe("Consumer Contract - Public API Only", () => {
         await github.get("/error");
         throw new Error("Should have thrown");
       } catch (error) {
-        expect(error).toBeInstanceOf(BoundaryError);
+        expect(error).toBeInstanceOf(MeridianError);
 
-        const boundaryError = error as BoundaryError;
+        const meridianError = error as MeridianError;
 
         // Verify error has required fields
-        expect(boundaryError).toHaveProperty("message");
-        expect(boundaryError).toHaveProperty("category");
-        expect(boundaryError).toHaveProperty("code");
-        expect(boundaryError).toHaveProperty("provider");
-        expect(boundaryError).toHaveProperty("retryable");
-        expect(boundaryError).toHaveProperty("requestId");
+        expect(meridianError).toHaveProperty("message");
+        expect(meridianError).toHaveProperty("category");
+        expect(meridianError).toHaveProperty("code");
+        expect(meridianError).toHaveProperty("provider");
+        expect(meridianError).toHaveProperty("retryable");
+        expect(meridianError).toHaveProperty("requestId");
 
         // Verify types
-        expect(typeof boundaryError.message).toBe("string");
-        expect(typeof boundaryError.category).toBe("string");
-        expect(typeof boundaryError.code).toBe("string");
-        expect(typeof boundaryError.provider).toBe("string");
-        expect(typeof boundaryError.retryable).toBe("boolean");
-        expect(typeof boundaryError.requestId).toBe("string");
+        expect(typeof meridianError.message).toBe("string");
+        expect(typeof meridianError.category).toBe("string");
+        expect(typeof meridianError.code).toBe("string");
+        expect(typeof meridianError.provider).toBe("string");
+        expect(typeof meridianError.retryable).toBe("boolean");
+        expect(typeof meridianError.requestId).toBe("string");
 
-        // Verify code is from frozen BoundaryErrorCode enum
+        // Verify code is from frozen MeridianErrorCode enum
         const validCodes = ["AUTH_FAILED", "RATE_LIMITED", "NOT_FOUND", "BAD_REQUEST", "UPSTREAM_5XX", "NETWORK_ERROR", "TIMEOUT", "UNKNOWN"];
-        expect(validCodes).toContain(boundaryError.code);
+        expect(validCodes).toContain(meridianError.code);
 
         // Verify provider is set
-        expect(boundaryError.provider).toBe("github");
+        expect(meridianError.provider).toBe("github");
       }
     });
 
     it("should never throw raw errors", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -211,8 +211,8 @@ describe("Consumer Contract - Public API Only", () => {
         try {
           await github.get(endpoint);
         } catch (error) {
-          // Must always be BoundaryError
-          expect(error).toBeInstanceOf(BoundaryError);
+          // Must always be MeridianError
+          expect(error).toBeInstanceOf(MeridianError);
         }
       }
     });
@@ -220,7 +220,7 @@ describe("Consumer Contract - Public API Only", () => {
 
   describe("4. Method Signatures", () => {
     it("should support all HTTP methods", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -245,7 +245,7 @@ describe("Consumer Contract - Public API Only", () => {
     });
 
     it("should accept RequestOptions", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -272,7 +272,7 @@ describe("Consumer Contract - Public API Only", () => {
 
   describe("5. No Internal Leakage", () => {
     it("should not expose internal modules in errors", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -284,7 +284,7 @@ describe("Consumer Contract - Public API Only", () => {
       try {
         await github.get("/error");
       } catch (error) {
-        const err = error as BoundaryError;
+        const err = error as MeridianError;
 
         // Error message must not contain:
         // - File paths
@@ -300,7 +300,7 @@ describe("Consumer Contract - Public API Only", () => {
 
   describe("6. Frozen Contracts - Phase 2", () => {
     it("should guarantee meta.provider is always present", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -315,7 +315,7 @@ describe("Consumer Contract - Public API Only", () => {
     });
 
     it("should guarantee meta.requestId is always present and unique", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -336,8 +336,8 @@ describe("Consumer Contract - Public API Only", () => {
       expect(response1.meta.requestId).not.toBe(response2.meta.requestId);
     });
 
-    it("should enforce error codes are from closed BoundaryErrorCode set", async () => {
-      const client = await Boundary.create({
+    it("should enforce error codes are from closed MeridianErrorCode set", async () => {
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -351,13 +351,13 @@ describe("Consumer Contract - Public API Only", () => {
       try {
         await github.get("/error");
       } catch (error) {
-        const err = error as BoundaryError;
+        const err = error as MeridianError;
         expect(validCodes).toContain(err.code);
       }
     });
 
     it("should enforce deterministic retryable semantics", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -375,7 +375,7 @@ describe("Consumer Contract - Public API Only", () => {
       try {
         await github.get("/error");
       } catch (error) {
-        const err = error as BoundaryError;
+        const err = error as MeridianError;
 
         if (neverRetryable.includes(err.code)) {
           expect(err.retryable).toBe(false);
@@ -388,7 +388,7 @@ describe("Consumer Contract - Public API Only", () => {
     });
 
     it("should always populate error.requestId", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -400,14 +400,14 @@ describe("Consumer Contract - Public API Only", () => {
       try {
         await github.get("/error");
       } catch (error) {
-        const err = error as BoundaryError;
+        const err = error as MeridianError;
         expect(typeof err.requestId).toBe("string");
         expect(err.requestId.length).toBeGreaterThan(0);
       }
     });
 
     it("should expose status on errors when available", async () => {
-      const client = await Boundary.create({
+      const client = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -419,7 +419,7 @@ describe("Consumer Contract - Public API Only", () => {
       try {
         await github.get("/error");
       } catch (error) {
-        const err = error as BoundaryError;
+        const err = error as MeridianError;
         // Status should be present for HTTP errors
         if (err.status !== undefined) {
           expect(typeof err.status).toBe("number");

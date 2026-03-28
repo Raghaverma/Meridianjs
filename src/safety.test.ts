@@ -1,8 +1,8 @@
 
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { Boundary } from "./index.js";
-import { BoundaryError, type BoundaryConfig, type StateStorage, type ObservabilityAdapter, type RequestContext, type ResponseContext, type ErrorContext, type Metric } from "./core/types.js";
+import { Meridian } from "./index.js";
+import { MeridianError, type MeridianConfig, type StateStorage, type ObservabilityAdapter, type RequestContext, type ResponseContext, type ErrorContext, type Metric } from "./core/types.js";
 
 
 class MockStateStorage implements StateStorage {
@@ -69,7 +69,7 @@ describe("Safety Guarantees", () => {
   describe("1. Initialization Enforcement", () => {
     it("should throw if methods are called before initialization", async () => {
       
-      const config: BoundaryConfig = {
+      const config: MeridianConfig = {
         github: {
           auth: { token: "test-token" },
         },
@@ -77,53 +77,53 @@ describe("Safety Guarantees", () => {
       };
 
       
-      const boundary = new Boundary(config);
+      const meridian = new Meridian(config);
       
       
       expect(() => {
-        boundary.getCircuitStatus("github");
-      }).toThrow("Boundary SDK must be initialized before use");
+        meridian.getCircuitStatus("github");
+      }).toThrow("Meridian SDK must be initialized before use");
 
       
-      await boundary.start();
+      await meridian.start();
       
       
       expect(() => {
-        boundary.getCircuitStatus("github");
+        meridian.getCircuitStatus("github");
       }).not.toThrow();
     });
 
     it("should work after proper initialization", async () => {
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
         localUnsafe: true,
       });
 
-      expect(boundary).toBeDefined();
+      expect(meridian).toBeDefined();
       
-      expect(() => boundary.getCircuitStatus("github")).not.toThrow();
+      expect(() => meridian.getCircuitStatus("github")).not.toThrow();
     });
   });
 
   describe("2. Fail-Closed State Management", () => {
     it("should throw in distributed mode without StateStorage", async () => {
-      const config: BoundaryConfig = {
+      const config: MeridianConfig = {
         mode: "distributed",
         github: {
           auth: { token: "test-token" },
         },
       };
 
-      await expect(Boundary.create(config)).rejects.toThrow(
-        "Boundary requires a configured stateStorage in 'distributed' mode"
+      await expect(Meridian.create(config)).rejects.toThrow(
+        "Meridian requires a configured stateStorage in 'distributed' mode"
       );
     });
 
     it("should allow distributed mode with StateStorage", async () => {
       const stateStorage = new MockStateStorage();
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         mode: "distributed",
         stateStorage,
         providers: {
@@ -133,24 +133,24 @@ describe("Safety Guarantees", () => {
         },
       });
 
-      expect(boundary).toBeDefined();
+      expect(meridian).toBeDefined();
     });
 
     it("should throw without StateStorage unless localUnsafe is true", async () => {
-      const config: BoundaryConfig = {
+      const config: MeridianConfig = {
         github: {
           auth: { token: "test-token" },
         },
         
       };
 
-      await expect(Boundary.create(config)).rejects.toThrow(
-        "Boundary requires a configured stateStorage unless 'localUnsafe' is set to true"
+      await expect(Meridian.create(config)).rejects.toThrow(
+        "Meridian requires a configured stateStorage unless 'localUnsafe' is set to true"
       );
     });
 
     it("should allow local mode with localUnsafe", async () => {
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         mode: "local",
         localUnsafe: true,
         github: {
@@ -158,14 +158,14 @@ describe("Safety Guarantees", () => {
         },
       });
 
-      expect(boundary).toBeDefined();
+      expect(meridian).toBeDefined();
     });
   });
 
   describe("3. Centralized Secret Redaction", () => {
     it("should never leak secrets in request logs", async () => {
       const capturingObs = new CapturingObservability();
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         github: {
           auth: { token: "secret-token-12345" },
         },
@@ -175,7 +175,7 @@ describe("Safety Guarantees", () => {
 
       
       try {
-        await (boundary as any).github.get("/test", {
+        await (meridian as any).github.get("/test", {
           headers: {
             Authorization: "Bearer secret-token-12345",
             "X-API-Key": "api-key-secret",
@@ -200,7 +200,7 @@ describe("Safety Guarantees", () => {
 
     it("should never leak secrets in error logs", async () => {
       const capturingObs = new CapturingObservability();
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         github: {
           auth: { token: "secret-token-12345" },
         },
@@ -210,7 +210,7 @@ describe("Safety Guarantees", () => {
 
       
       try {
-        await (boundary as any).github.get("/test", {
+        await (meridian as any).github.get("/test", {
           headers: {
             Authorization: "Bearer secret-token-12345",
           },
@@ -229,7 +229,7 @@ describe("Safety Guarantees", () => {
 
     it("should never leak secrets in metrics", async () => {
       const capturingObs = new CapturingObservability();
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         github: {
           auth: { token: "secret-token-12345" },
         },
@@ -239,7 +239,7 @@ describe("Safety Guarantees", () => {
 
       
       try {
-        await (boundary as any).github.get("/test", {
+        await (meridian as any).github.get("/test", {
           headers: {
             Authorization: "Bearer secret-token-12345",
           },
@@ -264,7 +264,7 @@ describe("Safety Guarantees", () => {
 
     it("should redact sensitive keys in query parameters", async () => {
       const capturingObs = new CapturingObservability();
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -273,7 +273,7 @@ describe("Safety Guarantees", () => {
       });
 
       try {
-        await (boundary as any).github.get("/test", {
+        await (meridian as any).github.get("/test", {
           query: {
             api_key: "secret-api-key",
             token: "secret-token",
@@ -313,7 +313,7 @@ describe("Safety Guarantees", () => {
       };
 
       await expect(
-        Boundary.create({
+        Meridian.create({
           providers: {
             test: {
               auth: { token: "test" },
@@ -332,12 +332,12 @@ describe("Safety Guarantees", () => {
         buildRequest: () => ({ url: "test", method: "GET", headers: {} }),
         parseResponse: () => ({ data: {}, meta: { provider: "test", requestId: "1", rateLimit: { limit: 1, remaining: 1, reset: new Date() }, warnings: [], schemaVersion: "1.0" } }),
         parseError: () => {
-          return new BoundaryError("test", "provider", "test", false, "");
+          return new MeridianError("test", "provider", "test", false, "");
         },
         authStrategy: async (config: any) => {
           
           
-          if (config.token === "BOUNDARY_TEST_TOKEN_DO_NOT_VALIDATE") {
+          if (config.token === "MERIDIAN_TEST_TOKEN_DO_NOT_VALIDATE") {
             
             return { token: "test-token" };
           }
@@ -357,7 +357,7 @@ describe("Safety Guarantees", () => {
         }),
       };
 
-      await Boundary.create({
+      await Meridian.create({
         providers: {
           test: {
             auth: { token: "real-token" },
@@ -405,7 +405,7 @@ describe("Safety Guarantees", () => {
           };
         },
         parseError: () => {
-          return new BoundaryError("test", "provider", "test", false, "");
+          return new MeridianError("test", "provider", "test", false, "");
         },
         authStrategy: async () => ({ token: "test" }),
         rateLimitPolicy: () => ({ limit: 1, remaining: 1, reset: new Date() }),
@@ -421,7 +421,7 @@ describe("Safety Guarantees", () => {
         }),
       };
 
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         providers: {
           test: {
             auth: { token: "test" },
@@ -431,7 +431,7 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      const paginator = (boundary as any).test.paginate("/test");
+      const paginator = (meridian as any).test.paginate("/test");
       
       
       let errorThrown = false;
@@ -488,7 +488,7 @@ describe("Safety Guarantees", () => {
           };
         },
         parseError: () => {
-          return new BoundaryError("test", "provider", "test", false, "");
+          return new MeridianError("test", "provider", "test", false, "");
         },
         authStrategy: async () => ({ token: "test" }),
         rateLimitPolicy: () => ({ limit: 1, remaining: 1, reset: new Date() }),
@@ -504,7 +504,7 @@ describe("Safety Guarantees", () => {
         }),
       };
 
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         providers: {
           test: {
             auth: { token: "test" },
@@ -514,7 +514,7 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      const paginator = (boundary as any).test.paginate("/test");
+      const paginator = (meridian as any).test.paginate("/test");
 
 
       let pagesYielded = 0;
@@ -543,7 +543,7 @@ describe("Safety Guarantees", () => {
         text: async () => "Not found",
       });
 
-      const boundary = await Boundary.create({
+      const meridian = await Meridian.create({
         github: {
           auth: { token: "test-token" },
         },
@@ -552,7 +552,7 @@ describe("Safety Guarantees", () => {
 
       
       
-      const client = (boundary as any).github;
+      const client = (meridian as any).github;
 
       
       await expect(

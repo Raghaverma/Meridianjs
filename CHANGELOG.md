@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Public API lockdown**: Package now exports from `src/public.ts` as the single public entry point. This restricts consumer access to only documented, stable APIs.
-- **Error contract enhancement**: `BoundaryError` now exposes a `code` getter as an alias for `category`. This provides forward compatibility with documented error contracts while maintaining backward compatibility.
+- **Error contract enhancement**: `MeridianError` now exposes a `code` getter as an alias for `category`. This provides forward compatibility with documented error contracts while maintaining backward compatibility.
 
 ### Internal
 - Fixed incomplete code from prior refactoring in error message formatting
-- Corrected timeout error construction to use proper `BoundaryError` class instantiation
+- Corrected timeout error construction to use proper `MeridianError` class instantiation
 - Improved code consistency across error handling paths
 
 ## [2.0.1] - 2025-01-14
@@ -29,9 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-- **Constructor removed**: `new Boundary(config)` no longer works. Use `await Boundary.create(config)` instead. This enforces async initialization and prevents use before initialization.
+- **Constructor removed**: `new Meridian(config)` no longer works. Use `await Meridian.create(config)` instead. This enforces async initialization and prevents use before initialization.
 
-- **Mandatory initialization**: All SDK methods throw if called before `Boundary.create()` completes. This prevents undefined behavior from uninitialized state.
+- **Mandatory initialization**: All SDK methods throw if called before `Meridian.create()` completes. This prevents undefined behavior from uninitialized state.
 
 - **StateStorage enforcement**: 
   - `mode: "distributed"` **requires** a `StateStorage` implementation. Startup fails without it.
@@ -54,11 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Adapter validation safety**: Validation uses fake test tokens to prevent side effects during adapter checks.
 
-- **Instance-scoped adapter cache**: Prevents config sharing across Boundary instances.
+- **Instance-scoped adapter cache**: Prevents config sharing across Meridian instances.
 
 ### Changed
 
-- All examples and documentation updated to use `Boundary.create()` pattern.
+- All examples and documentation updated to use `Meridian.create()` pattern.
 - Enhanced header sanitization to handle variations (e.g., "X-API-Key" matches "apikey").
 - Improved error messages for state management failures.
 
@@ -75,22 +75,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 1. **Replace constructor with factory method:**
    ```typescript
    // ❌ OLD (1.x)
-   const boundary = new Boundary({ ... });
+   const meridian = new Meridian({ ... });
    
    // ✅ NEW (2.0.0)
-   const boundary = await Boundary.create({ ... });
+   const meridian = await Meridian.create({ ... });
    ```
 
 2. **Add state management configuration:**
    ```typescript
    // For local development
-   const boundary = await Boundary.create({
+   const meridian = await Meridian.create({
      ...config,
      localUnsafe: true, // Required for local dev
    });
    
    // For production/distributed
-   const boundary = await Boundary.create({
+   const meridian = await Meridian.create({
      ...config,
      mode: "distributed",
      stateStorage: new YourStateStorage(), // Required
@@ -144,9 +144,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Error normalization with unified error contract
 - TypeScript strict mode with full type safety
 
-[Unreleased]: https://github.com/Raghaverma/Boundary/compare/v1.0.2...HEAD
-[1.0.2]: https://github.com/Raghaverma/Boundary/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/Raghaverma/Boundary/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/Raghaverma/Boundary/releases/tag/v1.0.0
+[Unreleased]: https://github.com/Raghaverma/Meridian/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/Raghaverma/Meridian/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/Raghaverma/Meridian/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/Raghaverma/Meridian/releases/tag/v1.0.0
 
 

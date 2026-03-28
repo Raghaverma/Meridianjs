@@ -4,11 +4,11 @@ import {
   CircuitState,
   type CircuitBreakerConfig,
   type CircuitBreakerStatus,
-  BoundaryError,
+  MeridianError,
 } from "../core/types.js";
 
 
-export class CircuitOpenError extends BoundaryError {
+export class CircuitOpenError extends MeridianError {
   constructor(provider: string, retryAfter?: Date) {
     super(
       `Circuit breaker is OPEN for provider: ${provider}`,

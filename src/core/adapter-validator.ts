@@ -1,7 +1,7 @@
 
 
 import {
-  BoundaryError,
+  MeridianError,
   type ProviderAdapter,
   type RawResponse,
   type AdapterInput,
@@ -137,13 +137,13 @@ export async function validateAdapter(
         const error: unknown = adapter.parseError(testError);
 
         
-        if (!(error instanceof BoundaryError)) {
+        if (!(error instanceof MeridianError)) {
           if (error instanceof Error) {
             errors.push(
-              "parseError must return BoundaryError instance (extends Error), got Error-like object without proper inheritance"
+              "parseError must return MeridianError instance (extends Error), got Error-like object without proper inheritance"
             );
           } else {
-            errors.push("parseError must return BoundaryError instance");
+            errors.push("parseError must return MeridianError instance");
           }
           continue;
         }
@@ -158,7 +158,7 @@ export async function validateAdapter(
 
         
         if (typeof error.retryable !== "boolean") {
-          errors.push("parseError returned BoundaryError with non-boolean 'retryable' property");
+          errors.push("parseError returned MeridianError with non-boolean 'retryable' property");
         }
 
 
@@ -171,7 +171,7 @@ export async function validateAdapter(
 
         if (typeof error.requestId !== "string") {
           errors.push(
-            "parseError must return BoundaryError with requestId as string"
+            "parseError must return MeridianError with requestId as string"
           );
         }
 
@@ -201,7 +201,7 @@ export async function validateAdapter(
   if (typeof adapter.authStrategy === "function") {
     try {
       
-      const config: AuthConfig = { token: "BOUNDARY_TEST_TOKEN_DO_NOT_VALIDATE" };
+      const config: AuthConfig = { token: "MERIDIAN_TEST_TOKEN_DO_NOT_VALIDATE" };
       const tokenPromise = adapter.authStrategy(config);
 
       if (!(tokenPromise instanceof Promise)) {
@@ -217,15 +217,15 @@ export async function validateAdapter(
         } catch (error) {
           
           if (error instanceof Error && "category" in error) {
-            const boundaryError = error as BoundaryError;
-            if (boundaryError.category !== "auth") {
+            const meridianError = error as MeridianError;
+            if (meridianError.category !== "auth") {
               warnings.push(
-                "authStrategy should throw BoundaryError with category 'auth' on failure"
+                "authStrategy should throw MeridianError with category 'auth' on failure"
               );
             }
           } else {
             warnings.push(
-              "authStrategy should throw BoundaryError, not raw Error"
+              "authStrategy should throw MeridianError, not raw Error"
             );
           }
         }

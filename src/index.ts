@@ -1,7 +1,7 @@
 
 
 import type {
-  BoundaryConfig,
+  MeridianConfig,
   ProviderConfig,
   NormalizedResponse,
   CircuitBreakerStatus,
@@ -18,11 +18,17 @@ import { ConsoleObservability } from "./observability/console.js";
 import type { ProviderAdapter } from "./core/types.js";
 import { assertValidAdapter } from "./core/adapter-validator.js";
 import { GitHubAdapter } from "./providers/github/adapter.js";
+import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
+import { OpenAIAdapter } from "./providers/openai/adapter.js";
+import { StripeAdapter } from "./providers/stripe/adapter.js";
 import { sanitizeObject } from "./core/observability-sanitizer.js";
 
 
 const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
+  anthropic: AnthropicAdapter,
+  openai: OpenAIAdapter,
+  stripe: StripeAdapter,
 };
 
 
@@ -57,8 +63,8 @@ export interface ProviderClient {
 }
 
 
-export class Boundary {
-  private config: BoundaryConfig;
+export class Meridian {
+  private config: MeridianConfig;
   private pipelines: Map<string, RequestPipeline> = new Map();
   private circuitBreakers: Map<string, ProviderCircuitBreaker> = new Map();
   private observability: ObservabilityAdapter[];
@@ -66,7 +72,7 @@ export class Boundary {
   private started = false;
   private adapterCache: Map<string, ProviderAdapter> = new Map();
 
-  private constructor(config: BoundaryConfig, adapters?: Map<string, ProviderAdapter>) {
+  private constructor(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
     
     this.validateConfig(config);
 
@@ -85,6 +91,7 @@ export class Boundary {
             "stateStorage",
             "localUnsafe",
             "mode",
+            "compliance",
           ]);
           const providerConfigs: Record<string, ProviderConfig> = {};
           
@@ -123,8 +130,8 @@ export class Boundary {
   }
 
   
-  static async create(config: BoundaryConfig, adapters?: Map<string, ProviderAdapter>) {
-    const b = new Boundary(config, adapters);
+  static async create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
+    const b = new Meridian(config, adapters);
     await b.start();
     return b;
   }
@@ -133,19 +140,19 @@ export class Boundary {
   private emitLocalStateWarning(): void {
     
     const warning = [
-      "[Boundary] WARNING: Using in-memory state for circuit breaker and rate limiter.",
+      "[Meridian] WARNING: Using in-memory state for circuit breaker and rate limiter.",
       "This state will be lost on process restart or serverless cold start.",
       "For production serverless deployments, consider:",
       "  1. Implementing StateStorage interface with Redis/Memcached",
       "  2. Using external rate limiting (API gateway)",
       "  3. Accepting state reset as a trade-off for simplicity",
-      "See: https://github.com/Raghaverma/Boundary#state-persistence",
+      "See: https://github.com/Raghaverma/Meridian#state-persistence",
     ].join("\n");
 
     
     
     const safeMetadata = sanitizeObject(
-      { component: "Boundary", type: "state_warning" },
+      { component: "Meridian", type: "state_warning" },
       this.config.observabilitySanitizer
     );
     if (this.observability && this.observability.length > 0) {
@@ -166,7 +173,7 @@ export class Boundary {
       if (errors.length === this.observability.length) {
         console.warn(warning);
         console.error(
-          `[Boundary] All observability adapters failed for logWarning:\n${errors
+          `[Meridian] All observability adapters failed for logWarning:\n${errors
             .map(
               ({ adapter, error }) =>
                 `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`
@@ -176,7 +183,7 @@ export class Boundary {
       } else if (errors.length > 0) {
         
         console.error(
-          `[Boundary] Some observability adapters failed for logWarning (${errors.length}/${this.observability.length}):\n${errors
+          `[Meridian] Some observability adapters failed for logWarning (${errors.length}/${this.observability.length}):\n${errors
             .map(
               ({ adapter, error }) =>
                 `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`
@@ -189,7 +196,7 @@ export class Boundary {
     }
   }
 
-  private validateConfig(config: BoundaryConfig): void {
+  private validateConfig(config: MeridianConfig): void {
     const errors: string[] = [];
 
     
@@ -240,7 +247,7 @@ export class Boundary {
     }
 
     if (errors.length > 0) {
-      throw new Error(`Invalid Boundary configuration:\n  - ${errors.join()}`);
+      throw new Error(`Invalid Meridian configuration:\n  - ${errors.join()}`);
     }
   }
 
@@ -318,9 +325,11 @@ export class Boundary {
       timeout: this.config.defaults?.timeout ?? undefined,
       autoGenerateIdempotencyKeys:
         this.config.idempotency?.autoGenerateKeys ?? false,
-      ...(this.config.observabilitySanitizer
-        ? { sanitizerOptions: this.config.observabilitySanitizer }
-        : {}),
+      sanitizerOptions: {
+        ...(this.config.observabilitySanitizer ?? {}),
+        piiRedaction: this.config.compliance?.piiRedaction,
+      },
+      compliance: this.config.compliance,
     };
     const pipeline = new RequestPipeline(pipelineConfig);
 
@@ -336,7 +345,7 @@ export class Boundary {
     if (!adapter) {
       throw new Error(`Adapter not found for provider: ${providerName}`);
     }
-    const boundary = this; 
+    const meridian = this;
     const maxPages = 1000; 
 
     const makeRequest = async <T>(
@@ -344,7 +353,7 @@ export class Boundary {
       endpoint: string,
       options: RequestOptions = {}
     ): Promise<NormalizedResponse<T>> => {
-      boundary.ensureStarted();
+      meridian.ensureStarted();
       return pipeline.execute<T>(endpoint, {
         ...options,
         method: method as any,
@@ -355,9 +364,9 @@ export class Boundary {
       endpoint: string,
       options: RequestOptions = {}
     ): AsyncGenerator<NormalizedResponse<T>> {
-      boundary.ensureStarted();
+      meridian.ensureStarted();
       
-      const currentAdapter = boundary.adapters.get(providerName);
+      const currentAdapter = meridian.adapters.get(providerName);
       if (!currentAdapter) {
         throw new Error(`Adapter not found for provider: ${providerName}`);
       }
@@ -439,6 +448,9 @@ export class Boundary {
   }
 
   
+  provider(name: "anthropic"): ProviderClient | undefined;
+  provider(name: "openai"): ProviderClient | undefined;
+  provider(name: "stripe"): ProviderClient | undefined;
   provider(name: "github"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined {
@@ -480,7 +492,7 @@ export class Boundary {
     
     if (this.config.mode === "distributed" && !this.config.stateStorage) {
       throw new Error(
-        "Boundary requires a configured stateStorage in 'distributed' mode. " +
+        "Meridian requires a configured stateStorage in 'distributed' mode. " +
         "Provide a StateStorage implementation (e.g., Redis) for distributed deployments. " +
         "If you intend to use local in-memory state, set mode to 'local' or omit the mode field."
       );
@@ -490,7 +502,7 @@ export class Boundary {
     
     if (!this.config.stateStorage && !this.config.localUnsafe && this.config.mode !== "local") {
       throw new Error(
-        "Boundary requires a configured stateStorage unless 'localUnsafe' is set to true. " +
+        "Meridian requires a configured stateStorage unless 'localUnsafe' is set to true. " +
         "For production deployments, provide a StateStorage implementation. " +
         "For local development, explicitly set 'localUnsafe: true' to acknowledge the limitation."
       );
@@ -515,8 +527,8 @@ export class Boundary {
   private ensureStarted(): void {
     if (!this.started) {
       throw new Error(
-        "Boundary SDK must be initialized before use. " +
-        "Call 'await Boundary.create(config)' and await the result before using any methods."
+        "Meridian SDK must be initialized before use. " +
+        "Call 'await Meridian.create(config)' and await the result before using any methods."
       );
     }
   }

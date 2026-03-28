@@ -35,7 +35,7 @@ export interface PaginationInfo {
 
 
 
-export type BoundaryErrorCategory =
+export type MeridianErrorCategory =
   | "auth"
   | "rate_limit"
   | "network"
@@ -43,7 +43,7 @@ export type BoundaryErrorCategory =
   | "validation";
 
 
-export type BoundaryErrorCode =
+export type MeridianErrorCode =
   | "AUTH_FAILED"
   | "RATE_LIMITED"
   | "NOT_FOUND"
@@ -54,9 +54,9 @@ export type BoundaryErrorCode =
   | "UNKNOWN";
 
 
-export class BoundaryError extends Error {
+export class MeridianError extends Error {
 
-  category: BoundaryErrorCategory;
+  category: MeridianErrorCategory;
 
 
   retryable: boolean;
@@ -78,7 +78,7 @@ export class BoundaryError extends Error {
 
   constructor(
     message: string,
-    category: BoundaryErrorCategory,
+    category: MeridianErrorCategory,
     provider: string,
     retryable: boolean,
     requestId: string = "",
@@ -87,7 +87,7 @@ export class BoundaryError extends Error {
     status?: number
   ) {
     super(message);
-    this.name = "BoundaryError";
+    this.name = "MeridianError";
     this.category = category;
     this.provider = provider;
     this.retryable = retryable;
@@ -106,21 +106,21 @@ export class BoundaryError extends Error {
 
 
     if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, BoundaryError);
+      Error.captureStackTrace(this, MeridianError);
     }
   }
 
   /**
-   * Returns the frozen error code from the BoundaryErrorCode enum.
+   * Returns the frozen error code from the MeridianErrorCode enum.
    * Maps internal category to public error code contract.
    */
-  get code(): BoundaryErrorCode {
+  get code(): MeridianErrorCode {
     return mapCategoryToErrorCode(this.category, this.status);
   }
 }
 
 
-export function mapCategoryToErrorCode(category: BoundaryErrorCategory, status?: number): BoundaryErrorCode {
+export function mapCategoryToErrorCode(category: MeridianErrorCategory, status?: number): MeridianErrorCode {
   switch (category) {
     case "auth":
       return "AUTH_FAILED";
@@ -147,7 +147,7 @@ export function mapCategoryToErrorCode(category: BoundaryErrorCategory, status?:
 }
 
 
-export function isRetryableByCode(code: BoundaryErrorCode): boolean {
+export function isRetryableByCode(code: MeridianErrorCode): boolean {
   switch (code) {
     case "NETWORK_ERROR":
     case "TIMEOUT":
@@ -193,6 +193,7 @@ export interface RequestOptions {
   query?: Record<string, string | number | boolean>;
   idempotencyKey?: string;
   timeout?: number;
+  identity?: string | undefined;
 }
 
 export interface RequestContext {
@@ -202,6 +203,7 @@ export interface RequestContext {
   requestId: string;
   timestamp: Date;
   options: RequestOptions;
+  identity?: string | undefined;
 }
 
 export interface ResponseContext {
@@ -212,6 +214,7 @@ export interface ResponseContext {
   statusCode: number;
   duration: number;
   timestamp: Date;
+  identity?: string | undefined;
 }
 
 export interface ErrorContext {
@@ -219,9 +222,10 @@ export interface ErrorContext {
   endpoint: string;
   method: string;
   requestId: string;
-  error: BoundaryError;
+  error: MeridianError;
   duration: number;
   timestamp: Date;
+  identity?: string | undefined;
 }
 
 
@@ -289,7 +293,7 @@ export interface ProviderAdapter {
   parseResponse(raw: RawResponse): NormalizedResponse;
 
   
-  parseError(raw: unknown): BoundaryError;
+  parseError(raw: unknown): MeridianError;
 
   
   authStrategy(config: AuthConfig): Promise<AuthToken>;
@@ -475,7 +479,7 @@ export interface ProviderConfig {
   idempotency?: Partial<IdempotencyConfig>;
 }
 
-export interface BoundaryConfig {
+export interface MeridianConfig {
   providers?: Record<string, ProviderConfig>;
   defaults?: {
     retry?: Partial<RetryConfig>;
@@ -504,6 +508,11 @@ export interface BoundaryConfig {
   };
   
   localUnsafe?: boolean;
+  
+  compliance?: {
+    piiRedaction?: boolean | undefined;
+    auditLog?: boolean | undefined;
+  };
   
   [providerName: string]: unknown;
 }
