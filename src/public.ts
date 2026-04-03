@@ -73,3 +73,7 @@ export { AnthropicAdapter } from "./providers/anthropic/adapter.js";
 export { OpenAIAdapter } from "./providers/openai/adapter.js";
 export { StripeAdapter } from "./providers/stripe/adapter.js";
 export { GitHubAdapter } from "./providers/github/adapter.js";
+
+// Claw / agent proxy integration
+export { BoundaryProxyServer } from "./proxy/server.js";
+export type { ProxyServerOptions } from "./proxy/server.js";

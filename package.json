@@ -25,7 +25,12 @@
     "test:watch": "vitest --watch",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "proxy": "node dist/proxy/cli.js",
+    "proxy:build": "npm run build && npm run proxy"
+  },
+  "bin": {
+    "boundary-proxy": "dist/proxy/cli.js"
   },
   "keywords": [
     "api",

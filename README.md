@@ -115,6 +115,58 @@ Each configured provider exposes a client with:
 - `delete<T>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>`
 - `paginate<T>(endpoint: string, options?: RequestOptions): AsyncGenerator<NormalizedResponse<T>>`
 
+## Claw Code Integration (Agent Proxy)
+
+Meridian ships a built-in HTTP proxy that lets AI agents (such as [Claw Code](https://github.com/instructkr)) route all outbound API calls through the Meridian pipeline automatically — rate limiting, circuit breaking, and secret redaction apply to every request without any changes to the agent runtime.
+
+### Start the proxy
+
+```bash
+# After installing meridianjs
+export GITHUB_TOKEN="ghp_..."
+export ANTHROPIC_API_KEY="sk-ant-..."
+export OPENAI_API_KEY="sk-..."
+export STRIPE_SECRET_KEY="sk_live_..."
+
+npx boundary-proxy          # listens on http://127.0.0.1:4242
+npx boundary-proxy 8080     # custom port
+BOUNDARY_PROXY_PORT=9000 npx boundary-proxy
+```
+
+### Route pattern
+
+```
+http://127.0.0.1:4242/<provider>/<endpoint>
+```
+
+| Example | Forwards to |
+|---|---|
+| `GET /github/repos/octocat/Hello-World` | `GET https://api.github.com/repos/octocat/Hello-World` |
+| `POST /anthropic/v1/messages` | `POST https://api.anthropic.com/v1/messages` |
+| `GET /openai/v1/models` | `GET https://api.openai.com/v1/models` |
+| `GET /stripe/v1/customers` | `GET https://api.stripe.com/v1/customers` |
+
+Every response is a `NormalizedResponse<T>` with a consistent `{ data, meta }` shape regardless of provider.
+
+### Embed programmatically
+
+```typescript
+import { BoundaryProxyServer } from "meridianjs";
+
+const proxy = new BoundaryProxyServer({
+  port: 4242,
+  providers: {
+    github:    { token:  process.env.GITHUB_TOKEN },
+    anthropic: { apiKey: process.env.ANTHROPIC_API_KEY },
+    openai:    { apiKey: process.env.OPENAI_API_KEY },
+    stripe:    { apiKey: process.env.STRIPE_SECRET_KEY },
+  },
+});
+
+await proxy.start();
+// → [Boundary Proxy] Listening on http://127.0.0.1:4242
+```
+
 ## Project Status
 
 **v0.1.0** - Early release. Core functionality is stable and tested. Provider support includes Anthropic, OpenAI, Stripe, and GitHub out of the box. API may evolve based on real-world feedback before v1.0.
