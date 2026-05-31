@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /Users/mac/Desktop/Raghav/Meridianjs; echo \\\"=== current branch ===\\\"; git branch --show-current; echo \\\"=== is f127fa8 still reachable? ===\\\"; git cat-file -t f127fa8 2>&1; echo \\\"=== ...",
-  "error": "Exit code 1\n=== current branch ===\nmain\n=== is f127fa8 still reachable? ===\ncommit\n=== reflog (last 8) ===\n630ea4c HEAD@{0}: commit: docs: update README badges and status for streaming, compliance, webhooks, Twilio\n767df33 HEAD@{1}: checkout: moving from feat/streaming-compliance-twilio-webhooks to main\n4853fbe HEAD@{2}: commit: refactor: update build command and project memory, and rotate subagent state tracking\nf127fa8 HEAD@{3}: commit: feat: streaming, India compliance, Twilio adapter, webhoo...",
-  "timestamp": "2026-05-31T18:36:38.703Z",
-  "retry_count": 1
-}

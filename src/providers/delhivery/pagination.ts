@@ -37,10 +37,10 @@ export class DelhiveryPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const currentOffset = parseInt(String(options.query?.["offset"] ?? 0), 10);
-    const itemsReturned = parseInt(cursor, 10) - currentOffset;
+    const currentOffset = Number.parseInt(String(options.query?.["offset"] ?? 0), 10);
+    const itemsReturned = Number.parseInt(cursor, 10) - currentOffset;
     return {
       endpoint,
       options: {

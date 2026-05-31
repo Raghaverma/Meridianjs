@@ -1,20 +1,20 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { DecentroPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
 
 interface DecentroErrorBody {
   decentroTxnId: string;
@@ -26,7 +26,7 @@ interface DecentroErrorBody {
 export class DecentroAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://in.decentro.tech") {
+  constructor(baseUrl = "https://in.decentro.tech") {
     this.baseUrl = baseUrl;
   }
 
@@ -45,9 +45,9 @@ export class DecentroAdapter implements ProviderAdapter {
     const clientSecret = parts[1] ?? "";
     const moduleSecret = parts[2] ?? "";
     const headers: Record<string, string> = {
-      "client_id": clientId,
-      "client_secret": clientSecret,
-      "module_secret": moduleSecret,
+      client_id: clientId,
+      client_secret: clientSecret,
+      module_secret: moduleSecret,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -71,7 +71,14 @@ export class DecentroAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "decentro", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "decentro",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -85,7 +92,9 @@ export class DecentroAdapter implements ProviderAdapter {
         msg.includes("enotfound") ||
         msg.includes("timeout")
       ) {
-        return this.createMeridianError("network", true, "Network request failed.", { originalError: raw.message });
+        return this.createMeridianError("network", true, "Network request failed.", {
+          originalError: raw.message,
+        });
       }
     }
     if (
@@ -95,7 +104,12 @@ export class DecentroAdapter implements ProviderAdapter {
       typeof (raw as Record<string, unknown>)["status"] === "number"
     ) {
       return this.parseHttpError(
-        raw as { status: number; headers?: Headers | Record<string, string>; body?: unknown; message?: string }
+        raw as {
+          status: number;
+          headers?: Headers | Record<string, string>;
+          body?: unknown;
+          message?: string;
+        },
       );
     }
     return this.createMeridianError("provider", false, "An unexpected error occurred", { raw });
@@ -113,22 +127,78 @@ export class DecentroAdapter implements ProviderAdapter {
     const responseCode = errorBody?.responseCode;
 
     if (status === 401)
-      return this.createMeridianError("auth", false, errorMessage ?? "Authentication failed.", { responseCode }, undefined, 401);
+      return this.createMeridianError(
+        "auth",
+        false,
+        errorMessage ?? "Authentication failed.",
+        { responseCode },
+        undefined,
+        401,
+      );
     if (status === 403)
-      return this.createMeridianError("auth", false, errorMessage ?? "Permission denied.", { responseCode }, undefined, 403);
+      return this.createMeridianError(
+        "auth",
+        false,
+        errorMessage ?? "Permission denied.",
+        { responseCode },
+        undefined,
+        403,
+      );
     if (status === 404)
-      return this.createMeridianError("validation", false, errorMessage ?? "Resource not found.", { responseCode }, undefined, 404);
+      return this.createMeridianError(
+        "validation",
+        false,
+        errorMessage ?? "Resource not found.",
+        { responseCode },
+        undefined,
+        404,
+      );
     if (status === 429) {
       const retryAfter = this.extractRetryAfter(headers);
-      return this.createMeridianError("rate_limit", true, "Rate limit exceeded.", { responseCode }, retryAfter, 429);
+      return this.createMeridianError(
+        "rate_limit",
+        true,
+        "Rate limit exceeded.",
+        { responseCode },
+        retryAfter,
+        429,
+      );
     }
     if (status === 400 || status === 422)
-      return this.createMeridianError("validation", false, errorMessage ?? "Validation failed.", { responseCode }, undefined, status);
+      return this.createMeridianError(
+        "validation",
+        false,
+        errorMessage ?? "Validation failed.",
+        { responseCode },
+        undefined,
+        status,
+      );
     if (status >= 500)
-      return this.createMeridianError("provider", true, `Decentro API returned error ${status}.`, { status }, undefined, status);
+      return this.createMeridianError(
+        "provider",
+        true,
+        `Decentro API returned error ${status}.`,
+        { status },
+        undefined,
+        status,
+      );
     if (status >= 400)
-      return this.createMeridianError("validation", false, `Request failed with status ${status}.`, { status }, undefined, status);
-    return this.createMeridianError("provider", false, `Unexpected response status ${status}.`, { status }, undefined, status);
+      return this.createMeridianError(
+        "validation",
+        false,
+        `Request failed with status ${status}.`,
+        { status },
+        undefined,
+        status,
+      );
+    return this.createMeridianError(
+      "provider",
+      false,
+      `Unexpected response status ${status}.`,
+      { status },
+      undefined,
+      status,
+    );
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
@@ -142,7 +212,7 @@ export class DecentroAdapter implements ProviderAdapter {
         "Requires clientId, clientSecret, and moduleSecret.",
         {},
         undefined,
-        401
+        401,
       );
     }
     return { token: `${clientId}|${clientSecret}|${moduleSecret}` };
@@ -181,12 +251,23 @@ export class DecentroAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "decentro", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "decentro",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
-  private extractRetryAfter(headers: Headers | Record<string, string> | undefined): Date | undefined {
+  private extractRetryAfter(
+    headers: Headers | Record<string, string> | undefined,
+  ): Date | undefined {
     if (!headers) return undefined;
     const value =
       headers instanceof Headers

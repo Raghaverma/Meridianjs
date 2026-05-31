@@ -1,13 +1,11 @@
-
-
+import { randomUUID } from "crypto";
 import type {
   NormalizedResponse,
-  ResponseMeta,
-  RawResponse,
-  RateLimitInfo,
   PaginationInfo,
+  RateLimitInfo,
+  RawResponse,
+  ResponseMeta,
 } from "./types.js";
-import { randomUUID } from "crypto";
 
 export class ResponseNormalizer {
   static normalize<T>(
@@ -16,7 +14,7 @@ export class ResponseNormalizer {
     rateLimitInfo: RateLimitInfo,
     paginationInfo?: PaginationInfo,
     warnings: string[] = [],
-    schemaVersion: string = "1.0.0"
+    schemaVersion = "1.0.0",
   ): NormalizedResponse<T> {
     const requestId = randomUUID();
 
@@ -40,7 +38,11 @@ export class ResponseNormalizer {
 
   static extractPaginationInfo(
     raw: RawResponse,
-    paginationStrategy: { hasNext: (response: RawResponse) => boolean; extractCursor: (response: RawResponse) => string | null; extractTotal: (response: RawResponse) => number | null }
+    paginationStrategy: {
+      hasNext: (response: RawResponse) => boolean;
+      extractCursor: (response: RawResponse) => string | null;
+      extractTotal: (response: RawResponse) => number | null;
+    },
   ): PaginationInfo | undefined {
     const hasNext = paginationStrategy.hasNext(raw);
     if (!hasNext) {
@@ -62,4 +64,3 @@ export class ResponseNormalizer {
     return pagination;
   }
 }
-

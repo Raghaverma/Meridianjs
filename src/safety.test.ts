@@ -1,9 +1,15 @@
-
-
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  type ErrorContext,
+  type MeridianConfig,
+  MeridianError,
+  type Metric,
+  type ObservabilityAdapter,
+  type RequestContext,
+  type ResponseContext,
+  type StateStorage,
+} from "./core/types.js";
 import { Meridian } from "./index.js";
-import { MeridianError, type MeridianConfig, type StateStorage, type ObservabilityAdapter, type RequestContext, type ResponseContext, type ErrorContext, type Metric } from "./core/types.js";
-
 
 class MockStateStorage implements StateStorage {
   private storage = new Map<string, { value: string; ttl?: number; expiresAt?: number }>();
@@ -27,7 +33,6 @@ class MockStateStorage implements StateStorage {
     this.storage.delete(key);
   }
 }
-
 
 class CapturingObservability implements ObservabilityAdapter {
   requests: RequestContext[] = [];
@@ -68,7 +73,6 @@ class CapturingObservability implements ObservabilityAdapter {
 describe("Safety Guarantees", () => {
   describe("1. Initialization Enforcement", () => {
     it("should throw if methods are called before initialization", async () => {
-      
       const config: MeridianConfig = {
         github: {
           auth: { token: "test-token" },
@@ -76,18 +80,14 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       };
 
-      
       const meridian = new Meridian(config);
-      
-      
+
       expect(() => {
         meridian.getCircuitStatus("github");
       }).toThrow("Meridian SDK must be initialized before use");
 
-      
       await meridian.start();
-      
-      
+
       expect(() => {
         meridian.getCircuitStatus("github");
       }).not.toThrow();
@@ -102,7 +102,7 @@ describe("Safety Guarantees", () => {
       });
 
       expect(meridian).toBeDefined();
-      
+
       expect(() => meridian.getCircuitStatus("github")).not.toThrow();
     });
   });
@@ -117,7 +117,7 @@ describe("Safety Guarantees", () => {
       };
 
       await expect(Meridian.create(config)).rejects.toThrow(
-        "Meridian requires a configured stateStorage in 'distributed' mode"
+        "Meridian requires a configured stateStorage in 'distributed' mode",
       );
     });
 
@@ -141,11 +141,10 @@ describe("Safety Guarantees", () => {
         github: {
           auth: { token: "test-token" },
         },
-        
       };
 
       await expect(Meridian.create(config)).rejects.toThrow(
-        "Meridian requires a configured stateStorage unless 'localUnsafe' is set to true"
+        "Meridian requires a configured stateStorage unless 'localUnsafe' is set to true",
       );
     });
 
@@ -173,7 +172,6 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      
       try {
         await (meridian as any).github.get("/test", {
           headers: {
@@ -182,15 +180,11 @@ describe("Safety Guarantees", () => {
           },
           body: { password: "secret-password" },
         });
-      } catch {
-        
-      }
+      } catch {}
 
-      
       const requestLog = capturingObs.requests[0];
       expect(requestLog).toBeDefined();
-      
-      
+
       const logStr = JSON.stringify(requestLog);
       expect(logStr).not.toContain("secret-token-12345");
       expect(logStr).not.toContain("api-key-secret");
@@ -208,21 +202,17 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      
       try {
         await (meridian as any).github.get("/test", {
           headers: {
             Authorization: "Bearer secret-token-12345",
           },
         });
-      } catch {
-        
-      }
+      } catch {}
 
-      
       const errorLog = capturingObs.errors[0];
       expect(errorLog).toBeDefined();
-      
+
       const logStr = JSON.stringify(errorLog);
       expect(logStr).not.toContain("secret-token-12345");
     });
@@ -237,25 +227,21 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      
       try {
         await (meridian as any).github.get("/test", {
           headers: {
             Authorization: "Bearer secret-token-12345",
           },
         });
-      } catch {
-        
-      }
+      } catch {}
 
-      
       const metrics = capturingObs.metrics;
       expect(metrics.length).toBeGreaterThan(0);
-      
+
       for (const metric of metrics) {
         const metricStr = JSON.stringify(metric);
         expect(metricStr).not.toContain("secret-token-12345");
-        
+
         for (const [key, value] of Object.entries(metric.tags)) {
           expect(String(value)).not.toContain("secret-token-12345");
         }
@@ -279,9 +265,7 @@ describe("Safety Guarantees", () => {
             token: "secret-token",
           },
         });
-      } catch {
-        
-      }
+      } catch {}
 
       const requestLog = capturingObs.requests[0];
       const logStr = JSON.stringify(requestLog);
@@ -294,7 +278,16 @@ describe("Safety Guarantees", () => {
     it("should fail startup if adapter validation fails", async () => {
       const invalidAdapter = {
         buildRequest: () => ({ url: "test", method: "GET", headers: {} }),
-        parseResponse: () => ({ data: {}, meta: { provider: "test", requestId: "1", rateLimit: { limit: 1, remaining: 1, reset: new Date() }, warnings: [], schemaVersion: "1.0" } }),
+        parseResponse: () => ({
+          data: {},
+          meta: {
+            provider: "test",
+            requestId: "1",
+            rateLimit: { limit: 1, remaining: 1, reset: new Date() },
+            warnings: [],
+            schemaVersion: "1.0",
+          },
+        }),
         parseError: () => {
           throw new Error("Invalid adapter");
         },
@@ -321,24 +314,30 @@ describe("Safety Guarantees", () => {
             },
           },
           localUnsafe: true,
-        })
+        }),
       ).rejects.toThrow("Adapter validation failed");
     });
 
     it("should not trigger side effects during validation", async () => {
       let sideEffectTriggered = false;
-      
+
       const adapterWithSideEffect = {
         buildRequest: () => ({ url: "test", method: "GET", headers: {} }),
-        parseResponse: () => ({ data: {}, meta: { provider: "test", requestId: "1", rateLimit: { limit: 1, remaining: 1, reset: new Date() }, warnings: [], schemaVersion: "1.0" } }),
+        parseResponse: () => ({
+          data: {},
+          meta: {
+            provider: "test",
+            requestId: "1",
+            rateLimit: { limit: 1, remaining: 1, reset: new Date() },
+            warnings: [],
+            schemaVersion: "1.0",
+          },
+        }),
         parseError: () => {
           return new MeridianError("test", "provider", "test", false, "");
         },
         authStrategy: async (config: any) => {
-          
-          
           if (config.token === "MERIDIAN_TEST_TOKEN_DO_NOT_VALIDATE") {
-            
             return { token: "test-token" };
           }
           sideEffectTriggered = true;
@@ -367,14 +366,12 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      
       expect(sideEffectTriggered).toBe(false);
     });
   });
 
   describe("5. Pagination Safety", () => {
     it("should detect pagination cycles", async () => {
-      
       (globalThis as any).fetch = async () => ({
         ok: true,
         status: 200,
@@ -388,7 +385,7 @@ describe("Safety Guarantees", () => {
         buildRequest: () => ({ url: "test", method: "GET", headers: {} }),
         parseResponse: (raw: any) => {
           callCount++;
-          
+
           return {
             data: { items: [] },
             meta: {
@@ -397,7 +394,7 @@ describe("Safety Guarantees", () => {
               rateLimit: { limit: 1, remaining: 1, reset: new Date() },
               pagination: {
                 hasNext: true,
-                cursor: "same-cursor", 
+                cursor: "same-cursor",
               },
               warnings: [],
               schemaVersion: "1.0",
@@ -432,12 +429,10 @@ describe("Safety Guarantees", () => {
       });
 
       const paginator = (meridian as any).test.paginate("/test");
-      
-      
+
       let errorThrown = false;
       try {
         for await (const _ of paginator) {
-          
         }
       } catch (error: any) {
         errorThrown = true;
@@ -447,7 +442,6 @@ describe("Safety Guarantees", () => {
     });
 
     it("should enforce max page limit deterministically", async () => {
-      
       (globalThis as any).fetch = async () => ({
         ok: true,
         status: 200,
@@ -455,9 +449,6 @@ describe("Safety Guarantees", () => {
         json: async () => ({ items: [] }),
         text: async () => JSON.stringify({ items: [] }),
       });
-
-      
-
 
       let requestCount = 0;
       let paginationCallCount = 0;
@@ -516,25 +507,17 @@ describe("Safety Guarantees", () => {
 
       const paginator = (meridian as any).test.paginate("/test");
 
-
       let pagesYielded = 0;
       for await (const page of paginator) {
         pagesYielded++;
       }
       expect(pagesYielded).toBe(3);
       expect(paginationCallCount).toBe(3);
-      
-      
-      
-      
-      
-      
     });
   });
 
   describe("6. Typed Public API", () => {
     it("should have typed request options", async () => {
-      
       (globalThis as any).fetch = async () => ({
         ok: false,
         status: 404,
@@ -550,18 +533,15 @@ describe("Safety Guarantees", () => {
         localUnsafe: true,
       });
 
-      
-      
       const client = (meridian as any).github;
 
-      
       await expect(
         client.get("/test", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
           query: { page: 1 },
-        })
-      ).rejects.toThrow(); 
+        }),
+      ).rejects.toThrow();
     });
   });
 });

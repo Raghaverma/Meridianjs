@@ -1,12 +1,9 @@
-
-
 import type { Schema, SchemaDrift } from "../core/types.js";
 
 export class DriftDetector {
   detect(oldSchema: Schema, newSchema: Schema): SchemaDrift[] {
     const drifts: SchemaDrift[] = [];
 
-    
     if (oldSchema.type !== newSchema.type) {
       drifts.push({
         type: "TYPE_CHANGED",
@@ -17,14 +14,12 @@ export class DriftDetector {
       });
     }
 
-    
     if (oldSchema.type === "object" && newSchema.type === "object") {
       const oldProps = oldSchema.properties ?? {};
       const newProps = newSchema.properties ?? {};
       const oldRequired = new Set(oldSchema.required ?? []);
       const newRequired = new Set(newSchema.required ?? []);
 
-      
       for (const field of Object.keys(oldProps)) {
         if (!(field in newProps)) {
           drifts.push({
@@ -37,7 +32,6 @@ export class DriftDetector {
         }
       }
 
-      
       for (const field of Object.keys(newProps)) {
         if (field in oldProps) {
           const oldField = oldProps[field];
@@ -55,7 +49,6 @@ export class DriftDetector {
         }
       }
 
-      
       for (const field of oldRequired) {
         if (!newRequired.has(field)) {
           drifts.push({
@@ -81,16 +74,15 @@ export class DriftDetector {
       }
     }
 
-    
     if (oldSchema.type === "array" && newSchema.type === "array") {
       if (oldSchema.items && newSchema.items) {
         const itemDrifts = this.detect(oldSchema.items, newSchema.items);
-        
+
         drifts.push(
           ...itemDrifts.map((d) => ({
             ...d,
             field: `items.${d.field}`,
-          }))
+          })),
         );
       }
     }
@@ -98,4 +90,3 @@ export class DriftDetector {
     return drifts;
   }
 }
-

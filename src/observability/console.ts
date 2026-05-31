@@ -1,11 +1,9 @@
-
-
 import type {
+  ErrorContext,
+  Metric,
   ObservabilityAdapter,
   RequestContext,
   ResponseContext,
-  ErrorContext,
-  Metric,
 } from "../core/types.js";
 
 export interface ConsoleObservabilityConfig {
@@ -103,4 +101,3 @@ export class ConsoleObservability implements ObservabilityAdapter {
     }
   }
 }
-

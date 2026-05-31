@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class RazorpayPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
@@ -31,10 +29,10 @@ export class RazorpayPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const currentSkip = parseInt(String(options.query?.["skip"] ?? 0), 10);
-    const itemsReturned = parseInt(cursor, 10);
+    const currentSkip = Number.parseInt(String(options.query?.["skip"] ?? 0), 10);
+    const itemsReturned = Number.parseInt(cursor, 10);
     return {
       endpoint,
       options: {

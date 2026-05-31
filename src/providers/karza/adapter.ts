@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { KarzaPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface KarzaErrorBody {
   statusCode: number;
@@ -26,11 +24,10 @@ interface KarzaErrorBody {
   };
 }
 
-
 export class KarzaAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.karza.in") {
+  constructor(baseUrl = "https://api.karza.in") {
     this.baseUrl = baseUrl;
   }
 
@@ -92,7 +89,7 @@ export class KarzaAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -133,7 +130,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your Karza API key.",
         { karzaRequestId: requestId },
         undefined,
-        401
+        401,
       );
     }
 
@@ -144,7 +141,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API key lacks the required permissions.",
         { karzaRequestId: requestId },
         undefined,
-        403
+        403,
       );
     }
 
@@ -155,7 +152,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { karzaRequestId: requestId },
         undefined,
-        404
+        404,
       );
     }
 
@@ -166,7 +163,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { karzaRequestId: requestId },
         undefined,
-        status
+        status,
       );
     }
 
@@ -178,7 +175,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { karzaRequestId: requestId, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -189,7 +186,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? `Karza API returned error ${status}. This may be temporary.`,
         { status, karzaRequestId: requestId },
         undefined,
-        status
+        status,
       );
     }
 
@@ -200,7 +197,7 @@ export class KarzaAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, karzaRequestId: requestId },
         undefined,
-        status
+        status,
       );
     }
 
@@ -210,7 +207,7 @@ export class KarzaAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -224,7 +221,7 @@ export class KarzaAdapter implements ProviderAdapter {
         "Karza authentication requires an API key. Set auth.apiKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -257,13 +254,22 @@ export class KarzaAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "karza", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "karza",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

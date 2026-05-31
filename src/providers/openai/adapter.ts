@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { OpenAIPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface OpenAIErrorBody {
   error: {
@@ -26,7 +24,6 @@ interface OpenAIErrorBody {
   };
 }
 
-
 // OpenAI encodes rate limit reset as a duration string: "6m0s", "1s", "2h30m", "500ms"
 function parseOpenAIDuration(duration: string): number {
   let totalMs = 0;
@@ -35,19 +32,18 @@ function parseOpenAIDuration(duration: string): number {
   const secondsMatch = /(\d+)s/.exec(duration);
   const msMatch = /(\d+)ms/.exec(duration);
 
-  if (hoursMatch?.[1] !== undefined) totalMs += parseInt(hoursMatch[1], 10) * 3_600_000;
-  if (minutesMatch?.[1] !== undefined) totalMs += parseInt(minutesMatch[1], 10) * 60_000;
-  if (secondsMatch?.[1] !== undefined) totalMs += parseInt(secondsMatch[1], 10) * 1_000;
-  if (msMatch?.[1] !== undefined) totalMs += parseInt(msMatch[1], 10);
+  if (hoursMatch?.[1] !== undefined) totalMs += Number.parseInt(hoursMatch[1], 10) * 3_600_000;
+  if (minutesMatch?.[1] !== undefined) totalMs += Number.parseInt(minutesMatch[1], 10) * 60_000;
+  if (secondsMatch?.[1] !== undefined) totalMs += Number.parseInt(secondsMatch[1], 10) * 1_000;
+  if (msMatch?.[1] !== undefined) totalMs += Number.parseInt(msMatch[1], 10);
 
   return totalMs;
 }
 
-
 export class OpenAIAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.openai.com") {
+  constructor(baseUrl = "https://api.openai.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -116,7 +112,7 @@ export class OpenAIAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -157,7 +153,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your OpenAI API key.",
         { openaiError: errorBody?.error },
         undefined,
-        401
+        401,
       );
     }
 
@@ -168,7 +164,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API key lacks the required permissions.",
         { openaiError: errorBody?.error },
         undefined,
-        403
+        403,
       );
     }
 
@@ -179,7 +175,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { openaiError: errorBody?.error },
         undefined,
-        404
+        404,
       );
     }
 
@@ -190,7 +186,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { openaiError: errorBody?.error },
         undefined,
-        422
+        422,
       );
     }
 
@@ -204,7 +200,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { openaiError: errorBody?.error, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -215,7 +211,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? `OpenAI API returned error ${status}. This may be temporary.`,
         { status, openaiError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -226,7 +222,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, openaiError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -236,7 +232,7 @@ export class OpenAIAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -248,7 +244,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         "OpenAI authentication requires an API key. Set auth.token to your OpenAI API key.",
         {},
         undefined,
-        401
+        401,
       );
     }
     return { token: config.token };
@@ -260,8 +256,8 @@ export class OpenAIAdapter implements ProviderAdapter {
     const resetStr = headers.get("x-ratelimit-reset-requests");
 
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
 
       let reset = new Date(Date.now() + 60 * 1000);
       if (resetStr) {
@@ -307,19 +303,29 @@ export class OpenAIAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "openai", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "openai",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 
-    const value = headers instanceof Headers
-      ? headers.get("retry-after")
-      : (Object.entries(headers).find(([k]) => k.toLowerCase() === "retry-after")?.[1] ?? null);
+    const value =
+      headers instanceof Headers
+        ? headers.get("retry-after")
+        : (Object.entries(headers).find(([k]) => k.toLowerCase() === "retry-after")?.[1] ?? null);
 
     return parseRetryAfter(value) ?? undefined;
   }

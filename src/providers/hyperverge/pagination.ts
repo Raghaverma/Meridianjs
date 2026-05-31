@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class HyperVergePaginationStrategy implements PaginationStrategy {
   // HyperVerge is a transactional KYC API — no cursor-based pagination
@@ -19,7 +17,7 @@ export class HyperVergePaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    _cursor: string
+    _cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     return { endpoint, options };
   }

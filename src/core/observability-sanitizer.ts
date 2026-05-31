@@ -4,29 +4,22 @@ export interface ObservabilitySanitizerOptions {
   redactedKeys?: string[];
 }
 
-const DEFAULT = [
-  "authorization",
-  "cookie",
-  "token",
-  "apikey",
-  "api_key",
-  "body",
-];
+const DEFAULT = ["authorization", "cookie", "token", "apikey", "api_key", "body"];
 
 function shouldRedact(key: string, redacted: string[]) {
   const lower = key.toLowerCase();
-  return redacted.some(r => lower.includes(r));
+  return redacted.some((r) => lower.includes(r));
 }
 
 export function sanitizeObject(obj: unknown, opts?: ObservabilitySanitizerOptions): unknown {
-  const redacted = (opts?.redactedKeys ?? DEFAULT).map(s => s.toLowerCase());
+  const redacted = (opts?.redactedKeys ?? DEFAULT).map((s) => s.toLowerCase());
 
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === "string") return obj;
   if (typeof obj !== "object") return obj;
 
   if (Array.isArray(obj)) {
-    return obj.map(v => sanitizeObject(v, opts));
+    return obj.map((v) => sanitizeObject(v, opts));
   }
 
   const out: Record<string, unknown> = {};
@@ -43,7 +36,7 @@ export function sanitizeObject(obj: unknown, opts?: ObservabilitySanitizerOption
 }
 
 export function sanitizeMetric(metric: Metric, opts?: ObservabilitySanitizerOptions): Metric {
-  const redacted = (opts?.redactedKeys ?? DEFAULT).map(s => s.toLowerCase());
+  const redacted = (opts?.redactedKeys ?? DEFAULT).map((s) => s.toLowerCase());
   const tags: Record<string, string> = {};
   for (const [k, v] of Object.entries(metric.tags)) {
     if (shouldRedact(k, redacted) || shouldRedact(v, redacted)) {

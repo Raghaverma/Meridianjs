@@ -1,7 +1,6 @@
-
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { MeridianError, RawResponse } from "../../core/types.js";
 import { CleartaxAdapter } from "./adapter.js";
-import type { RawResponse, MeridianError } from "../../core/types.js";
 
 describe("CleartaxAdapter - Contract Tests", () => {
   const adapter = new CleartaxAdapter("https://api.clear.in");
@@ -47,7 +46,11 @@ describe("CleartaxAdapter - Contract Tests", () => {
 
   describe("parseResponse", () => {
     it("should normalize a successful response", () => {
-      const raw: RawResponse = { status: 200, headers: new Headers(), body: { data: [], count: 0 } };
+      const raw: RawResponse = {
+        status: 200,
+        headers: new Headers(),
+        body: { data: [], count: 0 },
+      };
       const normalized = adapter.parseResponse(raw);
       expect(normalized.meta.provider).toBe("cleartax");
       expect(normalized.meta.rateLimit.reset).toBeInstanceOf(Date);
@@ -56,7 +59,11 @@ describe("CleartaxAdapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("should map 401 to auth category", () => {
-      const error = adapter.parseError({ status: 401, headers: new Headers(), body: { error: "invalid_token", error_description: "Invalid token" } });
+      const error = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { error: "invalid_token", error_description: "Invalid token" },
+      });
       expect(error.category).toBe("auth");
       expect(error.retryable).toBe(false);
       expect(error.provider).toBe("cleartax");
@@ -64,12 +71,17 @@ describe("CleartaxAdapter - Contract Tests", () => {
 
     it("should always return canonical error categories", () => {
       const cases = [
-        { status: 401, expected: "auth" }, { status: 403, expected: "auth" },
-        { status: 404, expected: "validation" }, { status: 400, expected: "validation" },
-        { status: 429, expected: "rate_limit" }, { status: 500, expected: "provider" },
+        { status: 401, expected: "auth" },
+        { status: 403, expected: "auth" },
+        { status: 404, expected: "validation" },
+        { status: 400, expected: "validation" },
+        { status: 429, expected: "rate_limit" },
+        { status: 500, expected: "provider" },
       ] as const;
       for (const { status, expected } of cases) {
-        expect(adapter.parseError({ status, headers: new Headers(), body: {} }).category).toBe(expected);
+        expect(adapter.parseError({ status, headers: new Headers(), body: {} }).category).toBe(
+          expected,
+        );
       }
     });
 
@@ -86,7 +98,9 @@ describe("CleartaxAdapter - Contract Tests", () => {
 
     it("should throw MeridianError for missing credentials", async () => {
       await expect(adapter.authStrategy({})).rejects.toThrow();
-      try { await adapter.authStrategy({}); } catch (err) {
+      try {
+        await adapter.authStrategy({});
+      } catch (err) {
         expect((err as MeridianError).category).toBe("auth");
       }
     });

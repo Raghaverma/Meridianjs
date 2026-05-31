@@ -57,7 +57,7 @@ export class ShiprocketPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     return {
       endpoint,

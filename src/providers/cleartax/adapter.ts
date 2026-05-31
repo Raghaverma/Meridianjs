@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { CleartaxPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface CleartaxErrorBody {
   errorCode: string;
@@ -23,11 +21,10 @@ interface CleartaxErrorBody {
   error?: string;
 }
 
-
 export class CleartaxAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.cleartax.in") {
+  constructor(baseUrl = "https://api.cleartax.in") {
     this.baseUrl = baseUrl;
   }
 
@@ -75,7 +72,14 @@ export class CleartaxAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "cleartax", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "cleartax",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -93,7 +97,7 @@ export class CleartaxAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -134,7 +138,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your ClearTax auth token.",
         { cleartaxCode: errorCode },
         undefined,
-        401
+        401,
       );
     }
 
@@ -145,7 +149,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Check GSTIN or owner permissions.",
         { cleartaxCode: errorCode },
         undefined,
-        403
+        403,
       );
     }
 
@@ -156,7 +160,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { cleartaxCode: errorCode },
         undefined,
-        404
+        404,
       );
     }
 
@@ -167,7 +171,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? "GST filing validation failed. Check your request parameters.",
         { cleartaxCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -179,7 +183,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { cleartaxCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -190,7 +194,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? `ClearTax API returned error ${status}. This may be temporary.`,
         { status, cleartaxCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -201,7 +205,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, cleartaxCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -211,7 +215,7 @@ export class CleartaxAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -224,7 +228,7 @@ export class CleartaxAdapter implements ProviderAdapter {
         "ClearTax authentication requires an auth token. Set auth.token or auth.apiKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
     return { token };
@@ -256,13 +260,22 @@ export class CleartaxAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "cleartax", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "cleartax",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

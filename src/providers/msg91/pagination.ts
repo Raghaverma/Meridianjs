@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class Msg91PaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
@@ -42,7 +40,7 @@ export class Msg91PaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     return {
       endpoint,

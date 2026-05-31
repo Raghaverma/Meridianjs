@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { PerfiosPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface PerfiosErrorBody {
   message: string;
@@ -23,11 +21,10 @@ interface PerfiosErrorBody {
   statusCode?: number;
 }
 
-
 export class PerfiosAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.perfios.com") {
+  constructor(baseUrl = "https://api.perfios.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -99,7 +96,7 @@ export class PerfiosAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -140,7 +137,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your Perfios API key.",
         { perfiosCode: errorCode },
         undefined,
-        401
+        401,
       );
     }
 
@@ -151,7 +148,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied.",
         { perfiosCode: errorCode },
         undefined,
-        403
+        403,
       );
     }
 
@@ -162,7 +159,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { perfiosCode: errorCode },
         undefined,
-        404
+        404,
       );
     }
 
@@ -173,7 +170,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? "Validation error. Check your request parameters.",
         { perfiosCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -185,7 +182,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { perfiosCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -196,7 +193,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? `Perfios API returned error ${status}. This may be temporary.`,
         { status, perfiosCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -207,7 +204,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, perfiosCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -217,7 +214,7 @@ export class PerfiosAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -230,7 +227,7 @@ export class PerfiosAdapter implements ProviderAdapter {
         "Perfios authentication requires an API key. Set auth.apiKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
     return { token: key };
@@ -262,13 +259,22 @@ export class PerfiosAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "perfios", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "perfios",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

@@ -28,7 +28,7 @@
 import { BoundaryProxyServer } from "./server.js";
 
 const portArg = process.env.BOUNDARY_PROXY_PORT ?? process.argv[2];
-const port = portArg ? parseInt(portArg, 10) : 4242;
+const port = portArg ? Number.parseInt(portArg, 10) : 4242;
 
 if (Number.isNaN(port) || port < 1 || port > 65535) {
   console.error(`[Boundary Proxy] Invalid port: "${portArg}". Must be 1–65535.`);

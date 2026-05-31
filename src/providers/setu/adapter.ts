@@ -1,20 +1,20 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { SetuPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
 
 interface SetuErrorBody {
   status: number;
@@ -29,7 +29,7 @@ interface SetuErrorBody {
 export class SetuAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://prod.setu.co") {
+  constructor(baseUrl = "https://prod.setu.co") {
     this.baseUrl = baseUrl;
   }
 
@@ -43,7 +43,7 @@ export class SetuAdapter implements ProviderAdapter {
       }
     }
     const headers: Record<string, string> = {
-      "Authorization": `Bearer ${authToken.token}`,
+      Authorization: `Bearer ${authToken.token}`,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -89,7 +89,9 @@ export class SetuAdapter implements ProviderAdapter {
         msg.includes("enotfound") ||
         msg.includes("timeout")
       ) {
-        return this.createMeridianError("network", true, "Network request failed.", { originalError: raw.message });
+        return this.createMeridianError("network", true, "Network request failed.", {
+          originalError: raw.message,
+        });
       }
     }
     if (
@@ -99,7 +101,12 @@ export class SetuAdapter implements ProviderAdapter {
       typeof (raw as Record<string, unknown>)["status"] === "number"
     ) {
       return this.parseHttpError(
-        raw as { status: number; headers?: Headers | Record<string, string>; body?: unknown; message?: string }
+        raw as {
+          status: number;
+          headers?: Headers | Record<string, string>;
+          body?: unknown;
+          message?: string;
+        },
       );
     }
     return this.createMeridianError("provider", false, "An unexpected error occurred", { raw });
@@ -117,31 +124,100 @@ export class SetuAdapter implements ProviderAdapter {
     const errorDetail = errorBody?.error?.detail;
 
     if (status === 401)
-      return this.createMeridianError("auth", false, errorDetail ?? "Authentication failed.", { setuCode: errorCode }, undefined, 401);
+      return this.createMeridianError(
+        "auth",
+        false,
+        errorDetail ?? "Authentication failed.",
+        { setuCode: errorCode },
+        undefined,
+        401,
+      );
     if (status === 403)
-      return this.createMeridianError("auth", false, errorDetail ?? "Permission denied.", { setuCode: errorCode }, undefined, 403);
+      return this.createMeridianError(
+        "auth",
+        false,
+        errorDetail ?? "Permission denied.",
+        { setuCode: errorCode },
+        undefined,
+        403,
+      );
     if (status === 404)
-      return this.createMeridianError("validation", false, errorDetail ?? "Resource not found.", { setuCode: errorCode }, undefined, 404);
+      return this.createMeridianError(
+        "validation",
+        false,
+        errorDetail ?? "Resource not found.",
+        { setuCode: errorCode },
+        undefined,
+        404,
+      );
     if (status === 429) {
       const retryAfter = this.extractRetryAfter(headers);
-      return this.createMeridianError("rate_limit", true, "Rate limit exceeded.", { setuCode: errorCode }, retryAfter, 429);
+      return this.createMeridianError(
+        "rate_limit",
+        true,
+        "Rate limit exceeded.",
+        { setuCode: errorCode },
+        retryAfter,
+        429,
+      );
     }
     if (status === 400 || status === 422)
-      return this.createMeridianError("validation", false, errorDetail ?? "Validation failed.", { setuCode: errorCode }, undefined, status);
+      return this.createMeridianError(
+        "validation",
+        false,
+        errorDetail ?? "Validation failed.",
+        { setuCode: errorCode },
+        undefined,
+        status,
+      );
     if (status >= 500)
-      return this.createMeridianError("provider", true, `Setu API returned error ${status}.`, { status }, undefined, status);
+      return this.createMeridianError(
+        "provider",
+        true,
+        `Setu API returned error ${status}.`,
+        { status },
+        undefined,
+        status,
+      );
     if (status >= 400)
-      return this.createMeridianError("validation", false, `Request failed with status ${status}.`, { status }, undefined, status);
-    return this.createMeridianError("provider", false, `Unexpected response status ${status}.`, { status }, undefined, status);
+      return this.createMeridianError(
+        "validation",
+        false,
+        `Request failed with status ${status}.`,
+        { status },
+        undefined,
+        status,
+      );
+    return this.createMeridianError(
+      "provider",
+      false,
+      `Unexpected response status ${status}.`,
+      { status },
+      undefined,
+      status,
+    );
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
     const token = config.token ?? config.apiKey;
-    if (!token) throw this.createMeridianError("auth", false, "Requires token or apiKey.", {}, undefined, 401);
+    if (!token)
+      throw this.createMeridianError(
+        "auth",
+        false,
+        "Requires token or apiKey.",
+        {},
+        undefined,
+        401,
+      );
     const clientId = config.custom?.["clientId"] ?? "";
     const productInstanceId = config.custom?.["productInstanceId"] ?? "";
     // Encode extras into token string so buildRequest can extract them
-    return { token: `${token}|SETU|${clientId}|SETU|${productInstanceId}`.replace("|SETU||SETU|", `|SETU|${clientId}|SETU|${productInstanceId}`) };
+    return {
+      token: `${token}|SETU|${clientId}|SETU|${productInstanceId}`.replace(
+        "|SETU||SETU|",
+        `|SETU|${clientId}|SETU|${productInstanceId}`,
+      ),
+    };
   }
 
   rateLimitPolicy(headers: Headers): RateLimitInfo {
@@ -149,10 +225,12 @@ export class SetuAdapter implements ProviderAdapter {
     const remainingStr = headers.get("x-ratelimit-remaining");
     const resetStr = headers.get("x-ratelimit-reset");
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
       if (!isNaN(limit) && !isNaN(remaining)) {
-        const reset = resetStr ? new Date(parseInt(resetStr, 10) * 1000) : new Date(Date.now() + 60_000);
+        const reset = resetStr
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
+          : new Date(Date.now() + 60_000);
         return { limit, remaining, reset };
       }
     }
@@ -192,12 +270,23 @@ export class SetuAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "setu", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "setu",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
-  private extractRetryAfter(headers: Headers | Record<string, string> | undefined): Date | undefined {
+  private extractRetryAfter(
+    headers: Headers | Record<string, string> | undefined,
+  ): Date | undefined {
     if (!headers) return undefined;
     const value =
       headers instanceof Headers

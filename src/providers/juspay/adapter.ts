@@ -1,22 +1,20 @@
-
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { JuspayPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface JuspayErrorBody {
   status: string;
@@ -25,11 +23,10 @@ interface JuspayErrorBody {
   user_message?: string;
 }
 
-
 export class JuspayAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.juspay.in") {
+  constructor(baseUrl = "https://api.juspay.in") {
     this.baseUrl = baseUrl;
   }
 
@@ -47,7 +44,7 @@ export class JuspayAdapter implements ProviderAdapter {
 
     // authToken.token is already base64-encoded "apiKey:" for Basic auth
     const headers: Record<string, string> = {
-      "Authorization": `Basic ${authToken.token}`,
+      Authorization: `Basic ${authToken.token}`,
       "Content-Type": "application/json",
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
@@ -101,7 +98,7 @@ export class JuspayAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -142,7 +139,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your Juspay API key.",
         { juspayCode: errorCode, juspayStatus: errorBody?.status },
         undefined,
-        401
+        401,
       );
     }
 
@@ -153,7 +150,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API key lacks the required permissions.",
         { juspayCode: errorCode, juspayStatus: errorBody?.status },
         undefined,
-        403
+        403,
       );
     }
 
@@ -164,7 +161,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { juspayCode: errorCode, juspayStatus: errorBody?.status },
         undefined,
-        404
+        404,
       );
     }
 
@@ -176,7 +173,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { juspayCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -187,7 +184,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { juspayCode: errorCode, juspayStatus: errorBody?.status },
         undefined,
-        status
+        status,
       );
     }
 
@@ -198,7 +195,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? `Juspay API returned error ${status}. This may be temporary.`,
         { status, juspayCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -209,7 +206,7 @@ export class JuspayAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, juspayCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -219,7 +216,7 @@ export class JuspayAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -233,7 +230,7 @@ export class JuspayAdapter implements ProviderAdapter {
         "Juspay authentication requires an API key. Set auth.apiKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -284,13 +281,22 @@ export class JuspayAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "juspay", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "juspay",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

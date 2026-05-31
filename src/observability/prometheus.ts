@@ -1,19 +1,16 @@
-
-
 import type {
+  ErrorContext,
+  Metric,
   ObservabilityAdapter,
   RequestContext,
   ResponseContext,
-  ErrorContext,
-  Metric,
 } from "../core/types.js";
 
 export interface PrometheusConfig {
-  
   prefix?: string;
-  
+
   includeHelp?: boolean;
-  
+
   defaultLabels?: Record<string, string>;
 }
 
@@ -47,7 +44,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
   private counters: Map<string, MetricDefinition> = new Map();
   private histograms: Map<string, HistogramMetric> = new Map();
 
-  
   private static readonly DEFAULT_DURATION_BUCKETS = [
     5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000,
   ];
@@ -59,12 +55,10 @@ export class PrometheusObservability implements ObservabilityAdapter {
       defaultLabels: config.defaultLabels ?? {},
     };
 
-    
     this.initializeMetrics();
   }
 
   private initializeMetrics(): void {
-    
     this.counters.set("requests_total", {
       name: `${this.config.prefix}_requests_total`,
       help: "Total number of Meridian API requests",
@@ -72,7 +66,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
       values: new Map(),
     });
 
-    
     this.counters.set("errors_total", {
       name: `${this.config.prefix}_errors_total`,
       help: "Total number of Meridian API errors",
@@ -80,7 +73,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
       values: new Map(),
     });
 
-    
     this.histograms.set("request_duration_ms", {
       name: `${this.config.prefix}_request_duration_ms`,
       help: "Request duration in milliseconds",
@@ -91,7 +83,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
   }
 
   logRequest(context: RequestContext): void {
-    
     this.incrementCounter("requests_total", {
       provider: context.provider,
       method: context.method,
@@ -100,7 +91,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
   }
 
   logResponse(context: ResponseContext): void {
-    
     this.recordHistogram("request_duration_ms", context.duration, {
       provider: context.provider,
       method: context.method,
@@ -109,14 +99,12 @@ export class PrometheusObservability implements ObservabilityAdapter {
   }
 
   logError(context: ErrorContext): void {
-    
     this.incrementCounter("errors_total", {
       provider: context.provider,
       category: context.error.category,
       retryable: String(context.error.retryable),
     });
 
-    
     this.recordHistogram("request_duration_ms", context.duration, {
       provider: context.provider,
       method: context.method,
@@ -125,13 +113,9 @@ export class PrometheusObservability implements ObservabilityAdapter {
     });
   }
 
-  logWarning(_message: string, _metadata?: Record<string, unknown>): void {
-    
-    
-  }
+  logWarning(_message: string, _metadata?: Record<string, unknown>): void {}
 
   recordMetric(metric: Metric): void {
-    
     const metricKey = metric.name.replace(/\./g, "_");
 
     if (!this.counters.has(metricKey)) {
@@ -146,11 +130,9 @@ export class PrometheusObservability implements ObservabilityAdapter {
     this.incrementCounter(metricKey, metric.tags, metric.value);
   }
 
-  
   getMetrics(): string {
     const lines: string[] = [];
 
-    
     for (const metric of this.counters.values()) {
       if (this.config.includeHelp) {
         lines.push(`# HELP ${metric.name} ${metric.help}`);
@@ -163,7 +145,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
       }
     }
 
-    
     for (const histogram of this.histograms.values()) {
       if (this.config.includeHelp) {
         lines.push(`# HELP ${histogram.name} ${histogram.help}`);
@@ -173,34 +154,22 @@ export class PrometheusObservability implements ObservabilityAdapter {
       for (const [labelKey, data] of histogram.data) {
         const baseLabels = this.parseLabelKey(labelKey);
 
-        
         for (const bucket of data.buckets) {
           const bucketLabels = { ...baseLabels, le: String(bucket.le) };
-          lines.push(
-            `${histogram.name}_bucket${this.formatLabels(bucketLabels)} ${bucket.count}`
-          );
+          lines.push(`${histogram.name}_bucket${this.formatLabels(bucketLabels)} ${bucket.count}`);
         }
 
-        
         const infLabels = { ...baseLabels, le: "+Inf" };
-        lines.push(
-          `${histogram.name}_bucket${this.formatLabels(infLabels)} ${data.count}`
-        );
+        lines.push(`${histogram.name}_bucket${this.formatLabels(infLabels)} ${data.count}`);
 
-        
-        lines.push(
-          `${histogram.name}_sum${this.formatLabels(baseLabels)} ${data.sum}`
-        );
-        lines.push(
-          `${histogram.name}_count${this.formatLabels(baseLabels)} ${data.count}`
-        );
+        lines.push(`${histogram.name}_sum${this.formatLabels(baseLabels)} ${data.sum}`);
+        lines.push(`${histogram.name}_count${this.formatLabels(baseLabels)} ${data.count}`);
       }
     }
 
     return lines.join("\n") + "\n";
   }
 
-  
   reset(): void {
     for (const metric of this.counters.values()) {
       metric.values.clear();
@@ -210,11 +179,7 @@ export class PrometheusObservability implements ObservabilityAdapter {
     }
   }
 
-  private incrementCounter(
-    metricKey: string,
-    labels: Record<string, string>,
-    value: number = 1
-  ): void {
+  private incrementCounter(metricKey: string, labels: Record<string, string>, value = 1): void {
     const metric = this.counters.get(metricKey);
     if (!metric) return;
 
@@ -229,11 +194,7 @@ export class PrometheusObservability implements ObservabilityAdapter {
     }
   }
 
-  private recordHistogram(
-    metricKey: string,
-    value: number,
-    labels: Record<string, string>
-  ): void {
+  private recordHistogram(metricKey: string, value: number, labels: Record<string, string>): void {
     const histogram = this.histograms.get(metricKey);
     if (!histogram) return;
 
@@ -242,7 +203,6 @@ export class PrometheusObservability implements ObservabilityAdapter {
 
     let data = histogram.data.get(labelKey);
     if (!data) {
-      
       data = {
         buckets: histogram.buckets.map((le) => ({ le, count: 0 })),
         sum: 0,
@@ -251,14 +211,12 @@ export class PrometheusObservability implements ObservabilityAdapter {
       histogram.data.set(labelKey, data);
     }
 
-    
     for (const bucket of data.buckets) {
       if (value <= bucket.le) {
         bucket.count++;
       }
     }
 
-    
     data.sum += value;
     data.count++;
   }
@@ -286,25 +244,18 @@ export class PrometheusObservability implements ObservabilityAdapter {
     const entries = Object.entries(labels);
     if (entries.length === 0) return "";
 
-    const formatted = entries
-      .map(([k, v]) => `${k}="${this.escapeLabel(v)}"`)
-      .join(",");
+    const formatted = entries.map(([k, v]) => `${k}="${this.escapeLabel(v)}"`).join(",");
 
     return `{${formatted}}`;
   }
 
   private escapeLabel(value: string): string {
-    return value
-      .replace(/\\/g, "\\\\")
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, "\\n");
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n");
   }
 
   private normalizeEndpoint(endpoint: string): string {
     // Normalize endpoint to reduce cardinality
     // Replace path parameters with placeholders
-    return endpoint
-      .replace(/\/\d+/g, "/:id")
-      .replace(/\/[a-f0-9-]{36}/gi, "/:uuid");
+    return endpoint.replace(/\/\d+/g, "/:id").replace(/\/[a-f0-9-]{36}/gi, "/:uuid");
   }
 }

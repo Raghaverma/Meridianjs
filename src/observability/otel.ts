@@ -1,18 +1,17 @@
-
-
 import type {
+  ErrorContext,
+  Metric,
   ObservabilityAdapter,
   RequestContext,
   ResponseContext,
-  ErrorContext,
-  Metric,
 } from "../core/types.js";
 
-
 export interface OTelTracer {
-  startSpan(name: string, options?: { attributes?: Record<string, string | number | boolean> }): OTelSpan;
+  startSpan(
+    name: string,
+    options?: { attributes?: Record<string, string | number | boolean> },
+  ): OTelSpan;
 }
-
 
 export interface OTelSpan {
   setAttribute(key: string, value: string | number | boolean): this;
@@ -21,17 +20,14 @@ export interface OTelSpan {
   end(): void;
 }
 
-
 export interface OTelMeter {
   createCounter(name: string, options?: { description?: string }): OTelCounter;
   createHistogram(name: string, options?: { description?: string; unit?: string }): OTelHistogram;
 }
 
-
 export interface OTelCounter {
   add(value: number, attributes?: Record<string, string>): void;
 }
-
 
 export interface OTelHistogram {
   record(value: number, attributes?: Record<string, string>): void;
@@ -40,10 +36,9 @@ export interface OTelHistogram {
 export interface OpenTelemetryConfig {
   tracer: OTelTracer;
   meter: OTelMeter;
-  
+
   metricPrefix?: string;
 }
-
 
 const SpanStatusCode = {
   UNSET: 0,
@@ -65,7 +60,6 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
     this.meter = config.meter;
     this.metricPrefix = config.metricPrefix ?? "meridian";
 
-    
     this.requestCounter = this.meter.createCounter(`${this.metricPrefix}.requests`, {
       description: "Total number of Meridian API requests",
     });
@@ -81,7 +75,6 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   }
 
   logRequest(context: RequestContext): void {
-    
     const span = this.tracer.startSpan(`${context.provider}.${context.method}`, {
       attributes: {
         "meridian.provider": context.provider,
@@ -91,10 +84,8 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
       },
     });
 
-    
     this.activeSpans.set(context.requestId, span);
 
-    
     this.requestCounter.add(1, {
       provider: context.provider,
       method: context.method,
@@ -102,7 +93,6 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   }
 
   logResponse(context: ResponseContext): void {
-    
     const span = this.activeSpans.get(context.requestId);
     if (span) {
       span.setAttribute("http.status_code", context.statusCode);
@@ -112,7 +102,6 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
       this.activeSpans.delete(context.requestId);
     }
 
-    
     this.durationHistogram.record(context.duration, {
       provider: context.provider,
       method: context.method,
@@ -121,7 +110,6 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   }
 
   logError(context: ErrorContext): void {
-    
     const span = this.activeSpans.get(context.requestId);
     if (span) {
       span.setAttribute("meridian.error.category", context.error.category);
@@ -132,7 +120,6 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
         message: context.error.message,
       });
 
-      
       const error = new Error(context.error.message);
       error.name = `MeridianError.${context.error.category}`;
       span.recordException(error);
@@ -141,13 +128,11 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
       this.activeSpans.delete(context.requestId);
     }
 
-    
     this.errorCounter.add(1, {
       provider: context.provider,
       category: context.error.category,
     });
 
-    
     this.durationHistogram.record(context.duration, {
       provider: context.provider,
       method: context.method,
@@ -157,14 +142,10 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   }
 
   logWarning(message: string, metadata?: Record<string, unknown>): void {
-    
-    
     console.warn(`[Meridian OTel] ${message}`, metadata);
   }
 
   recordMetric(metric: Metric): void {
-    
-    
     this.requestCounter.add(metric.value, metric.tags);
   }
 }

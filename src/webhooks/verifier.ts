@@ -10,11 +10,11 @@ export class WebhookVerifier {
     adapter: ProviderAdapter,
     payload: string | Buffer,
     signature: string,
-    secret: string
+    secret: string,
   ): boolean {
     if (typeof adapter.verifyWebhook !== "function") {
       throw new Error(
-        `Provider adapter "${adapter.constructor.name}" does not implement verifyWebhook.`
+        `Provider adapter "${adapter.constructor.name}" does not implement verifyWebhook.`,
       );
     }
     return adapter.verifyWebhook(payload, signature, secret);

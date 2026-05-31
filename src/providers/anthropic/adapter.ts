@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { AnthropicPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface AnthropicErrorBody {
   type: "error";
@@ -25,11 +23,10 @@ interface AnthropicErrorBody {
   };
 }
 
-
 export class AnthropicAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.anthropic.com") {
+  constructor(baseUrl = "https://api.anthropic.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -81,7 +78,14 @@ export class AnthropicAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "anthropic", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "anthropic",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -99,7 +103,7 @@ export class AnthropicAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -139,7 +143,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your Anthropic API key.",
         { anthropicError: errorBody?.error },
         undefined,
-        401
+        401,
       );
     }
 
@@ -150,7 +154,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API key lacks the required permissions.",
         { anthropicError: errorBody?.error },
         undefined,
-        403
+        403,
       );
     }
 
@@ -161,7 +165,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { anthropicError: errorBody?.error },
         undefined,
-        404
+        404,
       );
     }
 
@@ -172,7 +176,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { anthropicError: errorBody?.error },
         undefined,
-        422
+        422,
       );
     }
 
@@ -184,7 +188,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { anthropicError: errorBody?.error, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -196,7 +200,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? "Anthropic API is temporarily overloaded. Retrying with backoff.",
         { anthropicError: errorBody?.error },
         undefined,
-        529
+        529,
       );
     }
 
@@ -207,7 +211,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? `Anthropic API returned error ${status}. This may be temporary.`,
         { status, anthropicError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -218,7 +222,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, anthropicError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -228,7 +232,7 @@ export class AnthropicAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -240,15 +244,18 @@ export class AnthropicAdapter implements ProviderAdapter {
         "Anthropic authentication requires an API key. Set auth.token to your Anthropic API key.",
         {},
         undefined,
-        401
+        401,
       );
     }
     return { token: config.token };
   }
 
   rateLimitPolicy(headers: Headers): RateLimitInfo {
-    const limit = parseInt(headers.get("anthropic-ratelimit-requests-limit") ?? "", 10);
-    const remaining = parseInt(headers.get("anthropic-ratelimit-requests-remaining") ?? "", 10);
+    const limit = Number.parseInt(headers.get("anthropic-ratelimit-requests-limit") ?? "", 10);
+    const remaining = Number.parseInt(
+      headers.get("anthropic-ratelimit-requests-remaining") ?? "",
+      10,
+    );
     const resetStr = headers.get("anthropic-ratelimit-requests-reset");
 
     if (!isNaN(limit) && !isNaN(remaining) && resetStr) {
@@ -285,19 +292,29 @@ export class AnthropicAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "anthropic", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "anthropic",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 
-    const value = headers instanceof Headers
-      ? headers.get("retry-after")
-      : (Object.entries(headers).find(([k]) => k.toLowerCase() === "retry-after")?.[1] ?? null);
+    const value =
+      headers instanceof Headers
+        ? headers.get("retry-after")
+        : (Object.entries(headers).find(([k]) => k.toLowerCase() === "retry-after")?.[1] ?? null);
 
     return parseRetryAfter(value) ?? undefined;
   }

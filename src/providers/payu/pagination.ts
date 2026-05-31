@@ -1,4 +1,3 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -40,9 +39,9 @@ export class PayuPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    _cursor: string
+    _cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const currentPage = parseInt(String(options.query?.["page"] ?? 1), 10);
+    const currentPage = Number.parseInt(String(options.query?.["page"] ?? 1), 10);
     const nextPage = String(currentPage + 1);
     return {
       endpoint,

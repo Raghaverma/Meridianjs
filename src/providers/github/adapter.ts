@@ -1,22 +1,19 @@
-
-
+import { parseRateLimitHeaders, parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { GitHubPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter, parseRateLimitHeaders } from "../../core/header-parser.js";
-
 
 interface GitHubErrorResponse {
   message?: string;
@@ -29,47 +26,39 @@ interface GitHubErrorResponse {
   }>;
 }
 
-
 export class GitHubAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.github.com") {
+  constructor(baseUrl = "https://api.github.com") {
     this.baseUrl = baseUrl;
   }
 
-  
   buildRequest(input: AdapterInput): BuiltRequest {
     const { endpoint, options, authToken, baseUrl } = input;
     const effectiveBaseUrl = baseUrl ?? this.baseUrl;
-    
-    
+
     const url = new URL(endpoint, effectiveBaseUrl);
-    
-    
+
     if (options.query) {
       for (const [key, value] of Object.entries(options.query)) {
         url.searchParams.set(key, String(value));
       }
     }
 
-    
     const headers: Record<string, string> = {
-      "Accept": "application/vnd.github.v3+json",
+      Accept: "application/vnd.github.v3+json",
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
 
-    
     if (authToken.token) {
       headers["Authorization"] = `Bearer ${authToken.token}`;
     }
 
-    
     if (options.idempotencyKey) {
       headers["X-Idempotency-Key"] = options.idempotencyKey;
     }
 
-    
     let body: string | undefined;
     const method = options.method ?? "GET";
     if (options.body && method !== "GET" && method !== "HEAD") {
@@ -88,32 +77,16 @@ export class GitHubAdapter implements ProviderAdapter {
     return built;
   }
 
-  
   parseResponse(raw: RawResponse): NormalizedResponse {
-    
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
-    
-    
-    const paginationStrategy = this.paginationStrategy();
-    const paginationInfo = ResponseNormalizer.extractPaginationInfo(
-      raw,
-      paginationStrategy
-    );
 
-    
-    return ResponseNormalizer.normalize(
-      raw,
-      "github",
-      rateLimitInfo,
-      paginationInfo,
-      [],
-      "1.0.0"
-    );
+    const paginationStrategy = this.paginationStrategy();
+    const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
+
+    return ResponseNormalizer.normalize(raw, "github", rateLimitInfo, paginationInfo, [], "1.0.0");
   }
 
-  
   parseError(raw: unknown): MeridianError {
-    
     if (raw instanceof Error) {
       const errorMessage = raw.message.toLowerCase();
       if (
@@ -128,12 +101,11 @@ export class GitHubAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
 
-    
     if (
       typeof raw === "object" &&
       raw !== null &&
@@ -150,16 +122,9 @@ export class GitHubAdapter implements ProviderAdapter {
       return this.parseHttpError(httpError);
     }
 
-    
-    return this.createMeridianError(
-      "provider",
-      false,
-      "An unexpected error occurred",
-      { raw }
-    );
+    return this.createMeridianError("provider", false, "An unexpected error occurred", { raw });
   }
 
-  
   private parseHttpError(error: {
     status: number;
     headers?: Headers | Record<string, string>;
@@ -170,7 +135,6 @@ export class GitHubAdapter implements ProviderAdapter {
     const body = error.body as GitHubErrorResponse | undefined;
     const headers = error.headers;
 
-    
     if (status === 401) {
       return this.createMeridianError(
         "auth",
@@ -181,14 +145,11 @@ export class GitHubAdapter implements ProviderAdapter {
           documentationUrl: body?.documentation_url,
         },
         undefined,
-        401
+        401,
       );
     }
 
-    
     if (status === 403) {
-      
-      
       const rateLimitRemaining = this.getHeaderValue(headers, "X-RateLimit-Remaining");
       if (rateLimitRemaining === "0") {
         const retryAfter = this.extractRetryAfter(headers);
@@ -201,10 +162,9 @@ export class GitHubAdapter implements ProviderAdapter {
             retryAfter: retryAfter?.toISOString(),
           },
           retryAfter,
-          403
+          403,
         );
       }
-
 
       return this.createMeridianError(
         "auth",
@@ -215,24 +175,17 @@ export class GitHubAdapter implements ProviderAdapter {
           documentationUrl: body?.documentation_url,
         },
         undefined,
-        403
+        403,
       );
     }
 
-    
-    
-    
     if (status === 404) {
-
       const message = body?.message?.toLowerCase() ?? "";
       if (
         message.includes("not found") ||
         message.includes("does not exist") ||
         message.includes("not accessible")
       ) {
-
-
-
         return this.createMeridianError(
           "validation",
           false,
@@ -242,7 +195,7 @@ export class GitHubAdapter implements ProviderAdapter {
             note: "GitHub returns 404 for both missing resources and inaccessible resources",
           },
           undefined,
-          404
+          404,
         );
       }
 
@@ -254,11 +207,10 @@ export class GitHubAdapter implements ProviderAdapter {
           githubMessage: body?.message,
         },
         undefined,
-        404
+        404,
       );
     }
 
-    
     if (status === 422) {
       const fieldErrors = body?.errors
         ?.map((e) => `${e.field ?? "unknown"}: ${e.message ?? e.code ?? "validation error"}`)
@@ -269,16 +221,15 @@ export class GitHubAdapter implements ProviderAdapter {
         false,
         fieldErrors
           ? `Validation failed: ${fieldErrors}`
-          : body?.message ?? "Request validation failed.",
+          : (body?.message ?? "Request validation failed."),
         {
           githubMessage: body?.message,
           fieldErrors: body?.errors,
         },
         undefined,
-        422
+        422,
       );
     }
-
 
     if (status === 429) {
       const retryAfter = this.extractRetryAfter(headers);
@@ -291,10 +242,9 @@ export class GitHubAdapter implements ProviderAdapter {
           retryAfter: retryAfter?.toISOString(),
         },
         retryAfter,
-        429
+        429,
       );
     }
-
 
     if (status >= 500) {
       return this.createMeridianError(
@@ -306,10 +256,9 @@ export class GitHubAdapter implements ProviderAdapter {
           githubMessage: body?.message,
         },
         undefined,
-        status
+        status,
       );
     }
-
 
     if (status >= 400) {
       return this.createMeridianError(
@@ -321,10 +270,9 @@ export class GitHubAdapter implements ProviderAdapter {
           githubMessage: body?.message,
         },
         undefined,
-        status
+        status,
       );
     }
-
 
     return this.createMeridianError(
       "provider",
@@ -335,11 +283,10 @@ export class GitHubAdapter implements ProviderAdapter {
         githubMessage: body?.message,
       },
       undefined,
-      status
+      status,
     );
   }
 
-  
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
     if (!config.token) {
       throw this.createMeridianError(
@@ -348,20 +295,16 @@ export class GitHubAdapter implements ProviderAdapter {
         "GitHub authentication requires a token.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
-    
-    
     return {
       token: config.token,
     };
   }
 
-  
   rateLimitPolicy(headers: Headers): RateLimitInfo {
-    
     const parsed = parseRateLimitHeaders(headers);
 
     if (parsed) {
@@ -372,52 +315,41 @@ export class GitHubAdapter implements ProviderAdapter {
       };
     }
 
-    
     return {
-      limit: 5000, 
+      limit: 5000,
       remaining: 5000,
-      reset: new Date(Date.now() + 60 * 60 * 1000), 
+      reset: new Date(Date.now() + 60 * 60 * 1000),
     };
   }
 
-  
   paginationStrategy(): PaginationStrategy {
     return new GitHubPaginationStrategy();
   }
 
-  
   getIdempotencyConfig(): IdempotencyConfig {
     return {
       defaultSafeOperations: new Set(["GET", "HEAD", "OPTIONS"]),
       operationOverrides: new Map([
-        
-        [
-          "POST /repos/:owner/:repo/pulls",
-          IdempotencyLevel.CONDITIONAL,
-        ],
-        [
-          "POST /repos/:owner/:repo/issues",
-          IdempotencyLevel.CONDITIONAL,
-        ],
-        
+        ["POST /repos/:owner/:repo/pulls", IdempotencyLevel.CONDITIONAL],
+        ["POST /repos/:owner/:repo/issues", IdempotencyLevel.CONDITIONAL],
+
         ["GET /search/code", IdempotencyLevel.UNSAFE],
         ["GET /search/repositories", IdempotencyLevel.UNSAFE],
         ["GET /search/users", IdempotencyLevel.UNSAFE],
-        
+
         ["DELETE /repos/:owner/:repo", IdempotencyLevel.IDEMPOTENT],
         ["DELETE /repos/:owner/:repo/issues/:issue_number", IdempotencyLevel.IDEMPOTENT],
       ]),
     };
   }
 
-  
   private createMeridianError(
     category: MeridianError["category"],
     retryable: boolean,
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
     return new MeridianError(
       message,
@@ -427,14 +359,13 @@ export class GitHubAdapter implements ProviderAdapter {
       "",
       metadata,
       retryAfter,
-      status
+      status,
     );
   }
 
-  
   private getHeaderValue(
     headers: Headers | Record<string, string> | undefined,
-    name: string
+    name: string,
   ): string | null {
     if (!headers) {
       return null;
@@ -444,7 +375,6 @@ export class GitHubAdapter implements ProviderAdapter {
       return headers.get(name);
     }
 
-    
     const lowerName = name.toLowerCase();
     for (const [key, value] of Object.entries(headers)) {
       if (key.toLowerCase() === lowerName) {
@@ -455,29 +385,25 @@ export class GitHubAdapter implements ProviderAdapter {
     return null;
   }
 
-  
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) {
       return undefined;
     }
 
-    
     const retryAfterValue = this.getHeaderValue(headers, "Retry-After");
     const parsed = parseRetryAfter(retryAfterValue);
     if (parsed) {
       return parsed;
     }
 
-    
     const resetValue = this.getHeaderValue(headers, "X-RateLimit-Reset");
     if (resetValue) {
-      
-      const timestamp = parseInt(resetValue.trim(), 10);
+      const timestamp = Number.parseInt(resetValue.trim(), 10);
       if (!isNaN(timestamp) && timestamp > 0) {
         const now = Math.floor(Date.now() / 1000);
-        
+
         if (timestamp >= now - 60 && timestamp < now + 86400 * 365) {
           return new Date(timestamp * 1000);
         }

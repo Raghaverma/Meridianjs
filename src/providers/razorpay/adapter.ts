@@ -1,22 +1,20 @@
-
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { RazorpayPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface RazorpayErrorBody {
   error: {
@@ -30,11 +28,10 @@ interface RazorpayErrorBody {
   };
 }
 
-
 export class RazorpayAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.razorpay.com") {
+  constructor(baseUrl = "https://api.razorpay.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -55,7 +52,7 @@ export class RazorpayAdapter implements ProviderAdapter {
     const credentials = Buffer.from(authToken.token).toString("base64");
 
     const headers: Record<string, string> = {
-      "Authorization": `Basic ${credentials}`,
+      Authorization: `Basic ${credentials}`,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -86,7 +83,14 @@ export class RazorpayAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "razorpay", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "razorpay",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -104,7 +108,7 @@ export class RazorpayAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -145,7 +149,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? "Authentication failed. Check your Razorpay key_id and key_secret.",
         { razorpayCode: errorCode, razorpayError: errorBody?.error },
         undefined,
-        401
+        401,
       );
     }
 
@@ -156,7 +160,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? "Permission denied. Your API key lacks the required permissions.",
         { razorpayCode: errorCode, razorpayError: errorBody?.error },
         undefined,
-        403
+        403,
       );
     }
 
@@ -167,7 +171,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? "Resource not found.",
         { razorpayCode: errorCode, razorpayError: errorBody?.error },
         undefined,
-        404
+        404,
       );
     }
 
@@ -178,7 +182,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? "Request conflicts with existing resource.",
         { razorpayCode: errorCode, razorpayError: errorBody?.error },
         undefined,
-        409
+        409,
       );
     }
 
@@ -190,7 +194,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? "Rate limit exceeded. Please wait before retrying.",
         { razorpayCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -201,7 +205,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? "Request validation failed.",
         { razorpayCode: errorCode, razorpayError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -213,7 +217,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? `Razorpay API returned error ${status}. This may be temporary.`,
         { status, razorpayCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -224,7 +228,7 @@ export class RazorpayAdapter implements ProviderAdapter {
         errorDescription ?? `Request failed with status ${status}.`,
         { status, razorpayCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -234,7 +238,7 @@ export class RazorpayAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -253,7 +257,7 @@ export class RazorpayAdapter implements ProviderAdapter {
           "Set auth.username + auth.password, or auth.apiKey + auth.custom.keySecret.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -268,12 +272,12 @@ export class RazorpayAdapter implements ProviderAdapter {
     const resetStr = headers.get("X-RateLimit-Reset");
 
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
 
       if (!isNaN(limit) && !isNaN(remaining)) {
         const reset = resetStr
-          ? new Date(parseInt(resetStr, 10) * 1000)
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);
         return { limit, remaining, reset };
       }
@@ -324,13 +328,22 @@ export class RazorpayAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "razorpay", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "razorpay",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

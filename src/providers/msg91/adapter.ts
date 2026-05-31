@@ -1,22 +1,20 @@
-
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { Msg91PaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface Msg91ErrorBody {
   message?: string;
@@ -24,11 +22,10 @@ interface Msg91ErrorBody {
   status?: string;
 }
 
-
 export class Msg91Adapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.msg91.com") {
+  constructor(baseUrl = "https://api.msg91.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -45,7 +42,7 @@ export class Msg91Adapter implements ProviderAdapter {
     }
 
     const headers: Record<string, string> = {
-      "authkey": authToken.token,
+      authkey: authToken.token,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -90,7 +87,7 @@ export class Msg91Adapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -131,7 +128,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your MSG91 auth key.",
         { msg91Type: errorType },
         undefined,
-        401
+        401,
       );
     }
 
@@ -142,7 +139,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your auth key lacks the required permissions.",
         { msg91Type: errorType },
         undefined,
-        403
+        403,
       );
     }
 
@@ -153,7 +150,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { msg91Type: errorType },
         undefined,
-        404
+        404,
       );
     }
 
@@ -165,7 +162,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { msg91Type: errorType, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -176,7 +173,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { msg91Type: errorType },
         undefined,
-        status
+        status,
       );
     }
 
@@ -187,7 +184,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? `MSG91 API returned error ${status}. This may be temporary.`,
         { status, msg91Type: errorType },
         undefined,
-        status
+        status,
       );
     }
 
@@ -198,7 +195,7 @@ export class Msg91Adapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, msg91Type: errorType },
         undefined,
-        status
+        status,
       );
     }
 
@@ -208,7 +205,7 @@ export class Msg91Adapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -222,7 +219,7 @@ export class Msg91Adapter implements ProviderAdapter {
         "MSG91 authentication requires an auth key. Set auth.apiKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -235,12 +232,12 @@ export class Msg91Adapter implements ProviderAdapter {
     const resetStr = headers.get("X-RateLimit-Reset");
 
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
 
       if (!isNaN(limit) && !isNaN(remaining)) {
         const reset = resetStr
-          ? new Date(parseInt(resetStr, 10) * 1000)
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);
         return { limit, remaining, reset };
       }
@@ -282,13 +279,22 @@ export class Msg91Adapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "msg91", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "msg91",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

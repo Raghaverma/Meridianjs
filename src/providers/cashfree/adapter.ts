@@ -1,22 +1,20 @@
-
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { CashfreePaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface CashfreeErrorBody {
   message: string;
@@ -24,11 +22,10 @@ interface CashfreeErrorBody {
   type: string;
 }
 
-
 export class CashfreeAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.cashfree.com") {
+  constructor(baseUrl = "https://api.cashfree.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -81,7 +78,14 @@ export class CashfreeAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "cashfree", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "cashfree",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -99,7 +103,7 @@ export class CashfreeAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -140,7 +144,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your Cashfree client ID and client secret.",
         { cashfreeCode: errorCode, cashfreeType: errorBody?.type },
         undefined,
-        401
+        401,
       );
     }
 
@@ -151,7 +155,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API credentials lack the required permissions.",
         { cashfreeCode: errorCode, cashfreeType: errorBody?.type },
         undefined,
-        403
+        403,
       );
     }
 
@@ -162,7 +166,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { cashfreeCode: errorCode, cashfreeType: errorBody?.type },
         undefined,
-        404
+        404,
       );
     }
 
@@ -173,7 +177,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? "Request conflicts with an existing resource.",
         { cashfreeCode: errorCode, cashfreeType: errorBody?.type },
         undefined,
-        409
+        409,
       );
     }
 
@@ -185,7 +189,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { cashfreeCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -196,7 +200,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { cashfreeCode: errorCode, cashfreeType: errorBody?.type },
         undefined,
-        status
+        status,
       );
     }
 
@@ -207,7 +211,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? `Cashfree API returned error ${status}. This may be temporary.`,
         { status, cashfreeCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -218,7 +222,7 @@ export class CashfreeAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, cashfreeCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -228,7 +232,7 @@ export class CashfreeAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -244,7 +248,7 @@ export class CashfreeAdapter implements ProviderAdapter {
           "Set auth.custom.clientId + auth.custom.clientSecret.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -257,12 +261,12 @@ export class CashfreeAdapter implements ProviderAdapter {
     const resetStr = headers.get("x-ratelimit-reset");
 
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
 
       if (!isNaN(limit) && !isNaN(remaining)) {
         const reset = resetStr
-          ? new Date(parseInt(resetStr, 10) * 1000)
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);
         return { limit, remaining, reset };
       }
@@ -309,13 +313,22 @@ export class CashfreeAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "cashfree", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "cashfree",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

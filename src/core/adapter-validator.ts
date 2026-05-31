@@ -1,16 +1,11 @@
-
-
 import {
-  MeridianError,
-  type ProviderAdapter,
-  type RawResponse,
   type AdapterInput,
   type AuthConfig,
+  MeridianError,
   type PaginationStrategy,
+  type ProviderAdapter,
+  type RawResponse,
 } from "./types.js";
-
-
-
 
 export interface ValidationResult {
   valid: boolean;
@@ -18,15 +13,13 @@ export interface ValidationResult {
   warnings: string[];
 }
 
-
 export async function validateAdapter(
   adapter: ProviderAdapter,
-  providerName: string
+  providerName: string,
 ): Promise<ValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  
   const requiredMethods: Array<keyof ProviderAdapter> = [
     "buildRequest",
     "parseResponse",
@@ -39,13 +32,10 @@ export async function validateAdapter(
 
   for (const method of requiredMethods) {
     if (typeof adapter[method] !== "function") {
-      errors.push(
-        `Adapter missing required method: ${String(method)}`
-      );
+      errors.push(`Adapter missing required method: ${String(method)}`);
     }
   }
 
-  
   if (typeof adapter.buildRequest === "function") {
     try {
       const input: AdapterInput = {
@@ -54,7 +44,7 @@ export async function validateAdapter(
         authToken: { token: "test" },
       };
       const built = adapter.buildRequest(input);
-      
+
       if (!built || typeof built !== "object") {
         errors.push("buildRequest must return BuiltRequest object");
       } else {
@@ -69,11 +59,12 @@ export async function validateAdapter(
         }
       }
     } catch (error) {
-      errors.push(`buildRequest threw error: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `buildRequest threw error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  
   if (typeof adapter.parseResponse === "function") {
     try {
       const raw: RawResponse = {
@@ -99,7 +90,7 @@ export async function validateAdapter(
           const meta = normalized.meta;
           if (meta.provider !== providerName) {
             errors.push(
-              `parseResponse meta.provider must be '${providerName}', got '${meta.provider}'`
+              `parseResponse meta.provider must be '${providerName}', got '${meta.provider}'`,
             );
           }
           if (!meta.rateLimit) {
@@ -118,11 +109,12 @@ export async function validateAdapter(
         }
       }
     } catch (error) {
-      errors.push(`parseResponse threw error: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `parseResponse threw error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  
   if (typeof adapter.parseError === "function") {
     const testErrors = [
       { status: 401, headers: new Headers(), body: { message: "Unauthorized" } },
@@ -136,11 +128,10 @@ export async function validateAdapter(
       try {
         const error: unknown = adapter.parseError(testError);
 
-        
         if (!(error instanceof MeridianError)) {
           if (error instanceof Error) {
             errors.push(
-              "parseError must return MeridianError instance (extends Error), got Error-like object without proper inheritance"
+              "parseError must return MeridianError instance (extends Error), got Error-like object without proper inheritance",
             );
           } else {
             errors.push("parseError must return MeridianError instance");
@@ -148,59 +139,45 @@ export async function validateAdapter(
           continue;
         }
 
-        
         const validCategories = ["auth", "rate_limit", "network", "provider", "validation"];
         if (!validCategories.includes(error.category)) {
           errors.push(
-            `parseError returned invalid category: ${error.category}. Must be one of: ${validCategories.join()}`
+            `parseError returned invalid category: ${error.category}. Must be one of: ${validCategories.join()}`,
           );
         }
 
-        
         if (typeof error.retryable !== "boolean") {
           errors.push("parseError returned MeridianError with non-boolean 'retryable' property");
         }
 
-
         if (error.provider !== providerName) {
           errors.push(
-            `parseError returned provider '${error.provider}', expected '${providerName}'`
+            `parseError returned provider '${error.provider}', expected '${providerName}'`,
           );
         }
-
 
         if (typeof error.requestId !== "string") {
-          errors.push(
-            "parseError must return MeridianError with requestId as string"
-          );
+          errors.push("parseError must return MeridianError with requestId as string");
         }
-
 
         const providerSpecificFields = ["documentation_url", "github_message", "stripe_error"];
         for (const field of providerSpecificFields) {
           if (field in error && !(field in Error.prototype)) {
             warnings.push(
-              `parseError may be leaking provider-specific field: ${field}. Consider moving to metadata.`
+              `parseError may be leaking provider-specific field: ${field}. Consider moving to metadata.`,
             );
           }
         }
       } catch (error) {
         errors.push(
-          `parseError threw error for test case: ${error instanceof Error ? error.message : String(error)}`
+          `parseError threw error for test case: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }
   }
 
-  
-  
-  
-  
-  
-  
   if (typeof adapter.authStrategy === "function") {
     try {
-      
       const config: AuthConfig = { token: "MERIDIAN_TEST_TOKEN_DO_NOT_VALIDATE" };
       const tokenPromise = adapter.authStrategy(config);
 
@@ -215,28 +192,25 @@ export async function validateAdapter(
             errors.push("authStrategy must return token as string");
           }
         } catch (error) {
-          
           if (error instanceof Error && "category" in error) {
             const meridianError = error as MeridianError;
             if (meridianError.category !== "auth") {
               warnings.push(
-                "authStrategy should throw MeridianError with category 'auth' on failure"
+                "authStrategy should throw MeridianError with category 'auth' on failure",
               );
             }
           } else {
-            warnings.push(
-              "authStrategy should throw MeridianError, not raw Error"
-            );
+            warnings.push("authStrategy should throw MeridianError, not raw Error");
           }
         }
       }
     } catch (error) {
-      
-      errors.push(`authStrategy threw synchronous error: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `authStrategy threw synchronous error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  
   if (typeof adapter.rateLimitPolicy === "function") {
     try {
       const headers = new Headers({
@@ -260,11 +234,12 @@ export async function validateAdapter(
         }
       }
     } catch (error) {
-      errors.push(`rateLimitPolicy threw error: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `rateLimitPolicy threw error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  
   if (typeof adapter.paginationStrategy === "function") {
     try {
       const strategy = adapter.paginationStrategy();
@@ -280,11 +255,12 @@ export async function validateAdapter(
         }
       }
     } catch (error) {
-      errors.push(`paginationStrategy threw error: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `paginationStrategy threw error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
-  
   if (typeof adapter.getIdempotencyConfig === "function") {
     try {
       const config = adapter.getIdempotencyConfig();
@@ -300,7 +276,9 @@ export async function validateAdapter(
         }
       }
     } catch (error) {
-      errors.push(`getIdempotencyConfig threw error: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(
+        `getIdempotencyConfig threw error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -311,14 +289,12 @@ export async function validateAdapter(
   };
 }
 
-
 export async function assertValidAdapter(
   adapter: ProviderAdapter,
-  providerName: string
+  providerName: string,
 ): Promise<void> {
   const result = await validateAdapter(adapter, providerName);
 
-  
   if (!result.valid || result.warnings.length > 0) {
     const errorMessage = [
       `Adapter validation failed for '${providerName}':`,
@@ -329,7 +305,6 @@ export async function assertValidAdapter(
     throw new Error(errorMessage);
   }
 }
-
 
 export function isProviderAdapter(obj: unknown): obj is ProviderAdapter {
   if (!obj || typeof obj !== "object") {
@@ -346,7 +321,5 @@ export function isProviderAdapter(obj: unknown): obj is ProviderAdapter {
     "getIdempotencyConfig",
   ];
 
-  return requiredMethods.every(
-    (method) => typeof (obj as any)[method] === "function"
-  );
+  return requiredMethods.every((method) => typeof (obj as any)[method] === "function");
 }

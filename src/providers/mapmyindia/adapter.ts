@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { MapmyindiaPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface MapmyindiaErrorBody {
   error?: string;
@@ -23,11 +21,10 @@ interface MapmyindiaErrorBody {
   status?: number;
 }
 
-
 export class MapmyindiaAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://atlas.mapmyindia.com") {
+  constructor(baseUrl = "https://atlas.mapmyindia.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -44,7 +41,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
     }
 
     const headers: Record<string, string> = {
-      "Authorization": `Bearer ${authToken.token}`,
+      Authorization: `Bearer ${authToken.token}`,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -75,7 +72,14 @@ export class MapmyindiaAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "mapmyindia", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "mapmyindia",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -93,7 +97,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -133,7 +137,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your MapmyIndia API token.",
         { mapmyindiaError: errorBody },
         undefined,
-        401
+        401,
       );
     }
 
@@ -144,7 +148,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? "Quota exceeded or permission denied.",
         { mapmyindiaError: errorBody },
         undefined,
-        403
+        403,
       );
     }
 
@@ -155,7 +159,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { mapmyindiaError: errorBody },
         undefined,
-        404
+        404,
       );
     }
 
@@ -166,7 +170,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? "Bad request. Check your coordinates or request parameters.",
         { mapmyindiaError: errorBody },
         undefined,
-        status
+        status,
       );
     }
 
@@ -178,7 +182,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { mapmyindiaError: errorBody, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -189,7 +193,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? `MapmyIndia API returned error ${status}. This may be temporary.`,
         { status, mapmyindiaError: errorBody },
         undefined,
-        status
+        status,
       );
     }
 
@@ -200,7 +204,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, mapmyindiaError: errorBody },
         undefined,
-        status
+        status,
       );
     }
 
@@ -210,7 +214,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -223,7 +227,7 @@ export class MapmyindiaAdapter implements ProviderAdapter {
         "MapmyIndia authentication requires a bearer token. Set auth.token or auth.apiKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
     return { token };
@@ -255,13 +259,22 @@ export class MapmyindiaAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "mapmyindia", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "mapmyindia",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

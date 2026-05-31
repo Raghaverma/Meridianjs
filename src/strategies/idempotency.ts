@@ -1,10 +1,4 @@
-
-
-import {
-  IdempotencyLevel,
-  type IdempotencyConfig,
-  type RequestOptions,
-} from "../core/types.js";
+import { type IdempotencyConfig, IdempotencyLevel, type RequestOptions } from "../core/types.js";
 
 export class IdempotencyResolver {
   private config: IdempotencyConfig;
@@ -12,12 +6,10 @@ export class IdempotencyResolver {
 
   constructor(
     config: Partial<IdempotencyConfig>,
-    defaultLevel: IdempotencyLevel = IdempotencyLevel.SAFE
+    defaultLevel: IdempotencyLevel = IdempotencyLevel.SAFE,
   ) {
     this.config = {
-      defaultSafeOperations:
-        config.defaultSafeOperations ??
-        new Set(["GET", "HEAD", "OPTIONS"]),
+      defaultSafeOperations: config.defaultSafeOperations ?? new Set(["GET", "HEAD", "OPTIONS"]),
       operationOverrides: config.operationOverrides ?? new Map(),
     };
     this.defaultLevel = defaultLevel;
@@ -26,31 +18,26 @@ export class IdempotencyResolver {
   getIdempotencyLevel(
     method: string,
     endpoint: string,
-    _options: RequestOptions
+    _options: RequestOptions,
   ): IdempotencyLevel {
-    
     const operationKey = `${method} ${endpoint}`;
     const override = this.findOverride(operationKey);
     if (override !== null) {
       return override;
     }
 
-    
     if (this.config.defaultSafeOperations.has(method.toUpperCase())) {
       return IdempotencyLevel.SAFE;
     }
 
-    
     return this.defaultLevel;
   }
 
   private findOverride(operationKey: string): IdempotencyLevel | null {
-    
     if (this.config.operationOverrides.has(operationKey)) {
       return this.config.operationOverrides.get(operationKey)!;
     }
 
-    
     for (const [pattern, level] of this.config.operationOverrides.entries()) {
       if (this.matchesPattern(pattern, operationKey)) {
         return level;
@@ -61,11 +48,7 @@ export class IdempotencyResolver {
   }
 
   private matchesPattern(pattern: string, operationKey: string): boolean {
-    
-    const regexPattern = pattern.replace(
-      /:[\w-]+/g,
-      "[^/]+"
-    );
+    const regexPattern = pattern.replace(/:[\w-]+/g, "[^/]+");
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(operationKey);
   }
@@ -75,7 +58,7 @@ export class IdempotencyResolver {
     _error: Error,
     attempt: number,
     maxRetries: number,
-    hasIdempotencyKey: boolean
+    hasIdempotencyKey: boolean,
   ): boolean {
     if (idempotencyLevel === IdempotencyLevel.UNSAFE) {
       return false;
@@ -91,8 +74,6 @@ export class IdempotencyResolver {
       return false;
     }
 
-    
     return true;
   }
 }
-

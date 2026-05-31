@@ -13,15 +13,15 @@
  * - Pagination behavior changes
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 // CRITICAL: Only import from the public entry point
 import {
   Meridian,
+  type MeridianConfig,
   MeridianError,
   type NormalizedResponse,
   type ProviderClient,
-  type MeridianConfig,
 } from "./public.js";
 
 describe("Consumer Contract - Public API Only", () => {
@@ -186,7 +186,16 @@ describe("Consumer Contract - Public API Only", () => {
         expect(typeof meridianError.requestId).toBe("string");
 
         // Verify code is from frozen MeridianErrorCode enum
-        const validCodes = ["AUTH_FAILED", "RATE_LIMITED", "NOT_FOUND", "BAD_REQUEST", "UPSTREAM_5XX", "NETWORK_ERROR", "TIMEOUT", "UNKNOWN"];
+        const validCodes = [
+          "AUTH_FAILED",
+          "RATE_LIMITED",
+          "NOT_FOUND",
+          "BAD_REQUEST",
+          "UPSTREAM_5XX",
+          "NETWORK_ERROR",
+          "TIMEOUT",
+          "UNKNOWN",
+        ];
         expect(validCodes).toContain(meridianError.code);
 
         // Verify provider is set
@@ -346,7 +355,16 @@ describe("Consumer Contract - Public API Only", () => {
 
       const github = client.provider("github") as ProviderClient;
 
-      const validCodes = ["AUTH_FAILED", "RATE_LIMITED", "NOT_FOUND", "BAD_REQUEST", "UPSTREAM_5XX", "NETWORK_ERROR", "TIMEOUT", "UNKNOWN"];
+      const validCodes = [
+        "AUTH_FAILED",
+        "RATE_LIMITED",
+        "NOT_FOUND",
+        "BAD_REQUEST",
+        "UPSTREAM_5XX",
+        "NETWORK_ERROR",
+        "TIMEOUT",
+        "UNKNOWN",
+      ];
 
       try {
         await github.get("/error");

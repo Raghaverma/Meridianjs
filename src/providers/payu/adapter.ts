@@ -1,22 +1,20 @@
-
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { PayuPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface PayuErrorBody {
   status: number;
@@ -25,11 +23,10 @@ interface PayuErrorBody {
   error_Message?: string;
 }
 
-
 export class PayuAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://info.payu.in") {
+  constructor(baseUrl = "https://info.payu.in") {
     this.baseUrl = baseUrl;
   }
 
@@ -49,7 +46,7 @@ export class PayuAdapter implements ProviderAdapter {
     const credentials = Buffer.from(authToken.token).toString("base64");
 
     const headers: Record<string, string> = {
-      "Authorization": `Basic ${credentials}`,
+      Authorization: `Basic ${credentials}`,
       "Content-Type": "application/json",
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
@@ -94,7 +91,7 @@ export class PayuAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -134,7 +131,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your PayU merchant key and salt.",
         { payuMsg: errorBody?.msg },
         undefined,
-        401
+        401,
       );
     }
 
@@ -145,7 +142,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API credentials lack the required permissions.",
         { payuMsg: errorBody?.msg },
         undefined,
-        403
+        403,
       );
     }
 
@@ -156,7 +153,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { payuMsg: errorBody?.msg },
         undefined,
-        404
+        404,
       );
     }
 
@@ -168,7 +165,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -179,7 +176,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { payuMsg: errorBody?.msg },
         undefined,
-        status
+        status,
       );
     }
 
@@ -190,7 +187,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? `PayU API returned error ${status}. This may be temporary.`,
         { status },
         undefined,
-        status
+        status,
       );
     }
 
@@ -201,7 +198,7 @@ export class PayuAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status },
         undefined,
-        status
+        status,
       );
     }
 
@@ -211,7 +208,7 @@ export class PayuAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -227,7 +224,7 @@ export class PayuAdapter implements ProviderAdapter {
           "Set auth.username (merchant key) + auth.password (merchant salt).",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -272,13 +269,22 @@ export class PayuAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "payu", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "payu",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

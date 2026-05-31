@@ -1,8 +1,7 @@
-
 import { createHmac } from "node:crypto";
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { MeridianError, RawResponse } from "../../core/types.js";
 import { CashfreeAdapter } from "./adapter.js";
-import type { RawResponse, MeridianError } from "../../core/types.js";
 
 describe("CashfreeAdapter - Contract Tests", () => {
   const adapter = new CashfreeAdapter("https://api.cashfree.com");
@@ -74,7 +73,11 @@ describe("CashfreeAdapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("should map 401 to auth category", () => {
-      const error = adapter.parseError({ status: 401, headers: new Headers(), body: { message: "Unauthorized", code: "UNAUTHORIZED", type: "AUTH" } });
+      const error = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { message: "Unauthorized", code: "UNAUTHORIZED", type: "AUTH" },
+      });
       expect(error.category).toBe("auth");
       expect(error.retryable).toBe(false);
       expect(error.provider).toBe("cashfree");
@@ -98,7 +101,11 @@ describe("CashfreeAdapter - Contract Tests", () => {
     });
 
     it("should map 429 to rate_limit category", () => {
-      const error = adapter.parseError({ status: 429, headers: new Headers({ "Retry-After": "30" }), body: {} });
+      const error = adapter.parseError({
+        status: 429,
+        headers: new Headers({ "Retry-After": "30" }),
+        body: {},
+      });
       expect(error.category).toBe("rate_limit");
       expect(error.retryable).toBe(true);
     });
@@ -126,7 +133,9 @@ describe("CashfreeAdapter - Contract Tests", () => {
         { status: 503, expected: "provider" },
       ] as const;
       for (const { status, expected } of cases) {
-        expect(adapter.parseError({ status, headers: new Headers(), body: {} }).category).toBe(expected);
+        expect(adapter.parseError({ status, headers: new Headers(), body: {} }).category).toBe(
+          expected,
+        );
       }
     });
   });
@@ -141,7 +150,9 @@ describe("CashfreeAdapter - Contract Tests", () => {
 
   describe("authStrategy", () => {
     it("should accept clientId + clientSecret via custom", async () => {
-      const token = await adapter.authStrategy({ custom: { clientId: "test_id", clientSecret: "test_secret" } });
+      const token = await adapter.authStrategy({
+        custom: { clientId: "test_id", clientSecret: "test_secret" },
+      });
       expect(token.token).toBe("test_id:test_secret");
     });
 

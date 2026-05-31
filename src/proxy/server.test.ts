@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeAll, vi } from "vitest";
 import { request as httpRequest } from "node:http";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { BoundaryProxyServer } from "./server.js";
 
 // ---------------------------------------------------------------------------
@@ -15,7 +15,7 @@ interface ProxyResponse {
 function proxyRequest(
   port: number,
   path: string,
-  init: { method?: string; body?: string; headers?: Record<string, string> } = {}
+  init: { method?: string; body?: string; headers?: Record<string, string> } = {},
 ): Promise<ProxyResponse> {
   return new Promise((resolve, reject) => {
     const req = httpRequest(
@@ -37,7 +37,7 @@ function proxyRequest(
             resolve({ status: res.statusCode ?? 0, body: raw });
           }
         });
-      }
+      },
     );
     req.on("error", reject);
     if (init.body) req.write(init.body);
@@ -51,7 +51,7 @@ function proxyRequest(
 
 const MOCK_REPO = { id: 1, name: "Hello-World", full_name: "octocat/Hello-World" };
 
-function mockUpstream(statusCode: number = 200, body: unknown = MOCK_REPO) {
+function mockUpstream(statusCode = 200, body: unknown = MOCK_REPO) {
   (globalThis as any).fetch = vi.fn().mockResolvedValue({
     ok: statusCode >= 200 && statusCode < 300,
     status: statusCode,
@@ -175,10 +175,7 @@ describe("BoundaryProxyServer", () => {
   describe("4. Query string forwarding", () => {
     it("forwards query parameters to the upstream URL", async () => {
       mockUpstream(200, []);
-      await proxyRequest(
-        PORT,
-        "/github/repos/octocat/Hello-World/issues?state=open&per_page=10"
-      );
+      await proxyRequest(PORT, "/github/repos/octocat/Hello-World/issues?state=open&per_page=10");
       const mockFetch = (globalThis as any).fetch as ReturnType<typeof vi.fn>;
       const [calledUrl] = mockFetch.mock.calls.at(-1) ?? [];
       expect(String(calledUrl)).toContain("state=open");
@@ -191,7 +188,7 @@ describe("BoundaryProxyServer", () => {
       mockUpstream(404, { message: "Not Found" });
       const res = await proxyRequest(PORT, "/github/repos/octocat/does-not-exist");
       expect(res.status).not.toBe(200);
-      expect((res.body as any)).toHaveProperty("error");
+      expect(res.body as any).toHaveProperty("error");
     });
 
     it("includes provider name in error body", async () => {
@@ -203,7 +200,7 @@ describe("BoundaryProxyServer", () => {
     it("surfaces retryable flag in error body", async () => {
       mockUpstream(503, { message: "Service Unavailable" });
       const res = await proxyRequest(PORT, "/github/repos/octocat/Hello-World");
-      expect((res.body as any)).toHaveProperty("retryable");
+      expect(res.body as any).toHaveProperty("retryable");
     });
   });
 

@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class OpenAIPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
@@ -29,7 +27,7 @@ export class OpenAIPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     return {
       endpoint,

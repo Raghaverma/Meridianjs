@@ -1,18 +1,18 @@
+import { ResponseNormalizer } from "../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
   RequestOptions,
 } from "../core/types.js";
 import { MeridianError } from "../core/types.js";
-import { ResponseNormalizer } from "../core/normalizer.js";
 
 export interface MockCall {
   method: string;
@@ -24,7 +24,11 @@ export interface MockCall {
 export interface MockHandler {
   method?: string;
   endpoint?: string | RegExp;
-  handler: (method: string, endpoint: string, options: RequestOptions) => MockResponse | Promise<MockResponse>;
+  handler: (
+    method: string,
+    endpoint: string,
+    options: RequestOptions,
+  ) => MockResponse | Promise<MockResponse>;
 }
 
 export interface MockResponse {
@@ -46,7 +50,7 @@ export class MockAdapter implements ProviderAdapter {
   /** Register a handler for requests matching the given pattern. Later registrations take precedence. */
   onRequest(
     pattern: { method?: string; endpoint?: string | RegExp },
-    handler: MockHandler["handler"]
+    handler: MockHandler["handler"],
   ): this {
     this.handlers.unshift({ ...pattern, handler });
     return this;
@@ -55,7 +59,12 @@ export class MockAdapter implements ProviderAdapter {
   /** Make requests matching the pattern throw a MeridianError. */
   simulateError(
     pattern: { method?: string; endpoint?: string | RegExp },
-    error: { message: string; category?: MeridianError["category"]; status?: number; retryable?: boolean }
+    error: {
+      message: string;
+      category?: MeridianError["category"];
+      status?: number;
+      retryable?: boolean;
+    },
   ): this {
     this.handlers.unshift({
       ...pattern,
@@ -68,7 +77,7 @@ export class MockAdapter implements ProviderAdapter {
           "",
           undefined,
           undefined,
-          error.status
+          error.status,
         );
       },
     });
@@ -99,7 +108,7 @@ export class MockAdapter implements ProviderAdapter {
     return {
       url: url.toString(),
       method: options.method ?? "GET",
-      headers: { "Authorization": `Bearer ${authToken.token}`, ...options.headers },
+      headers: { Authorization: `Bearer ${authToken.token}`, ...options.headers },
       body: options.body ? JSON.stringify(options.body) : undefined,
     };
   }
@@ -111,13 +120,14 @@ export class MockAdapter implements ProviderAdapter {
       { limit: 1000, remaining: 999, reset: new Date(Date.now() + 60_000) },
       undefined,
       [],
-      "1.0.0"
+      "1.0.0",
     );
   }
 
   parseError(raw: unknown): MeridianError {
     if (raw instanceof MeridianError) return raw;
-    if (raw instanceof Error) return new MeridianError(raw.message, "provider", this.providerName, false);
+    if (raw instanceof Error)
+      return new MeridianError(raw.message, "provider", this.providerName, false);
     return new MeridianError(String(raw), "provider", this.providerName, false);
   }
 
@@ -158,9 +168,9 @@ export class MockAdapter implements ProviderAdapter {
 
     for (const h of this.handlers) {
       const methodMatch = !h.method || h.method.toUpperCase() === method.toUpperCase();
-      const endpointMatch = !h.endpoint || (
-        h.endpoint instanceof RegExp ? h.endpoint.test(endpoint) : h.endpoint === endpoint
-      );
+      const endpointMatch =
+        !h.endpoint ||
+        (h.endpoint instanceof RegExp ? h.endpoint.test(endpoint) : h.endpoint === endpoint);
       if (methodMatch && endpointMatch) {
         const mockRes = await h.handler(method, endpoint, options);
         return this.toRawResponse(mockRes);

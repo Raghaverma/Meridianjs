@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { DigioPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface DigioErrorBody {
   message: string;
@@ -23,11 +21,10 @@ interface DigioErrorBody {
   status?: number;
 }
 
-
 export class DigioAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.digio.in") {
+  constructor(baseUrl = "https://api.digio.in") {
     this.baseUrl = baseUrl;
   }
 
@@ -45,7 +42,7 @@ export class DigioAdapter implements ProviderAdapter {
 
     // authToken.token is the base64-encoded "clientId:clientSecret"
     const headers: Record<string, string> = {
-      "Authorization": `Basic ${authToken.token}`,
+      Authorization: `Basic ${authToken.token}`,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -94,7 +91,7 @@ export class DigioAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -135,7 +132,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? "Authentication failed. Check your Digio clientId and clientSecret.",
         { digioErrorCode: errorCode },
         undefined,
-        401
+        401,
       );
     }
 
@@ -146,7 +143,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? "Permission denied. Your credentials lack the required permissions.",
         { digioErrorCode: errorCode },
         undefined,
-        403
+        403,
       );
     }
 
@@ -157,7 +154,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? "Resource not found.",
         { digioErrorCode: errorCode },
         undefined,
-        404
+        404,
       );
     }
 
@@ -168,7 +165,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? "Request validation failed.",
         { digioErrorCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -180,7 +177,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? "Rate limit exceeded. Please wait before retrying.",
         { digioErrorCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -191,7 +188,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? `Digio API returned error ${status}. This may be temporary.`,
         { status, digioErrorCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -202,7 +199,7 @@ export class DigioAdapter implements ProviderAdapter {
         message ?? `Request failed with status ${status}.`,
         { status, digioErrorCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -212,7 +209,7 @@ export class DigioAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -228,7 +225,7 @@ export class DigioAdapter implements ProviderAdapter {
           "Set auth.clientId + auth.clientSecret, or auth.custom.clientId + auth.custom.clientSecret.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -267,13 +264,22 @@ export class DigioAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "digio", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "digio",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

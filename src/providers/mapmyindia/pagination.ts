@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class MapmyindiaPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
@@ -75,10 +73,10 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const currentOffset = parseInt(String(options.query?.["offset"] ?? 0), 10);
-    const itemsReturned = parseInt(cursor, 10);
+    const currentOffset = Number.parseInt(String(options.query?.["offset"] ?? 0), 10);
+    const itemsReturned = Number.parseInt(cursor, 10);
     return {
       endpoint,
       options: {

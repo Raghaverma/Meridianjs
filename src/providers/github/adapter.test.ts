@@ -1,14 +1,12 @@
-
-
-import { describe, it, expect } from "vitest";
-import { GitHubAdapter } from "./adapter.js";
+import { describe, expect, it } from "vitest";
 import type {
-  RawResponse,
-  MeridianError,
-  NormalizedResponse,
   AuthConfig,
   AuthToken,
+  MeridianError,
+  NormalizedResponse,
+  RawResponse,
 } from "../../core/types.js";
+import { GitHubAdapter } from "./adapter.js";
 
 describe("GitHub Adapter - Contract Tests", () => {
   const adapter = new GitHubAdapter("https://api.github.com");
@@ -70,7 +68,6 @@ describe("GitHub Adapter - Contract Tests", () => {
 
       const normalized = adapter.parseResponse(raw);
 
-
       expect(normalized).toHaveProperty("data");
       expect(normalized).toHaveProperty("meta");
       expect(normalized.meta).toHaveProperty("provider", "github");
@@ -79,7 +76,6 @@ describe("GitHub Adapter - Contract Tests", () => {
       expect(normalized.meta.rateLimit).toHaveProperty("remaining");
       expect(normalized.meta.rateLimit).toHaveProperty("reset");
       expect(normalized.meta.rateLimit.reset).toBeInstanceOf(Date);
-
 
       const snapshotNormalized = {
         ...normalized,
@@ -134,7 +130,6 @@ describe("GitHub Adapter - Contract Tests", () => {
       expect(error.provider).toBe("github");
       expect(error.message).toBeTruthy();
 
-      
       expect({
         category: error.category,
         retryable: error.retryable,
@@ -201,9 +196,7 @@ describe("GitHub Adapter - Contract Tests", () => {
         headers: new Headers(),
         body: {
           message: "Validation Failed",
-          errors: [
-            { field: "title", code: "missing", message: "Title is required" },
-          ],
+          errors: [{ field: "title", code: "missing", message: "Title is required" }],
         },
       };
 
@@ -264,23 +257,20 @@ describe("GitHub Adapter - Contract Tests", () => {
         body: {
           message: "Bad credentials",
           documentation_url: "https://docs.github.com/rest",
-          
+
           github_specific_field: "should not appear",
         },
       };
 
       const error = adapter.parseError(raw);
 
-      
       expect(error).toBeInstanceOf(Error);
       expect(error.category).toBeDefined();
       expect(error.provider).toBe("github");
-      
-      
+
       expect((error as any).documentation_url).toBeUndefined();
       expect((error as any).github_specific_field).toBeUndefined();
-      
-      
+
       if (error.metadata) {
         expect(error.metadata.githubMessage).toBeDefined();
       }
@@ -303,7 +293,6 @@ describe("GitHub Adapter - Contract Tests", () => {
         reset: expect.any(Date),
       });
 
-      
       expect(rateLimit.reset.getTime()).toBeGreaterThan(Date.now());
     });
 
@@ -312,7 +301,6 @@ describe("GitHub Adapter - Contract Tests", () => {
 
       const rateLimit = adapter.rateLimitPolicy(headers);
 
-      
       expect(rateLimit).toMatchObject({
         limit: expect.any(Number),
         remaining: expect.any(Number),
@@ -370,10 +358,8 @@ describe("GitHub Adapter - Contract Tests", () => {
 
       const error = adapter.parseError(raw);
 
-
       expect(error).toBeInstanceOf(Error);
       expect((error as any).body).toBeUndefined();
-
 
       expect(typeof error.status).toBe("number");
     });
@@ -381,7 +367,7 @@ describe("GitHub Adapter - Contract Tests", () => {
     it("should ALWAYS return canonical error categories", () => {
       const testCases = [
         { status: 401, expectedCategory: "auth" },
-        { status: 403, expectedCategory: "auth" }, 
+        { status: 403, expectedCategory: "auth" },
         { status: 404, expectedCategory: "validation" },
         { status: 422, expectedCategory: "validation" },
         { status: 429, expectedCategory: "rate_limit" },
@@ -413,7 +399,6 @@ describe("GitHub Adapter - Contract Tests", () => {
 
       const normalized = adapter.parseResponse(raw);
 
-      
       expect(normalized).toHaveProperty("data");
       expect(normalized).toHaveProperty("meta");
       expect(normalized.meta).toHaveProperty("provider", "github");
@@ -426,12 +411,10 @@ describe("GitHub Adapter - Contract Tests", () => {
 
   describe("Vendor Change Simulation", () => {
     it("should handle GitHub API changes gracefully", () => {
-      
       const raw = {
         status: 401,
         headers: new Headers(),
         body: {
-          
           error: {
             code: "AUTH_FAILED",
             message: "Authentication failed",
@@ -439,19 +422,15 @@ describe("GitHub Adapter - Contract Tests", () => {
         },
       };
 
-      
       const error = adapter.parseError(raw);
 
       expect(error.category).toBe("auth");
       expect(error.retryable).toBe(false);
-      
     });
 
     it("should handle missing rate limit headers", () => {
-      
       const headers = new Headers();
 
-      
       const rateLimit = adapter.rateLimitPolicy(headers);
 
       expect(rateLimit).toMatchObject({

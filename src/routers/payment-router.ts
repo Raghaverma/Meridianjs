@@ -26,30 +26,45 @@ export class PaymentRouter {
     this.failoverOn = new Set(options.failoverOn ?? ["rate_limit", "network", "provider"]);
   }
 
-  async get<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>> {
+  async get<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<NormalizedResponse<T>> {
     return this.route("get", endpoint, options);
   }
 
-  async post<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>> {
+  async post<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<NormalizedResponse<T>> {
     return this.route("post", endpoint, options);
   }
 
-  async put<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>> {
+  async put<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<NormalizedResponse<T>> {
     return this.route("put", endpoint, options);
   }
 
-  async patch<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>> {
+  async patch<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<NormalizedResponse<T>> {
     return this.route("patch", endpoint, options);
   }
 
-  async delete<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>> {
+  async delete<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): Promise<NormalizedResponse<T>> {
     return this.route("delete", endpoint, options);
   }
 
   private async route<T>(
     method: "get" | "post" | "put" | "patch" | "delete",
     endpoint: string,
-    options?: RequestOptions
+    options?: RequestOptions,
   ): Promise<NormalizedResponse<T>> {
     if (this.strategy === "round-robin") {
       const provider = this.providers[this.roundRobinIndex % this.providers.length]!;
@@ -71,11 +86,9 @@ export class PaymentRouter {
       }
     }
 
-    throw lastError ?? new MeridianError(
-      "All payment providers failed.",
-      "provider",
-      "payment-router",
-      false
+    throw (
+      lastError ??
+      new MeridianError("All payment providers failed.", "provider", "payment-router", false)
     );
   }
 }

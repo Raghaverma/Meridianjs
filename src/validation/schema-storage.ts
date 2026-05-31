@@ -1,30 +1,21 @@
-
-
-import type { Schema, SchemaMetadata, SchemaStorage } from "../core/types.js";
 import { promises as fs } from "fs";
 import { join } from "path";
+import type { Schema, SchemaMetadata, SchemaStorage } from "../core/types.js";
 
 export type { SchemaStorage } from "../core/types.js";
-
 
 export class FileSystemSchemaStorage implements SchemaStorage {
   private basePath: string;
 
-  constructor(basePath: string = ".meridian/schemas") {
+  constructor(basePath = ".meridian/schemas") {
     this.basePath = basePath;
   }
 
-  async save(
-    provider: string,
-    endpoint: string,
-    schema: Schema,
-    version: string
-  ): Promise<void> {
+  async save(provider: string, endpoint: string, schema: Schema, version: string): Promise<void> {
     const endpointHash = this.hashEndpoint(endpoint);
     const dir = join(this.basePath, provider);
     const filePath = join(dir, `${endpointHash}.json`);
 
-    
     await fs.mkdir(dir, { recursive: true });
 
     const metadata: SchemaMetadata & { schema: Schema } = {
@@ -50,11 +41,7 @@ export class FileSystemSchemaStorage implements SchemaStorage {
       };
       return metadata.schema;
     } catch (error) {
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return null;
       }
       throw error;
@@ -87,11 +74,7 @@ export class FileSystemSchemaStorage implements SchemaStorage {
 
       return schemas;
     } catch (error) {
-      if (
-        error instanceof Error &&
-        "code" in error &&
-        error.code === "ENOENT"
-      ) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return [];
       }
       throw error;
@@ -99,18 +82,16 @@ export class FileSystemSchemaStorage implements SchemaStorage {
   }
 
   private hashEndpoint(endpoint: string): string {
-    
     let hash = 0;
     for (let i = 0; i < endpoint.length; i++) {
       const char = endpoint.charCodeAt(i);
       hash = (hash << 5) - hash + char;
-      hash = hash & hash; 
+      hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
   }
 
   private calculateChecksum(schema: Schema): string {
-    
     const str = JSON.stringify(schema);
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -122,17 +103,10 @@ export class FileSystemSchemaStorage implements SchemaStorage {
   }
 }
 
-
 export class InMemorySchemaStorage implements SchemaStorage {
-  private schemas: Map<string, { schema: Schema; metadata: SchemaMetadata }> =
-    new Map();
+  private schemas: Map<string, { schema: Schema; metadata: SchemaMetadata }> = new Map();
 
-  async save(
-    provider: string,
-    endpoint: string,
-    schema: Schema,
-    version: string
-  ): Promise<void> {
+  async save(provider: string, endpoint: string, schema: Schema, version: string): Promise<void> {
     const key = `${provider}:${endpoint}`;
     const checksum = this.calculateChecksum(schema);
 
@@ -177,4 +151,3 @@ export class InMemorySchemaStorage implements SchemaStorage {
     return `sha256-${Math.abs(hash).toString(36)}`;
   }
 }
-

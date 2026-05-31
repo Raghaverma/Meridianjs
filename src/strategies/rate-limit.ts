@@ -1,5 +1,3 @@
-
-
 import type { RateLimitConfig, RateLimitInfo } from "../core/types.js";
 
 export class RateLimiter {
@@ -31,7 +29,6 @@ export class RateLimiter {
       return;
     }
 
-    
     if (this.config.queueSize && this.queue.length >= this.config.queueSize) {
       throw new Error("Rate limit queue is full");
     }
@@ -44,15 +41,12 @@ export class RateLimiter {
 
   private refill(): void {
     const now = Date.now();
-    
+
     const elapsed = Math.max(0, (now - this.lastRefill) / 1000);
     const tokensToAdd = elapsed * this.config.tokensPerSecond;
 
     if (tokensToAdd > 0) {
-      this.tokens = Math.min(
-        this.config.maxTokens,
-        this.tokens + tokensToAdd
-      );
+      this.tokens = Math.min(this.config.maxTokens, this.tokens + tokensToAdd);
       this.lastRefill = now;
     }
   }
@@ -74,7 +68,6 @@ export class RateLimiter {
           item.resolve();
         }
       } else {
-        
         const waitTime = (1 / this.config.tokensPerSecond) * 1000;
         await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
@@ -88,22 +81,15 @@ export class RateLimiter {
       return;
     }
 
-    
     const remaining = rateLimitInfo.remaining;
     const limit = rateLimitInfo.limit;
     const reset = rateLimitInfo.reset.getTime();
 
-    
     const utilization = (limit - remaining) / limit;
     if (utilization > 0.8) {
-      
-      this.config.tokensPerSecond = Math.max(
-        1,
-        this.config.tokensPerSecond * 0.5
-      );
+      this.config.tokensPerSecond = Math.max(1, this.config.tokensPerSecond * 0.5);
     }
 
-    
     const now = Date.now();
     const timeUntilReset = reset - now;
     if (timeUntilReset > 0 && remaining < limit) {
@@ -117,7 +103,6 @@ export class RateLimiter {
 
   handle429(retryAfter: number): void {
     if (this.config.adaptiveBackoff) {
-      
       this.lastRefill = Date.now() + retryAfter * 1000;
     }
   }
@@ -125,10 +110,7 @@ export class RateLimiter {
   reset(): void {
     this.tokens = this.config.maxTokens;
     this.lastRefill = Date.now();
-    this.queue.forEach((item) =>
-      item.reject(new Error("Rate limiter was reset"))
-    );
+    this.queue.forEach((item) => item.reject(new Error("Rate limiter was reset")));
     this.queue = [];
   }
 }
-

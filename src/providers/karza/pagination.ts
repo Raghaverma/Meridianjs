@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class KarzaPaginationStrategy implements PaginationStrategy {
   // Karza is a stateless verification API — no cursor-based pagination
@@ -19,7 +17,7 @@ export class KarzaPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    _cursor: string
+    _cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     return { endpoint, options };
   }

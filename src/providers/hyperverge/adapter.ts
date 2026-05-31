@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { HyperVergePaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface HyperVergeErrorBody {
   status: string;
@@ -27,11 +25,10 @@ interface HyperVergeErrorBody {
   };
 }
 
-
 export class HyperVergeAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://ind.hyperverge.co") {
+  constructor(baseUrl = "https://ind.hyperverge.co") {
     this.baseUrl = baseUrl;
   }
 
@@ -51,8 +48,8 @@ export class HyperVergeAdapter implements ProviderAdapter {
     const [appId, appKey] = authToken.token.split("|");
 
     const headers: Record<string, string> = {
-      "appid": appId ?? "",
-      "appkey": appKey ?? "",
+      appid: appId ?? "",
+      appkey: appKey ?? "",
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -84,7 +81,14 @@ export class HyperVergeAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "hyperverge", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "hyperverge",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -102,7 +106,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -143,7 +147,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? "Authentication failed. Check your HyperVerge appId and appKey.",
         { hypervergeCode: code, httpCode: errorBody?.result?.httpCode },
         undefined,
-        401
+        401,
       );
     }
 
@@ -154,7 +158,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? "Permission denied. Your credentials lack the required permissions.",
         { hypervergeCode: code, httpCode: errorBody?.result?.httpCode },
         undefined,
-        403
+        403,
       );
     }
 
@@ -165,7 +169,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? "Resource not found.",
         { hypervergeCode: code },
         undefined,
-        404
+        404,
       );
     }
 
@@ -176,7 +180,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? "Request validation failed.",
         { hypervergeCode: code },
         undefined,
-        status
+        status,
       );
     }
 
@@ -188,7 +192,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? "Rate limit exceeded. Please wait before retrying.",
         { hypervergeCode: code, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -199,7 +203,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? `HyperVerge API returned error ${status}. This may be temporary.`,
         { status, hypervergeCode: code },
         undefined,
-        status
+        status,
       );
     }
 
@@ -210,7 +214,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         description ?? `Request failed with status ${status}.`,
         { status, hypervergeCode: code },
         undefined,
-        status
+        status,
       );
     }
 
@@ -220,7 +224,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -235,7 +239,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
         "HyperVerge authentication requires an appId and appKey. Set auth.custom.appId and auth.custom.appKey.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -268,13 +272,22 @@ export class HyperVergeAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "hyperverge", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "hyperverge",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

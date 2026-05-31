@@ -1,5 +1,3 @@
-
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../core/types.js";
 
 export class CursorPaginationStrategy implements PaginationStrategy {
@@ -7,11 +5,7 @@ export class CursorPaginationStrategy implements PaginationStrategy {
   private cursorQueryParam: string;
   private totalHeader?: string;
 
-  constructor(
-    cursorHeader: string = "X-Cursor",
-    cursorQueryParam: string = "cursor",
-    totalHeader?: string
-  ) {
+  constructor(cursorHeader = "X-Cursor", cursorQueryParam = "cursor", totalHeader?: string) {
     this.cursorHeader = cursorHeader;
     this.cursorQueryParam = cursorQueryParam;
     if (totalHeader !== undefined) {
@@ -25,12 +19,7 @@ export class CursorPaginationStrategy implements PaginationStrategy {
       return cursor;
     }
 
-    
-    if (
-      typeof response.body === "object" &&
-      response.body !== null &&
-      "cursor" in response.body
-    ) {
+    if (typeof response.body === "object" && response.body !== null && "cursor" in response.body) {
       const body = response.body as { cursor?: string };
       const bodyCursor = body.cursor;
       return bodyCursor ?? null;
@@ -43,16 +32,11 @@ export class CursorPaginationStrategy implements PaginationStrategy {
     if (this.totalHeader) {
       const total = response.headers.get(this.totalHeader);
       if (total) {
-        return parseInt(total, 10);
+        return Number.parseInt(total, 10);
       }
     }
 
-    
-    if (
-      typeof response.body === "object" &&
-      response.body !== null &&
-      "total" in response.body
-    ) {
+    if (typeof response.body === "object" && response.body !== null && "total" in response.body) {
       const body = response.body as { total?: number };
       return body.total ?? null;
     }
@@ -68,7 +52,7 @@ export class CursorPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     const url = new URL(endpoint, "http://dummy");
     url.searchParams.set(this.cursorQueryParam, cursor);
@@ -93,10 +77,10 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
   private defaultLimit: number;
 
   constructor(
-    offsetQueryParam: string = "offset",
-    limitQueryParam: string = "limit",
+    offsetQueryParam = "offset",
+    limitQueryParam = "limit",
     totalHeader?: string,
-    defaultLimit: number = 100
+    defaultLimit = 100,
   ) {
     this.offsetQueryParam = offsetQueryParam;
     this.limitQueryParam = limitQueryParam;
@@ -107,24 +91,19 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
   }
 
   extractCursor(response: RawResponse): string | null {
-    
     const currentOffset =
-      typeof response.body === "object" &&
-      response.body !== null &&
-      "offset" in response.body
-        ? (response.body as { offset?: number }).offset ?? 0
+      typeof response.body === "object" && response.body !== null && "offset" in response.body
+        ? ((response.body as { offset?: number }).offset ?? 0)
         : 0;
 
     const limit =
-      typeof response.body === "object" &&
-      response.body !== null &&
-      "limit" in response.body
-        ? (response.body as { limit?: number }).limit ?? this.defaultLimit
+      typeof response.body === "object" && response.body !== null && "limit" in response.body
+        ? ((response.body as { limit?: number }).limit ?? this.defaultLimit)
         : this.defaultLimit;
 
     const total = this.extractTotal(response);
     if (total !== null && currentOffset + limit >= total) {
-      return null; 
+      return null;
     }
 
     return String(currentOffset + limit);
@@ -134,15 +113,11 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
     if (this.totalHeader) {
       const total = response.headers.get(this.totalHeader);
       if (total) {
-        return parseInt(total, 10);
+        return Number.parseInt(total, 10);
       }
     }
 
-    if (
-      typeof response.body === "object" &&
-      response.body !== null &&
-      "total" in response.body
-    ) {
+    if (typeof response.body === "object" && response.body !== null && "total" in response.body) {
       const body = response.body as { total?: number };
       return body.total ?? null;
     }
@@ -158,15 +133,15 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const offset = parseInt(cursor, 10);
+    const offset = Number.parseInt(cursor, 10);
     const limitValue = options.query?.[this.limitQueryParam];
     const limit =
       typeof limitValue === "number"
         ? limitValue
         : typeof limitValue === "string"
-          ? parseInt(limitValue, 10)
+          ? Number.parseInt(limitValue, 10)
           : this.defaultLimit;
 
     return {
@@ -182,4 +157,3 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
     };
   }
 }
-

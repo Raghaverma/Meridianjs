@@ -1,6 +1,4 @@
-
 import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
-
 
 export class JuspayPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
@@ -39,7 +37,7 @@ export class JuspayPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
     return {
       endpoint,

@@ -1,25 +1,42 @@
-
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { appendFileSync, readFileSync, existsSync } from "node:fs";
-import { Meridian } from "../index.js";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
+import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 import type { MeridianConfig, ProviderConfig, RequestOptions } from "../core/types.js";
+import { Meridian } from "../index.js";
 
 const SUPPORTED_PROVIDERS = [
-  "github", "anthropic", "openai", "stripe", "razorpay", "cashfree", "payu",
-  "juspay", "msg91", "exotel", "gupshup", "setu", "decentro", "shiprocket",
-  "delhivery", "hyperverge", "digio", "karza", "idfy", "cleartax",
-  "mapmyindia", "perfios",
+  "github",
+  "anthropic",
+  "openai",
+  "stripe",
+  "razorpay",
+  "cashfree",
+  "payu",
+  "juspay",
+  "msg91",
+  "exotel",
+  "gupshup",
+  "setu",
+  "decentro",
+  "shiprocket",
+  "delhivery",
+  "hyperverge",
+  "digio",
+  "karza",
+  "idfy",
+  "cleartax",
+  "mapmyindia",
+  "perfios",
 ] as const;
 
 const PROVIDER_CATEGORIES: Record<string, string[]> = {
-  "Payments":    ["stripe", "razorpay", "cashfree", "payu", "juspay"],
-  "Comms":       ["msg91", "exotel", "gupshup"],
+  Payments: ["stripe", "razorpay", "cashfree", "payu", "juspay"],
+  Comms: ["msg91", "exotel", "gupshup"],
   "Banking/UPI": ["setu", "decentro"],
-  "Logistics":   ["shiprocket", "delhivery"],
-  "KYC":         ["hyperverge", "digio", "karza", "idfy"],
-  "Tax/Maps":    ["cleartax", "mapmyindia", "perfios"],
-  "AI":          ["anthropic", "openai"],
-  "Dev":         ["github"],
+  Logistics: ["shiprocket", "delhivery"],
+  KYC: ["hyperverge", "digio", "karza", "idfy"],
+  "Tax/Maps": ["cleartax", "mapmyindia", "perfios"],
+  AI: ["anthropic", "openai"],
+  Dev: ["github"],
 };
 
 export interface ProxyServerOptions {
@@ -36,38 +53,85 @@ export interface ProxyServerOptions {
 }
 
 function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
-  const cred = (
-    providerName: string,
-    optKey: "token" | "apiKey",
-    envVar: string
-  ): string =>
-    (opts.providers as Record<string, Record<string, string>> | undefined)?.[providerName]?.[optKey] ??
+  const cred = (providerName: string, optKey: "token" | "apiKey", envVar: string): string =>
+    (opts.providers as Record<string, Record<string, string>> | undefined)?.[providerName]?.[
+      optKey
+    ] ??
     process.env[envVar] ??
     "";
 
   const providerConfigs: Record<string, ProviderConfig> = {
-    github:     { auth: { token:   cred("github",     "token",  "GITHUB_TOKEN") } },
-    anthropic:  { auth: { apiKey:  cred("anthropic",  "apiKey", "ANTHROPIC_API_KEY") } },
-    openai:     { auth: { apiKey:  cred("openai",     "apiKey", "OPENAI_API_KEY") } },
-    stripe:     { auth: { apiKey:  cred("stripe",     "apiKey", "STRIPE_SECRET_KEY") } },
-    razorpay:   { auth: { username: process.env["RAZORPAY_KEY_ID"] ?? "", password: process.env["RAZORPAY_KEY_SECRET"] ?? "" } },
-    cashfree:   { auth: { custom: { clientId: process.env["CASHFREE_CLIENT_ID"] ?? "", clientSecret: process.env["CASHFREE_CLIENT_SECRET"] ?? "" } } },
-    payu:       { auth: { username: process.env["PAYU_MERCHANT_KEY"] ?? "", password: process.env["PAYU_MERCHANT_SALT"] ?? "" } },
-    juspay:     { auth: { apiKey: process.env["JUSPAY_API_KEY"] ?? "" } },
-    msg91:      { auth: { apiKey: process.env["MSG91_AUTH_KEY"] ?? "" } },
-    exotel:     { auth: { username: process.env["EXOTEL_SID"] ?? "", password: process.env["EXOTEL_API_KEY"] ?? "" } },
-    gupshup:    { auth: { apiKey: process.env["GUPSHUP_API_KEY"] ?? "" } },
-    setu:       { auth: { token: process.env["SETU_TOKEN"] ?? "" } },
-    decentro:   { auth: { custom: { clientId: process.env["DECENTRO_CLIENT_ID"] ?? "", clientSecret: process.env["DECENTRO_CLIENT_SECRET"] ?? "", moduleSecret: process.env["DECENTRO_MODULE_SECRET"] ?? "" } } },
+    github: { auth: { token: cred("github", "token", "GITHUB_TOKEN") } },
+    anthropic: { auth: { apiKey: cred("anthropic", "apiKey", "ANTHROPIC_API_KEY") } },
+    openai: { auth: { apiKey: cred("openai", "apiKey", "OPENAI_API_KEY") } },
+    stripe: { auth: { apiKey: cred("stripe", "apiKey", "STRIPE_SECRET_KEY") } },
+    razorpay: {
+      auth: {
+        username: process.env["RAZORPAY_KEY_ID"] ?? "",
+        password: process.env["RAZORPAY_KEY_SECRET"] ?? "",
+      },
+    },
+    cashfree: {
+      auth: {
+        custom: {
+          clientId: process.env["CASHFREE_CLIENT_ID"] ?? "",
+          clientSecret: process.env["CASHFREE_CLIENT_SECRET"] ?? "",
+        },
+      },
+    },
+    payu: {
+      auth: {
+        username: process.env["PAYU_MERCHANT_KEY"] ?? "",
+        password: process.env["PAYU_MERCHANT_SALT"] ?? "",
+      },
+    },
+    juspay: { auth: { apiKey: process.env["JUSPAY_API_KEY"] ?? "" } },
+    msg91: { auth: { apiKey: process.env["MSG91_AUTH_KEY"] ?? "" } },
+    exotel: {
+      auth: {
+        username: process.env["EXOTEL_SID"] ?? "",
+        password: process.env["EXOTEL_API_KEY"] ?? "",
+      },
+    },
+    gupshup: { auth: { apiKey: process.env["GUPSHUP_API_KEY"] ?? "" } },
+    setu: { auth: { token: process.env["SETU_TOKEN"] ?? "" } },
+    decentro: {
+      auth: {
+        custom: {
+          clientId: process.env["DECENTRO_CLIENT_ID"] ?? "",
+          clientSecret: process.env["DECENTRO_CLIENT_SECRET"] ?? "",
+          moduleSecret: process.env["DECENTRO_MODULE_SECRET"] ?? "",
+        },
+      },
+    },
     shiprocket: { auth: { token: process.env["SHIPROCKET_TOKEN"] ?? "" } },
-    delhivery:  { auth: { token: process.env["DELHIVERY_TOKEN"] ?? "" } },
-    hyperverge: { auth: { custom: { appId: process.env["HYPERVERGE_APP_ID"] ?? "", appKey: process.env["HYPERVERGE_APP_KEY"] ?? "" } } },
-    digio:      { auth: { custom: { clientId: process.env["DIGIO_CLIENT_ID"] ?? "", clientSecret: process.env["DIGIO_CLIENT_SECRET"] ?? "" } } },
-    karza:      { auth: { apiKey: process.env["KARZA_API_KEY"] ?? "" } },
-    idfy:       { auth: { apiKey: process.env["IDFY_API_KEY"] ?? "", custom: { accountId: process.env["IDFY_ACCOUNT_ID"] ?? "" } } },
-    cleartax:   { auth: { token: process.env["CLEARTAX_AUTH_TOKEN"] ?? "" } },
+    delhivery: { auth: { token: process.env["DELHIVERY_TOKEN"] ?? "" } },
+    hyperverge: {
+      auth: {
+        custom: {
+          appId: process.env["HYPERVERGE_APP_ID"] ?? "",
+          appKey: process.env["HYPERVERGE_APP_KEY"] ?? "",
+        },
+      },
+    },
+    digio: {
+      auth: {
+        custom: {
+          clientId: process.env["DIGIO_CLIENT_ID"] ?? "",
+          clientSecret: process.env["DIGIO_CLIENT_SECRET"] ?? "",
+        },
+      },
+    },
+    karza: { auth: { apiKey: process.env["KARZA_API_KEY"] ?? "" } },
+    idfy: {
+      auth: {
+        apiKey: process.env["IDFY_API_KEY"] ?? "",
+        custom: { accountId: process.env["IDFY_ACCOUNT_ID"] ?? "" },
+      },
+    },
+    cleartax: { auth: { token: process.env["CLEARTAX_AUTH_TOKEN"] ?? "" } },
     mapmyindia: { auth: { token: process.env["MAPMYINDIA_TOKEN"] ?? "" } },
-    perfios:    { auth: { apiKey: process.env["PERFIOS_API_KEY"] ?? "" } },
+    perfios: { auth: { apiKey: process.env["PERFIOS_API_KEY"] ?? "" } },
   };
 
   return {
@@ -81,7 +145,9 @@ function loadReplayMap(filePath: string): Map<string, unknown> {
   if (!existsSync(filePath)) {
     return map;
   }
-  const lines = readFileSync(filePath, "utf8").split("\n").filter((l) => l.trim());
+  const lines = readFileSync(filePath, "utf8")
+    .split("\n")
+    .filter((l) => l.trim());
   for (const line of lines) {
     try {
       const entry = JSON.parse(line) as {
@@ -174,10 +240,7 @@ export class BoundaryProxyServer {
     console.log(`[Meridian Proxy] Record: set recordTo option or MERIDIAN_RECORD_PATH env var`);
   }
 
-  private async handleRequest(
-    req: IncomingMessage,
-    res: ServerResponse
-  ): Promise<void> {
+  private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? "/", `http://${this.host}`);
     const pathname = url.pathname;
 
@@ -237,9 +300,7 @@ export class BoundaryProxyServer {
     }
 
     const body =
-      method === "POST" || method === "PUT" || method === "PATCH"
-        ? await readBody(req)
-        : undefined;
+      method === "POST" || method === "PUT" || method === "PATCH" ? await readBody(req) : undefined;
 
     const options: RequestOptions = { headers };
     options.method = method as NonNullable<RequestOptions["method"]>;
@@ -286,7 +347,7 @@ export class BoundaryProxyServer {
     } catch (err: unknown) {
       const status =
         typeof (err as Record<string, unknown>)?.["status"] === "number"
-          ? (err as Record<string, unknown>)["status"] as number
+          ? ((err as Record<string, unknown>)["status"] as number)
           : 502;
       sendJson(res, status, {
         error: err instanceof Error ? err.message : String(err),

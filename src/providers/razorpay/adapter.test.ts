@@ -1,11 +1,6 @@
-
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { AuthConfig, MeridianError, RawResponse } from "../../core/types.js";
 import { RazorpayAdapter } from "./adapter.js";
-import type {
-  RawResponse,
-  MeridianError,
-  AuthConfig,
-} from "../../core/types.js";
 
 describe("Razorpay Adapter - Contract Tests", () => {
   const adapter = new RazorpayAdapter("https://api.razorpay.com");
@@ -436,7 +431,7 @@ describe("Razorpay Adapter - Contract Tests", () => {
       const next = strategy.buildNextRequest(
         "/v1/payments",
         { method: "GET", query: { count: 10, skip: 0 } },
-        "10"
+        "10",
       );
 
       expect(next.options.query?.["skip"]).toBe(10);
@@ -448,13 +443,9 @@ describe("Razorpay Adapter - Contract Tests", () => {
       const page2 = strategy.buildNextRequest(
         "/v1/payments",
         { method: "GET", query: { count: 10, skip: 0 } },
-        "10"
+        "10",
       );
-      const page3 = strategy.buildNextRequest(
-        "/v1/payments",
-        page2.options,
-        "10"
-      );
+      const page3 = strategy.buildNextRequest("/v1/payments", page2.options, "10");
 
       expect(page3.options.query?.["skip"]).toBe(20);
     });

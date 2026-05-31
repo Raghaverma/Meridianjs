@@ -1,8 +1,7 @@
-
 import { createHmac } from "node:crypto";
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { MeridianError, RawResponse } from "../../core/types.js";
 import { PayuAdapter } from "./adapter.js";
-import type { RawResponse, MeridianError } from "../../core/types.js";
 
 describe("PayuAdapter - Contract Tests", () => {
   const adapter = new PayuAdapter("https://info.payu.in");
@@ -48,7 +47,11 @@ describe("PayuAdapter - Contract Tests", () => {
 
   describe("parseResponse", () => {
     it("should normalize a successful response", () => {
-      const raw: RawResponse = { status: 200, headers: new Headers(), body: { status: "success", txnid: "t123" } };
+      const raw: RawResponse = {
+        status: 200,
+        headers: new Headers(),
+        body: { status: "success", txnid: "t123" },
+      };
       const normalized = adapter.parseResponse(raw);
       expect(normalized.meta.provider).toBe("payu");
       expect(normalized.meta.rateLimit.reset).toBeInstanceOf(Date);
@@ -57,22 +60,34 @@ describe("PayuAdapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("should map 401 to auth category", () => {
-      const error = adapter.parseError({ status: 401, headers: new Headers(), body: { status: 0, msg: "Invalid key" } });
+      const error = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { status: 0, msg: "Invalid key" },
+      });
       expect(error.category).toBe("auth");
       expect(error.retryable).toBe(false);
       expect(error.provider).toBe("payu");
     });
 
     it("should map 403 to auth category", () => {
-      expect(adapter.parseError({ status: 403, headers: new Headers(), body: {} }).category).toBe("auth");
+      expect(adapter.parseError({ status: 403, headers: new Headers(), body: {} }).category).toBe(
+        "auth",
+      );
     });
 
     it("should map 404 to validation category", () => {
-      expect(adapter.parseError({ status: 404, headers: new Headers(), body: {} }).category).toBe("validation");
+      expect(adapter.parseError({ status: 404, headers: new Headers(), body: {} }).category).toBe(
+        "validation",
+      );
     });
 
     it("should map 429 to rate_limit category", () => {
-      const error = adapter.parseError({ status: 429, headers: new Headers({ "Retry-After": "60" }), body: {} });
+      const error = adapter.parseError({
+        status: 429,
+        headers: new Headers({ "Retry-After": "60" }),
+        body: {},
+      });
       expect(error.category).toBe("rate_limit");
       expect(error.retryable).toBe(true);
     });
@@ -90,12 +105,17 @@ describe("PayuAdapter - Contract Tests", () => {
 
     it("should always return canonical error categories", () => {
       const cases = [
-        { status: 401, expected: "auth" }, { status: 403, expected: "auth" },
-        { status: 404, expected: "validation" }, { status: 400, expected: "validation" },
-        { status: 429, expected: "rate_limit" }, { status: 500, expected: "provider" },
+        { status: 401, expected: "auth" },
+        { status: 403, expected: "auth" },
+        { status: 404, expected: "validation" },
+        { status: 400, expected: "validation" },
+        { status: 429, expected: "rate_limit" },
+        { status: 500, expected: "provider" },
       ] as const;
       for (const { status, expected } of cases) {
-        expect(adapter.parseError({ status, headers: new Headers(), body: {} }).category).toBe(expected);
+        expect(adapter.parseError({ status, headers: new Headers(), body: {} }).category).toBe(
+          expected,
+        );
       }
     });
   });

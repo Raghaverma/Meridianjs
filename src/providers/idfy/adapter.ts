@@ -1,21 +1,19 @@
-
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { IdfyPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface IdfyErrorBody {
   status: number;
@@ -23,11 +21,10 @@ interface IdfyErrorBody {
   error?: string;
 }
 
-
 export class IdfyAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.idfy.com") {
+  constructor(baseUrl = "https://api.idfy.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -93,7 +90,7 @@ export class IdfyAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -133,7 +130,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? "Authentication failed. Check your IDfy api-key and account-id.",
         { idfyError: errorBody?.error },
         undefined,
-        401
+        401,
       );
     }
 
@@ -144,7 +141,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? "Permission denied. Your credentials lack the required permissions.",
         { idfyError: errorBody?.error },
         undefined,
-        403
+        403,
       );
     }
 
@@ -155,7 +152,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? "Resource not found.",
         { idfyError: errorBody?.error },
         undefined,
-        404
+        404,
       );
     }
 
@@ -166,7 +163,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? "Request validation failed.",
         { idfyError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -178,7 +175,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? "Rate limit exceeded. Please wait before retrying.",
         { idfyError: errorBody?.error, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -189,7 +186,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? `IDfy API returned error ${status}. This may be temporary.`,
         { status, idfyError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -200,7 +197,7 @@ export class IdfyAdapter implements ProviderAdapter {
         message ?? `Request failed with status ${status}.`,
         { status, idfyError: errorBody?.error },
         undefined,
-        status
+        status,
       );
     }
 
@@ -210,7 +207,7 @@ export class IdfyAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -226,7 +223,7 @@ export class IdfyAdapter implements ProviderAdapter {
           "Set auth.apiKey and auth.custom.accountId.",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -239,12 +236,12 @@ export class IdfyAdapter implements ProviderAdapter {
     const resetStr = headers.get("x-ratelimit-reset");
 
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
 
       if (!isNaN(limit) && !isNaN(remaining)) {
         const reset = resetStr
-          ? new Date(parseInt(resetStr, 10) * 1000)
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);
         return { limit, remaining, reset };
       }
@@ -274,13 +271,22 @@ export class IdfyAdapter implements ProviderAdapter {
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "idfy", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "idfy",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 
