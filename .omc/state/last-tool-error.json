@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"npm test -- --run 2>&1\",\"timeout\":120000,\"description\":\"Run tests once (non-watch) for clean result\"}",
-  "error": "Exit code 1\n\n> meridianjs@0.1.3 test\n> vitest --run\n\n\n RUN  v1.6.1 /Users/mac/Desktop/Raghav/Meridianjs\n\n ✓ src/providers/razorpay/adapter.test.ts  (31 tests) 8ms\n ✓ src/providers/github/adapter.test.ts  (23 tests) 8ms\n ✓ src/strategies/rate-limit.test.ts  (8 tests) 66ms\n ✓ src/index.test.ts  (3 tests) 4ms\nstdout | src/index.test.ts > Meridian - Built-in Adapter Auto-Registration > should auto-register GitHub adapter without explicit adapter parameter\n{\"level\":\"warn\",\"type\":\"warning\",\"message\":\"...",
-  "timestamp": "2026-05-31T17:10:18.817Z",
+  "tool_input_preview": "{\"command\":\"npx biome check . --reporter=json > /tmp/biome.json 2>/dev/null; node -e \\\"const r=require('/tmp/biome.json'); const d=r.diagnostics||[]; console.log('total diagnostics:', d.length); const...",
+  "error": "Exit code 1\nnode:internal/modules/cjs/loader:1424\r\n  throw err;\r\n  ^\r\n\r\nError: Cannot find module '/tmp/biome.json'\r\nRequire stack:\r\n- C:\\Projects\\Meridianjs\\[eval]\r\n    at Module._resolveFilename (node:internal/modules/cjs/loader:1421:15)\r\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)\r\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)\r\n    at Module._load (node:internal/modules/cjs/loader:1227:37)\r\n    at TracingChannel.traceSync (node:diagnostics_c...",
+  "timestamp": "2026-05-31T17:46:47.919Z",
   "retry_count": 1
 }

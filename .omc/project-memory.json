@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "npm run build 2>&1 && echo \"BUILD OK\"",
-    "testCommand": "node_modules/.bin/vitest run 2>&1 | tail -8",
+    "buildCommand": "echo \"=== BUILD ===\"; npm run build > /tmp/build.log 2>&1; echo \"build_exit=$?\"; tail -3 /tmp/build.log; echo \"=== TYPECHECK ===\"; npm run typecheck > /tmp/tc.log 2>&1; echo \"typecheck_exit=$?\"; echo \"=== LINT ===\"; npm run lint > /tmp/lint.log 2>&1; echo \"lint_exit=$?\"; tail -3 /tmp/lint.log",
+    "testCommand": "npx vitest run --reporter=dot > /tmp/test.log 2>&1; echo \"test_exit=$?\"; grep -E \"Test Files|Tests \" /tmp/test.log | tail -4",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -217,15 +217,15 @@
       "type": "file"
     },
     {
-      "path": "src/providers/github/adapter.test.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780245693856,
+      "path": "tsconfig.json",
+      "accessCount": 2,
+      "lastAccessed": 1780249441440,
       "type": "file"
     },
     {
-      "path": "tsconfig.json",
+      "path": "src/providers/github/adapter.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246006408,
+      "lastAccessed": 1780245693856,
       "type": "file"
     },
     {
