@@ -120,13 +120,13 @@ describe("Meridian provider .stream()", () => {
     expect(client).toBeDefined();
 
     const received: string[] = [];
-    for await (const chunk of client!.stream<{
+    for await (const chunk of client?.stream<{
       choices: { delta: { content: string } }[];
     }>("/v1/chat/completions", {
       method: "POST",
       body: { model: "gpt-4", messages: [] },
     })) {
-      received.push(chunk.data.choices[0]!.delta.content);
+      received.push(chunk.data.choices[0]?.delta.content);
     }
 
     expect(received).toEqual(["Hello", " world"]);
@@ -157,7 +157,7 @@ describe("Meridian provider .stream()", () => {
     const client = meridian.provider("openai");
 
     await expect(async () => {
-      for await (const _chunk of client!.stream("/v1/chat/completions", {
+      for await (const _chunk of client?.stream("/v1/chat/completions", {
         method: "POST",
         body: {},
       })) {

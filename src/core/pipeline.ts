@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import type { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
 import type { IdempotencyResolver } from "../strategies/idempotency.js";
 import type { RateLimiter } from "../strategies/rate-limit.js";

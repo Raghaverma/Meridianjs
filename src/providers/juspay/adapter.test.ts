@@ -13,7 +13,7 @@ describe("JuspayAdapter - Contract Tests", () => {
         options: { method: "GET" },
         authToken: { token: encodedToken },
       });
-      expect(built.headers["Authorization"]).toBe(`Basic ${encodedToken}`);
+      expect(built.headers.Authorization).toBe(`Basic ${encodedToken}`);
     });
 
     it("should append query params to URL", () => {

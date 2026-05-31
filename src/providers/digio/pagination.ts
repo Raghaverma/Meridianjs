@@ -10,7 +10,7 @@ export class DigioPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const pageNo = body["page_no"];
+      const pageNo = body.page_no;
       if (typeof pageNo === "number") {
         return String(pageNo + 1);
       }
@@ -37,7 +37,7 @@ export class DigioPaginationStrategy implements PaginationStrategy {
       const total = typeof body.total_count === "number" ? body.total_count : null;
       if (total === null) return false;
 
-      const offset = typeof body["offset"] === "number" ? (body["offset"] as number) : 0;
+      const offset = typeof body.offset === "number" ? (body.offset as number) : 0;
       return offset + items.length < total;
     }
     return false;

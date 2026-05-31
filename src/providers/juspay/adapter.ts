@@ -107,7 +107,7 @@ export class JuspayAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;

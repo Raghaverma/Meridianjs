@@ -13,7 +13,7 @@ describe("GupshupAdapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token: "test_api_key" },
       });
-      expect(built.headers["apikey"]).toBe("test_api_key");
+      expect(built.headers.apikey).toBe("test_api_key");
     });
 
     it("should append query params to URL", () => {
@@ -136,7 +136,7 @@ describe("GupshupAdapter - Contract Tests", () => {
 
     it("should return false for a tampered payload", () => {
       const signature = hmacHex(secret, payload);
-      expect(adapter.verifyWebhook(payload + "tampered", signature, secret)).toBe(false);
+      expect(adapter.verifyWebhook(`${payload}tampered`, signature, secret)).toBe(false);
     });
 
     it("should work with Buffer payload", () => {

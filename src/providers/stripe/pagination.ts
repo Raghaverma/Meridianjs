@@ -6,17 +6,17 @@ export class StripePaginationStrategy implements PaginationStrategy {
     // Cursor for next page = id of the last item in data
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (body["has_more"] === true && Array.isArray(body["data"])) {
-        const data = body["data"] as unknown[];
+      if (body.has_more === true && Array.isArray(body.data)) {
+        const data = body.data as unknown[];
         const lastItem = data[data.length - 1];
         if (
           lastItem !== undefined &&
           typeof lastItem === "object" &&
           lastItem !== null &&
           "id" in lastItem &&
-          typeof (lastItem as Record<string, unknown>)["id"] === "string"
+          typeof (lastItem as Record<string, unknown>).id === "string"
         ) {
-          return (lastItem as Record<string, unknown>)["id"] as string;
+          return (lastItem as Record<string, unknown>).id as string;
         }
       }
     }
@@ -30,7 +30,7 @@ export class StripePaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      return body["has_more"] === true;
+      return body.has_more === true;
     }
     return false;
   }

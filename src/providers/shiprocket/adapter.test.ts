@@ -12,7 +12,7 @@ describe("ShiprocketAdapter - Contract Tests", () => {
         options: { method: "GET" },
         authToken: { token: "test_jwt_token" },
       });
-      expect(built.headers["Authorization"]).toBe("Bearer test_jwt_token");
+      expect(built.headers.Authorization).toBe("Bearer test_jwt_token");
     });
 
     it("should append query params to URL", () => {

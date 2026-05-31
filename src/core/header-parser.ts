@@ -6,12 +6,12 @@ export function parseRetryAfter(header: string | null): Date | null {
   const trimmed = header.trim();
 
   const seconds = Number.parseInt(trimmed, 10);
-  if (!isNaN(seconds) && seconds >= 0 && seconds <= 86400 * 365) {
+  if (!Number.isNaN(seconds) && seconds >= 0 && seconds <= 86400 * 365) {
     return new Date(Date.now() + seconds * 1000);
   }
 
   const date = Date.parse(trimmed);
-  if (!isNaN(date)) {
+  if (!Number.isNaN(date)) {
     const parsedDate = new Date(date);
 
     const now = Date.now();
@@ -95,7 +95,7 @@ function parseSingleLink(link: string): LinkHeader | null {
     if (!trimmed) continue;
 
     const match = trimmed.match(/^(\w+)=["']?([^"']+)["']?$/);
-    if (match && match[1] && match[2]) {
+    if (match?.[1] && match[2]) {
       const key = match[1].toLowerCase();
       const value = match[2];
 
@@ -156,7 +156,7 @@ function parseIntHeader(value: string | null): number | null {
   }
 
   const parsed = Number.parseInt(value.trim(), 10);
-  if (isNaN(parsed) || parsed < 0 || parsed > Number.MAX_SAFE_INTEGER) {
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > Number.MAX_SAFE_INTEGER) {
     return null;
   }
 
@@ -171,7 +171,7 @@ function parseResetHeader(value: string | null): Date | null {
   const trimmed = value.trim();
 
   const timestamp = Number.parseInt(trimmed, 10);
-  if (!isNaN(timestamp) && timestamp > 0) {
+  if (!Number.isNaN(timestamp) && timestamp > 0) {
     const now = Math.floor(Date.now() / 1000);
     if (timestamp >= now - 60 && timestamp < now + 86400 * 365) {
       return new Date(timestamp * 1000);
@@ -179,7 +179,7 @@ function parseResetHeader(value: string | null): Date | null {
   }
 
   const date = Date.parse(trimmed);
-  if (!isNaN(date)) {
+  if (!Number.isNaN(date)) {
     const parsedDate = new Date(date);
     const now = Date.now();
     if (parsedDate.getTime() >= now - 60000 && parsedDate.getTime() < now + 86400 * 365 * 1000) {

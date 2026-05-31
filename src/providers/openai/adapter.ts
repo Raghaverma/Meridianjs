@@ -65,7 +65,7 @@ export class OpenAIAdapter implements ProviderAdapter {
     };
 
     if (authToken.token) {
-      headers["Authorization"] = `Bearer ${authToken.token}`;
+      headers.Authorization = `Bearer ${authToken.token}`;
     }
 
     if (options.idempotencyKey) {
@@ -121,7 +121,7 @@ export class OpenAIAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -267,7 +267,7 @@ export class OpenAIAdapter implements ProviderAdapter {
         }
       }
 
-      if (!isNaN(limit) && !isNaN(remaining)) {
+      if (!Number.isNaN(limit) && !Number.isNaN(remaining)) {
         return { limit, remaining, reset };
       }
     }

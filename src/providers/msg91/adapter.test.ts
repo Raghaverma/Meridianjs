@@ -12,7 +12,7 @@ describe("Msg91Adapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token: "test_auth_key" },
       });
-      expect(built.headers["authkey"]).toBe("test_auth_key");
+      expect(built.headers.authkey).toBe("test_auth_key");
     });
 
     it("should append query params to URL", () => {

@@ -5,7 +5,7 @@ import type { IdempotencyResolver } from "./idempotency.js";
 export class RetryStrategy {
   private config: Required<RetryConfig>;
 
-  constructor(config: Partial<RetryConfig> = {}, _idempotencyResolver: IdempotencyResolver) {
+  constructor(config: Partial<RetryConfig>, _idempotencyResolver: IdempotencyResolver) {
     this.config = {
       maxRetries: config.maxRetries ?? 0,
       baseDelay: config.baseDelay ?? 1000,
@@ -69,7 +69,7 @@ export class RetryStrategy {
   }
 
   private calculateDelay(attempt: number): number {
-    let delay = this.config.baseDelay * Math.pow(2, attempt);
+    let delay = this.config.baseDelay * 2 ** attempt;
 
     if (this.config.jitter) {
       const jitter = Math.random() * 1000;

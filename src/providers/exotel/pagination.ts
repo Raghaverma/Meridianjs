@@ -6,9 +6,9 @@ export class ExotelPaginationStrategy implements PaginationStrategy {
     // { data: { Calls/SmsList/etc: [...] }, metadata: { nrecords, page, pagesize } }
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const metadata = body["metadata"] as Record<string, unknown> | undefined;
-      if (metadata && typeof metadata["page"] === "number") {
-        return String((metadata["page"] as number) + 1);
+      const metadata = body.metadata as Record<string, unknown> | undefined;
+      if (metadata && typeof metadata.page === "number") {
+        return String((metadata.page as number) + 1);
       }
     }
     return null;
@@ -17,9 +17,9 @@ export class ExotelPaginationStrategy implements PaginationStrategy {
   extractTotal(response: RawResponse): number | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const metadata = body["metadata"] as Record<string, unknown> | undefined;
-      if (metadata && typeof metadata["nrecords"] === "number") {
-        return metadata["nrecords"] as number;
+      const metadata = body.metadata as Record<string, unknown> | undefined;
+      if (metadata && typeof metadata.nrecords === "number") {
+        return metadata.nrecords as number;
       }
     }
     return null;
@@ -28,12 +28,12 @@ export class ExotelPaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const metadata = body["metadata"] as Record<string, unknown> | undefined;
-      const data = body["data"] as Record<string, unknown> | undefined;
+      const metadata = body.metadata as Record<string, unknown> | undefined;
+      const data = body.data as Record<string, unknown> | undefined;
 
       if (!metadata || !data) return false;
 
-      const pagesize = metadata["pagesize"] as number | undefined;
+      const pagesize = metadata.pagesize as number | undefined;
       if (!pagesize) return false;
 
       // Find the list array inside data (Calls, SmsList, etc.)

@@ -67,71 +67,71 @@ function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
     stripe: { auth: { apiKey: cred("stripe", "apiKey", "STRIPE_SECRET_KEY") } },
     razorpay: {
       auth: {
-        username: process.env["RAZORPAY_KEY_ID"] ?? "",
-        password: process.env["RAZORPAY_KEY_SECRET"] ?? "",
+        username: process.env.RAZORPAY_KEY_ID ?? "",
+        password: process.env.RAZORPAY_KEY_SECRET ?? "",
       },
     },
     cashfree: {
       auth: {
         custom: {
-          clientId: process.env["CASHFREE_CLIENT_ID"] ?? "",
-          clientSecret: process.env["CASHFREE_CLIENT_SECRET"] ?? "",
+          clientId: process.env.CASHFREE_CLIENT_ID ?? "",
+          clientSecret: process.env.CASHFREE_CLIENT_SECRET ?? "",
         },
       },
     },
     payu: {
       auth: {
-        username: process.env["PAYU_MERCHANT_KEY"] ?? "",
-        password: process.env["PAYU_MERCHANT_SALT"] ?? "",
+        username: process.env.PAYU_MERCHANT_KEY ?? "",
+        password: process.env.PAYU_MERCHANT_SALT ?? "",
       },
     },
-    juspay: { auth: { apiKey: process.env["JUSPAY_API_KEY"] ?? "" } },
-    msg91: { auth: { apiKey: process.env["MSG91_AUTH_KEY"] ?? "" } },
+    juspay: { auth: { apiKey: process.env.JUSPAY_API_KEY ?? "" } },
+    msg91: { auth: { apiKey: process.env.MSG91_AUTH_KEY ?? "" } },
     exotel: {
       auth: {
-        username: process.env["EXOTEL_SID"] ?? "",
-        password: process.env["EXOTEL_API_KEY"] ?? "",
+        username: process.env.EXOTEL_SID ?? "",
+        password: process.env.EXOTEL_API_KEY ?? "",
       },
     },
-    gupshup: { auth: { apiKey: process.env["GUPSHUP_API_KEY"] ?? "" } },
-    setu: { auth: { token: process.env["SETU_TOKEN"] ?? "" } },
+    gupshup: { auth: { apiKey: process.env.GUPSHUP_API_KEY ?? "" } },
+    setu: { auth: { token: process.env.SETU_TOKEN ?? "" } },
     decentro: {
       auth: {
         custom: {
-          clientId: process.env["DECENTRO_CLIENT_ID"] ?? "",
-          clientSecret: process.env["DECENTRO_CLIENT_SECRET"] ?? "",
-          moduleSecret: process.env["DECENTRO_MODULE_SECRET"] ?? "",
+          clientId: process.env.DECENTRO_CLIENT_ID ?? "",
+          clientSecret: process.env.DECENTRO_CLIENT_SECRET ?? "",
+          moduleSecret: process.env.DECENTRO_MODULE_SECRET ?? "",
         },
       },
     },
-    shiprocket: { auth: { token: process.env["SHIPROCKET_TOKEN"] ?? "" } },
-    delhivery: { auth: { token: process.env["DELHIVERY_TOKEN"] ?? "" } },
+    shiprocket: { auth: { token: process.env.SHIPROCKET_TOKEN ?? "" } },
+    delhivery: { auth: { token: process.env.DELHIVERY_TOKEN ?? "" } },
     hyperverge: {
       auth: {
         custom: {
-          appId: process.env["HYPERVERGE_APP_ID"] ?? "",
-          appKey: process.env["HYPERVERGE_APP_KEY"] ?? "",
+          appId: process.env.HYPERVERGE_APP_ID ?? "",
+          appKey: process.env.HYPERVERGE_APP_KEY ?? "",
         },
       },
     },
     digio: {
       auth: {
         custom: {
-          clientId: process.env["DIGIO_CLIENT_ID"] ?? "",
-          clientSecret: process.env["DIGIO_CLIENT_SECRET"] ?? "",
+          clientId: process.env.DIGIO_CLIENT_ID ?? "",
+          clientSecret: process.env.DIGIO_CLIENT_SECRET ?? "",
         },
       },
     },
-    karza: { auth: { apiKey: process.env["KARZA_API_KEY"] ?? "" } },
+    karza: { auth: { apiKey: process.env.KARZA_API_KEY ?? "" } },
     idfy: {
       auth: {
-        apiKey: process.env["IDFY_API_KEY"] ?? "",
-        custom: { accountId: process.env["IDFY_ACCOUNT_ID"] ?? "" },
+        apiKey: process.env.IDFY_API_KEY ?? "",
+        custom: { accountId: process.env.IDFY_ACCOUNT_ID ?? "" },
       },
     },
-    cleartax: { auth: { token: process.env["CLEARTAX_AUTH_TOKEN"] ?? "" } },
-    mapmyindia: { auth: { token: process.env["MAPMYINDIA_TOKEN"] ?? "" } },
-    perfios: { auth: { apiKey: process.env["PERFIOS_API_KEY"] ?? "" } },
+    cleartax: { auth: { token: process.env.CLEARTAX_AUTH_TOKEN ?? "" } },
+    mapmyindia: { auth: { token: process.env.MAPMYINDIA_TOKEN ?? "" } },
+    perfios: { auth: { apiKey: process.env.PERFIOS_API_KEY ?? "" } },
   };
 
   return {
@@ -205,8 +205,8 @@ export class BoundaryProxyServer {
     this.opts = opts;
     this.port = opts.port ?? 4242;
     this.host = opts.host ?? "127.0.0.1";
-    this.recordTo = opts.recordTo ?? process.env["MERIDIAN_RECORD_PATH"];
-    this.replayFrom = opts.replayFrom ?? process.env["MERIDIAN_REPLAY_PATH"];
+    this.recordTo = opts.recordTo ?? process.env.MERIDIAN_RECORD_PATH;
+    this.replayFrom = opts.replayFrom ?? process.env.MERIDIAN_REPLAY_PATH;
 
     if (this.replayFrom) {
       this.replayMap = loadReplayMap(this.replayFrom);
@@ -237,7 +237,7 @@ export class BoundaryProxyServer {
       console.log(`${label}${providers.join(", ")}`);
     }
     console.log(`[Meridian Proxy] Usage: ${baseUrl}/<provider>/<endpoint>`);
-    console.log(`[Meridian Proxy] Record: set recordTo option or MERIDIAN_RECORD_PATH env var`);
+    console.log("[Meridian Proxy] Record: set recordTo option or MERIDIAN_RECORD_PATH env var");
   }
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -257,7 +257,7 @@ export class BoundaryProxyServer {
 
     const parts = pathname.replace(/^\//, "").split("/");
     const provider = parts[0];
-    const endpoint = "/" + parts.slice(1).join("/");
+    const endpoint = `/${parts.slice(1).join("/")}`;
 
     if (!provider) {
       sendJson(res, 400, {
@@ -308,7 +308,7 @@ export class BoundaryProxyServer {
     if (body !== undefined) options.body = body;
 
     try {
-      let response;
+      let response: unknown;
       switch (method) {
         case "POST":
           response = await providerClient.post(endpoint, options);
@@ -337,7 +337,7 @@ export class BoundaryProxyServer {
           response,
         };
         try {
-          appendFileSync(this.recordTo, JSON.stringify(record) + "\n", "utf8");
+          appendFileSync(this.recordTo, `${JSON.stringify(record)}\n`, "utf8");
         } catch {
           // non-fatal: recording failure should not break the response
         }
@@ -346,14 +346,14 @@ export class BoundaryProxyServer {
       sendJson(res, 200, response);
     } catch (err: unknown) {
       const status =
-        typeof (err as Record<string, unknown>)?.["status"] === "number"
-          ? ((err as Record<string, unknown>)["status"] as number)
+        typeof (err as Record<string, unknown>)?.status === "number"
+          ? ((err as Record<string, unknown>).status as number)
           : 502;
       sendJson(res, status, {
         error: err instanceof Error ? err.message : String(err),
-        code: (err as Record<string, unknown>)?.["code"],
-        category: (err as Record<string, unknown>)?.["category"],
-        retryable: (err as Record<string, unknown>)?.["retryable"] ?? false,
+        code: (err as Record<string, unknown>)?.code,
+        category: (err as Record<string, unknown>)?.category,
+        retryable: (err as Record<string, unknown>)?.retryable ?? false,
         provider,
       });
     }

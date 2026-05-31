@@ -52,7 +52,7 @@ export class GitHubAdapter implements ProviderAdapter {
     };
 
     if (authToken.token) {
-      headers["Authorization"] = `Bearer ${authToken.token}`;
+      headers.Authorization = `Bearer ${authToken.token}`;
     }
 
     if (options.idempotencyKey) {
@@ -401,7 +401,7 @@ export class GitHubAdapter implements ProviderAdapter {
     const resetValue = this.getHeaderValue(headers, "X-RateLimit-Reset");
     if (resetValue) {
       const timestamp = Number.parseInt(resetValue.trim(), 10);
-      if (!isNaN(timestamp) && timestamp > 0) {
+      if (!Number.isNaN(timestamp) && timestamp > 0) {
         const now = Math.floor(Date.now() / 1000);
 
         if (timestamp >= now - 60 && timestamp < now + 86400 * 365) {

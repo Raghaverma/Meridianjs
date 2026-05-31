@@ -110,7 +110,9 @@ export class RateLimiter {
   reset(): void {
     this.tokens = this.config.maxTokens;
     this.lastRefill = Date.now();
-    this.queue.forEach((item) => item.reject(new Error("Rate limiter was reset")));
+    for (const item of this.queue) {
+      item.reject(new Error("Rate limiter was reset"));
+    }
     this.queue = [];
   }
 }

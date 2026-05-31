@@ -29,7 +29,7 @@ export class GitHubPaginationStrategy implements PaginationStrategy {
     if (totalHeader) {
       const parsed = Number.parseInt(totalHeader, 10);
 
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= Number.MAX_SAFE_INTEGER) {
+      if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= Number.MAX_SAFE_INTEGER) {
         return parsed;
       }
     }

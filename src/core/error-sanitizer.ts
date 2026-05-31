@@ -142,7 +142,7 @@ export function sanitizeMeridianError(
     retryAfter = new Date(Date.now() + err.retryAfter * 1000);
   } else if (typeof err.retryAfter === "string") {
     const parsed = Date.parse(err.retryAfter);
-    if (!isNaN(parsed)) {
+    if (!Number.isNaN(parsed)) {
       retryAfter = new Date(parsed);
     }
   }

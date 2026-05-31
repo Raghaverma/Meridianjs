@@ -112,7 +112,7 @@ export class AnthropicAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -258,9 +258,9 @@ export class AnthropicAdapter implements ProviderAdapter {
     );
     const resetStr = headers.get("anthropic-ratelimit-requests-reset");
 
-    if (!isNaN(limit) && !isNaN(remaining) && resetStr) {
+    if (!Number.isNaN(limit) && !Number.isNaN(remaining) && resetStr) {
       const reset = new Date(resetStr);
-      if (!isNaN(reset.getTime())) {
+      if (!Number.isNaN(reset.getTime())) {
         return { limit, remaining, reset };
       }
     }

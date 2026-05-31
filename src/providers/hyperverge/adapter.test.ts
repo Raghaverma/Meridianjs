@@ -13,8 +13,8 @@ describe("HyperVergeAdapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token },
       });
-      expect(built.headers["appid"]).toBe("test_app_id");
-      expect(built.headers["appkey"]).toBe("test_app_key");
+      expect(built.headers.appid).toBe("test_app_id");
+      expect(built.headers.appkey).toBe("test_app_key");
     });
 
     it("should append query params to URL", () => {

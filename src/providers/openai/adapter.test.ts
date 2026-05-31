@@ -17,7 +17,7 @@ describe("OpenAI Adapter - Contract Tests", () => {
 
       const built = adapter.buildRequest(input);
 
-      expect(built.headers["Authorization"]).toBe("Bearer sk-openai-test-token");
+      expect(built.headers.Authorization).toBe("Bearer sk-openai-test-token");
       expect(built.headers["x-api-key"]).toBeUndefined();
     });
 

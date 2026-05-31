@@ -10,14 +10,14 @@ export class TwilioPaginationStrategy implements PaginationStrategy {
     // Twilio list responses carry next_page_uri (relative) at the top level
     // and also meta.next_page_url (absolute) inside the meta object.
     // Prefer next_page_uri; fall back to meta.next_page_url.
-    const nextPageUri = body["next_page_uri"];
+    const nextPageUri = body.next_page_uri;
     if (typeof nextPageUri === "string" && nextPageUri.length > 0) {
       return nextPageUri;
     }
 
-    const meta = body["meta"];
+    const meta = body.meta;
     if (meta && typeof meta === "object") {
-      const nextPageUrl = (meta as Record<string, unknown>)["next_page_url"];
+      const nextPageUrl = (meta as Record<string, unknown>).next_page_url;
       if (typeof nextPageUrl === "string" && nextPageUrl.length > 0) {
         return nextPageUrl;
       }
@@ -32,10 +32,10 @@ export class TwilioPaginationStrategy implements PaginationStrategy {
       return null;
     }
 
-    const meta = body["meta"];
+    const meta = body.meta;
     if (meta && typeof meta === "object") {
-      const total = (meta as Record<string, unknown>)["total"];
-      if (typeof total === "number" && !isNaN(total)) {
+      const total = (meta as Record<string, unknown>).total;
+      if (typeof total === "number" && !Number.isNaN(total)) {
         return total;
       }
     }

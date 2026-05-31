@@ -100,7 +100,7 @@ export class DigioAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -214,8 +214,8 @@ export class DigioAdapter implements ProviderAdapter {
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
-    const clientId = config.clientId ?? config.custom?.["clientId"];
-    const clientSecret = config.clientSecret ?? config.custom?.["clientSecret"];
+    const clientId = config.clientId ?? config.custom?.clientId;
+    const clientSecret = config.clientSecret ?? config.custom?.clientSecret;
 
     if (!clientId || !clientSecret) {
       throw this.createMeridianError(

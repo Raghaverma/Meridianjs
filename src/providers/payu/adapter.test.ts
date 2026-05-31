@@ -13,7 +13,7 @@ describe("PayuAdapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token: "test_key:test_salt" },
       });
-      expect(built.headers["Authorization"]).toMatch(/^Basic /);
+      expect(built.headers.Authorization).toMatch(/^Basic /);
     });
 
     it("should append query params to URL", () => {

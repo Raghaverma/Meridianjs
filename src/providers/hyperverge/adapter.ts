@@ -55,8 +55,8 @@ export class HyperVergeAdapter implements ProviderAdapter {
     };
 
     // Forward transactionid header if provided by caller
-    if (options.headers?.["transactionid"]) {
-      headers["transactionid"] = options.headers["transactionid"];
+    if (options.headers?.transactionid) {
+      headers.transactionid = options.headers.transactionid;
     }
 
     let body: string | undefined;
@@ -115,7 +115,7 @@ export class HyperVergeAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -229,8 +229,8 @@ export class HyperVergeAdapter implements ProviderAdapter {
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
-    const appId = config.custom?.["appId"];
-    const appKey = config.custom?.["appKey"];
+    const appId = config.custom?.appId;
+    const appKey = config.custom?.appKey;
 
     if (!appId || !appKey) {
       throw this.createMeridianError(

@@ -5,7 +5,7 @@ export class CashfreePaginationStrategy implements PaginationStrategy {
     // Cashfree cursor-based pagination: { data: [...], cursor: string | null }
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const cursor = body["cursor"];
+      const cursor = body.cursor;
       if (typeof cursor === "string" && cursor.length > 0) {
         return cursor;
       }

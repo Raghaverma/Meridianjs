@@ -14,7 +14,7 @@ describe("ExotelAdapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token },
       });
-      expect(built.headers["Authorization"]).toMatch(/^Basic /);
+      expect(built.headers.Authorization).toMatch(/^Basic /);
     });
 
     it("should append query params to URL", () => {
@@ -143,7 +143,7 @@ describe("ExotelAdapter - Contract Tests", () => {
 
     it("should return false for a tampered payload", () => {
       const signature = hmacHex(secret, payload);
-      expect(adapter.verifyWebhook(payload + "tampered", signature, secret)).toBe(false);
+      expect(adapter.verifyWebhook(`${payload}tampered`, signature, secret)).toBe(false);
     });
 
     it("should work with Buffer payload", () => {

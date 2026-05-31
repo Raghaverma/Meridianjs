@@ -123,7 +123,7 @@ export class TwilioAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -241,7 +241,7 @@ export class TwilioAdapter implements ProviderAdapter {
     //   1. username = AccountSID, password = AuthToken
     //   2. apiKey = AccountSID, custom.authToken = AuthToken
     const sid = config.username ?? config.apiKey;
-    const authToken = config.password ?? config.custom?.["authToken"];
+    const authToken = config.password ?? config.custom?.authToken;
 
     if (!sid || !authToken) {
       throw this.createMeridianError(
@@ -270,7 +270,7 @@ export class TwilioAdapter implements ProviderAdapter {
       const limit = Number.parseInt(limitStr, 10);
       const remaining = Number.parseInt(remainingStr, 10);
 
-      if (!isNaN(limit) && !isNaN(remaining)) {
+      if (!Number.isNaN(limit) && !Number.isNaN(remaining)) {
         const reset = resetStr
           ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 1000);

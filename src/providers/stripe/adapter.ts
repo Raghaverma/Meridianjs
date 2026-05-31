@@ -111,7 +111,7 @@ export class StripeAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -274,7 +274,7 @@ export class StripeAdapter implements ProviderAdapter {
       const limit = Number.parseInt(limitStr, 10);
       const remaining = Number.parseInt(remainingStr, 10);
 
-      if (!isNaN(limit) && !isNaN(remaining)) {
+      if (!Number.isNaN(limit) && !Number.isNaN(remaining)) {
         return {
           limit,
           remaining,
@@ -328,8 +328,8 @@ export class StripeAdapter implements ProviderAdapter {
             parts[part.slice(0, eqIdx)] = part.slice(eqIdx + 1);
           }
         }
-        const v1 = parts["v1"];
-        const t = parts["t"];
+        const v1 = parts.v1;
+        const t = parts.t;
         if (!v1) return false;
         sigHex = v1;
         // Stripe signs "${timestamp}.${rawPayload}" when a timestamp is present

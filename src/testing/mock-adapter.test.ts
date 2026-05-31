@@ -154,10 +154,10 @@ describe("MockAdapter.simulateError", () => {
     }
 
     expect(caught).not.toBeNull();
-    expect(caught!.category).toBe("auth");
-    expect(caught!.status).toBe(401);
-    expect(caught!.retryable).toBe(false);
-    expect(caught!.message).toBe("Boom");
+    expect(caught?.category).toBe("auth");
+    expect(caught?.status).toBe(401);
+    expect(caught?.retryable).toBe(false);
+    expect(caught?.message).toBe("Boom");
   });
 
   it("uses provider category and retryable=false when not specified", async () => {
@@ -170,9 +170,9 @@ describe("MockAdapter.simulateError", () => {
       caught = e as MeridianError;
     }
 
-    expect(caught!.category).toBe("provider");
-    expect(caught!.retryable).toBe(false);
-    expect(caught!.provider).toBe("erp");
+    expect(caught?.category).toBe("provider");
+    expect(caught?.retryable).toBe(false);
+    expect(caught?.provider).toBe("erp");
   });
 
   it("still records the call before throwing", async () => {
@@ -266,7 +266,7 @@ describe("MockAdapter.buildRequest", () => {
       options: makeOptions(),
       authToken: { token: "secret-abc" },
     });
-    expect(built.headers["Authorization"]).toBe("Bearer secret-abc");
+    expect(built.headers.Authorization).toBe("Bearer secret-abc");
   });
 
   it("JSON-stringifies body for non-GET requests", () => {

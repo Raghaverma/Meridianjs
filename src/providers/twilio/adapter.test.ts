@@ -24,7 +24,7 @@ describe("Twilio Adapter - Contract Tests", () => {
       expect(built.method).toBe("GET");
 
       const expectedCreds = Buffer.from("AC123:my-auth-token").toString("base64");
-      expect(built.headers["Authorization"]).toBe(`Basic ${expectedCreds}`);
+      expect(built.headers.Authorization).toBe(`Basic ${expectedCreds}`);
       expect(built.headers["User-Agent"]).toMatch(/^Meridian-SDK\//);
     });
 
@@ -286,8 +286,8 @@ describe("Twilio Adapter - Contract Tests", () => {
       expect((error as any).body).toBeUndefined();
       expect((error as any).more_info).toBeUndefined();
       if (error.metadata) {
-        expect(error.metadata["twilioCode"]).toBe(20003);
-        expect(error.metadata["twilioError"]).toBe("Authenticate");
+        expect(error.metadata.twilioCode).toBe(20003);
+        expect(error.metadata.twilioError).toBe("Authenticate");
       }
     });
   });
@@ -464,7 +464,7 @@ describe("Twilio Adapter - Contract Tests", () => {
 
     it("should return false for a tampered payload", () => {
       const signature = createHmac("sha1", secret).update(payload).digest("base64");
-      expect(adapter.verifyWebhook(payload + "tampered", signature, secret)).toBe(false);
+      expect(adapter.verifyWebhook(`${payload}tampered`, signature, secret)).toBe(false);
     });
 
     it("should return false for an invalid/wrong signature", () => {

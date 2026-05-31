@@ -13,7 +13,7 @@ describe("DigioAdapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token },
       });
-      expect(built.headers["Authorization"]).toBe(`Basic ${token}`);
+      expect(built.headers.Authorization).toBe(`Basic ${token}`);
     });
 
     it("should append query params to URL", () => {

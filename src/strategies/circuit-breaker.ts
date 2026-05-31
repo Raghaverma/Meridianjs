@@ -135,19 +135,16 @@ export class ProviderCircuitBreaker {
   }
 
   getStatus(): CircuitBreakerStatus {
+    const sortedFailures = this.recentResults
+      .filter((r) => !r.success)
+      .sort((a, b) => b.timestamp - a.timestamp);
+    const lastFailureTimestamp = sortedFailures[0]?.timestamp;
+
     return {
       state: this.state,
       failures: this.failures,
       successes: this.successes,
-      lastFailure: this.recentResults
-        .filter((r) => !r.success)
-        .sort((a, b) => b.timestamp - a.timestamp)[0]?.timestamp
-        ? new Date(
-            this.recentResults
-              .filter((r) => !r.success)
-              .sort((a, b) => b.timestamp - a.timestamp)[0]!.timestamp,
-          )
-        : null,
+      lastFailure: lastFailureTimestamp ? new Date(lastFailureTimestamp) : null,
       nextAttempt: this.nextAttempt,
     };
   }

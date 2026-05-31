@@ -6,9 +6,9 @@ export class JuspayPaginationStrategy implements PaginationStrategy {
     // Cursor = next offset as string
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (Array.isArray(body["list"]) && (body["list"] as unknown[]).length > 0) {
+      if (Array.isArray(body.list) && (body.list as unknown[]).length > 0) {
         const currentOffset = 0; // Will be computed accurately in buildNextRequest
-        return String(currentOffset + (body["list"] as unknown[]).length);
+        return String(currentOffset + (body.list as unknown[]).length);
       }
     }
     return null;
@@ -17,8 +17,8 @@ export class JuspayPaginationStrategy implements PaginationStrategy {
   extractTotal(response: RawResponse): number | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (typeof body["total"] === "number") {
-        return body["total"] as number;
+      if (typeof body.total === "number") {
+        return body.total as number;
       }
     }
     return null;
@@ -27,8 +27,8 @@ export class JuspayPaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (Array.isArray(body["list"]) && typeof body["total"] === "number") {
-        return (body["list"] as unknown[]).length > 0;
+      if (Array.isArray(body.list) && typeof body.total === "number") {
+        return (body.list as unknown[]).length > 0;
       }
     }
     return false;

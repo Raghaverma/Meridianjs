@@ -6,11 +6,11 @@ export class CleartaxPaginationStrategy implements PaginationStrategy {
     // OR einvoice list: { einvoices: [...], total_count: number }
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const meta = body["meta"] as Record<string, unknown> | undefined;
+      const meta = body.meta as Record<string, unknown> | undefined;
       if (meta !== undefined) {
-        const page = typeof meta["page"] === "number" ? meta["page"] : null;
-        const perPage = typeof meta["per_page"] === "number" ? meta["per_page"] : null;
-        const total = typeof meta["total"] === "number" ? meta["total"] : null;
+        const page = typeof meta.page === "number" ? meta.page : null;
+        const perPage = typeof meta.per_page === "number" ? meta.per_page : null;
+        const total = typeof meta.total === "number" ? meta.total : null;
         if (page !== null && perPage !== null && total !== null) {
           if (page * perPage < total) {
             return String(page + 1);
@@ -24,12 +24,12 @@ export class CleartaxPaginationStrategy implements PaginationStrategy {
   extractTotal(response: RawResponse): number | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const meta = body["meta"] as Record<string, unknown> | undefined;
-      if (meta !== undefined && typeof meta["total"] === "number") {
-        return meta["total"];
+      const meta = body.meta as Record<string, unknown> | undefined;
+      if (meta !== undefined && typeof meta.total === "number") {
+        return meta.total;
       }
-      if (typeof body["total_count"] === "number") {
-        return body["total_count"];
+      if (typeof body.total_count === "number") {
+        return body.total_count;
       }
     }
     return null;
@@ -38,11 +38,11 @@ export class CleartaxPaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const meta = body["meta"] as Record<string, unknown> | undefined;
+      const meta = body.meta as Record<string, unknown> | undefined;
       if (meta !== undefined) {
-        const page = typeof meta["page"] === "number" ? meta["page"] : null;
-        const perPage = typeof meta["per_page"] === "number" ? meta["per_page"] : null;
-        const total = typeof meta["total"] === "number" ? meta["total"] : null;
+        const page = typeof meta.page === "number" ? meta.page : null;
+        const perPage = typeof meta.per_page === "number" ? meta.per_page : null;
+        const total = typeof meta.total === "number" ? meta.total : null;
         if (page !== null && perPage !== null && total !== null) {
           return page * perPage < total;
         }

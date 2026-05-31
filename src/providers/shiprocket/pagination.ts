@@ -12,11 +12,11 @@ export class ShiprocketPaginationStrategy implements PaginationStrategy {
   private getPagination(response: RawResponse): ShiprocketPagination | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const data = body["data"] as Record<string, unknown> | undefined;
+      const data = body.data as Record<string, unknown> | undefined;
       if (data) {
-        const meta = data["meta"] as Record<string, unknown> | undefined;
+        const meta = data.meta as Record<string, unknown> | undefined;
         if (meta) {
-          const pagination = meta["pagination"] as ShiprocketPagination | undefined;
+          const pagination = meta.pagination as ShiprocketPagination | undefined;
           if (
             pagination &&
             typeof pagination.current_page === "number" &&

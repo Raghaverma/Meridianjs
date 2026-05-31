@@ -12,7 +12,7 @@ describe("SetuAdapter - Contract Tests", () => {
         options: { method: "POST" },
         authToken: { token: "test_bearer_token" },
       });
-      expect(built.headers["Authorization"]).toBe("Bearer test_bearer_token");
+      expect(built.headers.Authorization).toBe("Bearer test_bearer_token");
     });
 
     it("should append query params to URL", () => {

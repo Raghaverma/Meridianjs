@@ -434,7 +434,7 @@ describe("Razorpay Adapter - Contract Tests", () => {
         "10",
       );
 
-      expect(next.options.query?.["skip"]).toBe(10);
+      expect(next.options.query?.skip).toBe(10);
     });
 
     it("should accumulate skip across multiple pages", () => {
@@ -447,7 +447,7 @@ describe("Razorpay Adapter - Contract Tests", () => {
       );
       const page3 = strategy.buildNextRequest("/v1/payments", page2.options, "10");
 
-      expect(page3.options.query?.["skip"]).toBe(20);
+      expect(page3.options.query?.skip).toBe(20);
     });
   });
 

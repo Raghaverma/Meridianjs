@@ -9,7 +9,7 @@ describe("sanitizeRequestOptions — existing behavior", () => {
 
   it("redacts authorization header", () => {
     const result = sanitizeRequestOptions({ headers: { Authorization: "Bearer secret" } });
-    expect(result.headers?.["Authorization"]).toBe("[REDACTED]");
+    expect(result.headers?.Authorization).toBe("[REDACTED]");
   });
 
   it("passes through non-sensitive headers", () => {

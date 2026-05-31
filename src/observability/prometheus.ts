@@ -167,7 +167,7 @@ export class PrometheusObservability implements ObservabilityAdapter {
       }
     }
 
-    return lines.join("\n") + "\n";
+    return `${lines.join("\n")}\n`;
   }
 
   reset(): void {

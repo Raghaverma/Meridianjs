@@ -98,7 +98,7 @@ export class SetuAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       return this.parseHttpError(
         raw as {
@@ -209,8 +209,8 @@ export class SetuAdapter implements ProviderAdapter {
         undefined,
         401,
       );
-    const clientId = config.custom?.["clientId"] ?? "";
-    const productInstanceId = config.custom?.["productInstanceId"] ?? "";
+    const clientId = config.custom?.clientId ?? "";
+    const productInstanceId = config.custom?.productInstanceId ?? "";
     // Encode extras into token string so buildRequest can extract them
     return {
       token: `${token}|SETU|${clientId}|SETU|${productInstanceId}`.replace(
@@ -227,7 +227,7 @@ export class SetuAdapter implements ProviderAdapter {
     if (limitStr && remainingStr) {
       const limit = Number.parseInt(limitStr, 10);
       const remaining = Number.parseInt(remainingStr, 10);
-      if (!isNaN(limit) && !isNaN(remaining)) {
+      if (!Number.isNaN(limit) && !Number.isNaN(remaining)) {
         const reset = resetStr
           ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);

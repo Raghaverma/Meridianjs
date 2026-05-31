@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Files to process (workspace-relative)
 const files = [
@@ -44,11 +44,11 @@ function stripComments(code) {
   let out = "";
   const len = code.length;
   let i = 0;
-  let inSingle = false,
-    inDouble = false,
-    inTemplate = false;
-  let inLineComment = false,
-    inBlockComment = false;
+  let inSingle = false;
+  let inDouble = false;
+  let inTemplate = false;
+  let inLineComment = false;
+  let inBlockComment = false;
 
   while (i < len) {
     const ch = code[i];

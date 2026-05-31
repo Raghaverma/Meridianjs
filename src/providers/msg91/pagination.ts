@@ -6,8 +6,8 @@ export class Msg91PaginationStrategy implements PaginationStrategy {
     // Cursor = next page number as string
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (Array.isArray(body["data"]) && typeof body["current"] === "number") {
-        return String((body["current"] as number) + 1);
+      if (Array.isArray(body.data) && typeof body.current === "number") {
+        return String((body.current as number) + 1);
       }
     }
     return null;
@@ -16,8 +16,8 @@ export class Msg91PaginationStrategy implements PaginationStrategy {
   extractTotal(response: RawResponse): number | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (typeof body["total"] === "number") {
-        return body["total"] as number;
+      if (typeof body.total === "number") {
+        return body.total as number;
       }
     }
     return null;
@@ -27,11 +27,11 @@ export class Msg91PaginationStrategy implements PaginationStrategy {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
       if (
-        Array.isArray(body["data"]) &&
-        typeof body["total"] === "number" &&
-        typeof body["current"] === "number"
+        Array.isArray(body.data) &&
+        typeof body.total === "number" &&
+        typeof body.current === "number"
       ) {
-        return (body["data"] as unknown[]).length > 0;
+        return (body.data as unknown[]).length > 0;
       }
     }
     return false;

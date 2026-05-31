@@ -117,7 +117,7 @@ export class RazorpayAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       const httpError = raw as {
         status: number;
@@ -247,7 +247,7 @@ export class RazorpayAdapter implements ProviderAdapter {
     //   1. username = key_id, password = key_secret
     //   2. apiKey = key_id, custom.keySecret = key_secret
     const keyId = config.username ?? config.apiKey;
-    const keySecret = config.password ?? config.custom?.["keySecret"];
+    const keySecret = config.password ?? config.custom?.keySecret;
 
     if (!keyId || !keySecret) {
       throw this.createMeridianError(
@@ -275,7 +275,7 @@ export class RazorpayAdapter implements ProviderAdapter {
       const limit = Number.parseInt(limitStr, 10);
       const remaining = Number.parseInt(remainingStr, 10);
 
-      if (!isNaN(limit) && !isNaN(remaining)) {
+      if (!Number.isNaN(limit) && !Number.isNaN(remaining)) {
         const reset = resetStr
           ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);

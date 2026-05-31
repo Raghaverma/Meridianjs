@@ -118,7 +118,7 @@ describe("Observability sanitizer", () => {
     expect(mock.metrics.length).toBeGreaterThan(0);
     const m = mock.metrics.find((mm) => mm.name === "meridian.request.count");
     expect(m).toBeDefined();
-    expect(m!.tags.provider).toBe("test");
+    expect(m?.tags.provider).toBe("test");
   });
 
   it("redacts secrets from error metadata when adapters return sensitive info", async () => {

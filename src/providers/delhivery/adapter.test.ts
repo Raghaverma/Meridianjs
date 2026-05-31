@@ -12,7 +12,7 @@ describe("DelhiveryAdapter - Contract Tests", () => {
         options: { method: "GET" },
         authToken: { token: "test_token" },
       });
-      expect(built.headers["Authorization"]).toMatch(/test_token/);
+      expect(built.headers.Authorization).toMatch(/test_token/);
     });
 
     it("should append query params to URL", () => {

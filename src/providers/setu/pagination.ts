@@ -4,9 +4,9 @@ export class SetuPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const data = body["data"] as Record<string, unknown> | undefined;
-      if (data && typeof data["cursor"] === "string" && data["cursor"] !== "") {
-        return data["cursor"];
+      const data = body.data as Record<string, unknown> | undefined;
+      if (data && typeof data.cursor === "string" && data.cursor !== "") {
+        return data.cursor;
       }
     }
     return null;
@@ -19,9 +19,9 @@ export class SetuPaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const data = body["data"] as Record<string, unknown> | undefined;
+      const data = body.data as Record<string, unknown> | undefined;
       if (data) {
-        return typeof data["cursor"] === "string" && data["cursor"] !== "";
+        return typeof data.cursor === "string" && data.cursor !== "";
       }
     }
     return false;

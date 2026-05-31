@@ -101,7 +101,7 @@ export class DecentroAdapter implements ProviderAdapter {
       typeof raw === "object" &&
       raw !== null &&
       "status" in raw &&
-      typeof (raw as Record<string, unknown>)["status"] === "number"
+      typeof (raw as Record<string, unknown>).status === "number"
     ) {
       return this.parseHttpError(
         raw as {
@@ -202,9 +202,9 @@ export class DecentroAdapter implements ProviderAdapter {
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
-    const clientId = config.clientId ?? config.custom?.["clientId"];
-    const clientSecret = config.clientSecret ?? config.custom?.["clientSecret"];
-    const moduleSecret = config.custom?.["moduleSecret"];
+    const clientId = config.clientId ?? config.custom?.clientId;
+    const clientSecret = config.clientSecret ?? config.custom?.clientSecret;
+    const moduleSecret = config.custom?.moduleSecret;
     if (!clientId || !clientSecret || !moduleSecret) {
       throw this.createMeridianError(
         "auth",

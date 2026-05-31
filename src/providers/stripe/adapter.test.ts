@@ -432,7 +432,7 @@ describe("StripeAdapter - Contract Tests", () => {
       const signingPayload = `${timestamp}.${payload}`;
       const v1 = hmacHex(secret, signingPayload);
       const header = `t=${timestamp},v1=${v1}`;
-      const tamperedPayload = payload + "tampered";
+      const tamperedPayload = `${payload}tampered`;
       expect(adapter.verifyWebhook(tamperedPayload, header, secret)).toBe(false);
     });
 

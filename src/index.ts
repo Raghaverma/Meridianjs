@@ -408,8 +408,7 @@ export class Meridian {
 
       if (pageCount >= maxPages) {
         throw new Error(
-          `Pagination limit reached: ${maxPages} pages. ` +
-            `This may indicate an infinite pagination loop. Consider using a more specific query.`,
+          `Pagination limit reached: ${maxPages} pages. This may indicate an infinite pagination loop. Consider using a more specific query.`,
         );
       }
     };

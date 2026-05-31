@@ -18,7 +18,7 @@ describe("Anthropic Adapter - Contract Tests", () => {
       const built = adapter.buildRequest(input);
 
       expect(built.headers["x-api-key"]).toBe("sk-ant-test-token");
-      expect(built.headers["Authorization"]).toBeUndefined();
+      expect(built.headers.Authorization).toBeUndefined();
     });
 
     it("should include anthropic-version header", () => {

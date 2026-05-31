@@ -5,8 +5,8 @@ export class OpenAIPaginationStrategy implements PaginationStrategy {
     // OpenAI list APIs return: { object: "list", data: [], has_more: boolean, last_id: string | null }
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (body["has_more"] === true && typeof body["last_id"] === "string") {
-        return body["last_id"];
+      if (body.has_more === true && typeof body.last_id === "string") {
+        return body.last_id;
       }
     }
     return null;
@@ -19,7 +19,7 @@ export class OpenAIPaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      return body["has_more"] === true;
+      return body.has_more === true;
     }
     return false;
   }

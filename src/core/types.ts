@@ -128,10 +128,6 @@ export function isRetryableByCode(code: MeridianErrorCode): boolean {
     case "UPSTREAM_5XX":
     case "RATE_LIMITED":
       return true;
-    case "AUTH_FAILED":
-    case "NOT_FOUND":
-    case "BAD_REQUEST":
-    case "UNKNOWN":
     default:
       return false;
   }

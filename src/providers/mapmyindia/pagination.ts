@@ -7,8 +7,8 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
     // OR:       { results: [...] }
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const suggestedLocations = body["suggestedLocations"];
-      const results = body["results"];
+      const suggestedLocations = body.suggestedLocations;
+      const results = body.results;
 
       const items = Array.isArray(suggestedLocations)
         ? suggestedLocations
@@ -17,7 +17,7 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
           : null;
 
       if (items !== null && items.length > 0) {
-        const totalItems = typeof body["totalItems"] === "number" ? body["totalItems"] : null;
+        const totalItems = typeof body.totalItems === "number" ? body.totalItems : null;
         // Need an offset to build next cursor; use query offset from context via cursor accumulation.
         // The cursor passed into buildNextRequest IS the current offset already accumulated.
         // Here we just return the item count as the delta — buildNextRequest adds to the prior offset.
@@ -32,8 +32,8 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
   extractTotal(response: RawResponse): number | null {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      if (typeof body["totalItems"] === "number") {
-        return body["totalItems"];
+      if (typeof body.totalItems === "number") {
+        return body.totalItems;
       }
     }
     return null;
@@ -42,8 +42,8 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
   hasNext(response: RawResponse): boolean {
     if (typeof response.body === "object" && response.body !== null) {
       const body = response.body as Record<string, unknown>;
-      const suggestedLocations = body["suggestedLocations"];
-      const results = body["results"];
+      const suggestedLocations = body.suggestedLocations;
+      const results = body.results;
 
       const items = Array.isArray(suggestedLocations)
         ? suggestedLocations
@@ -55,7 +55,7 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
         return false;
       }
 
-      const totalItems = typeof body["totalItems"] === "number" ? body["totalItems"] : null;
+      const totalItems = typeof body.totalItems === "number" ? body.totalItems : null;
       if (totalItems !== null) {
         // We don't have the current offset here directly; rely on extractCursor returning non-null
         // as the signal. hasNext is true when items were returned and total not yet exhausted.
@@ -75,7 +75,7 @@ export class MapmyindiaPaginationStrategy implements PaginationStrategy {
     options: RequestOptions,
     cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const currentOffset = Number.parseInt(String(options.query?.["offset"] ?? 0), 10);
+    const currentOffset = Number.parseInt(String(options.query?.offset ?? 0), 10);
     const itemsReturned = Number.parseInt(cursor, 10);
     return {
       endpoint,
