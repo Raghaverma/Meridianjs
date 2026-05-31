@@ -1,6 +1,6 @@
 {
   "name": "meridianjs",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Meridian - A TypeScript-first SDK that enforces a single stable contract across all third-party API providers",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",
@@ -11,7 +11,12 @@
       "import": "./dist/public.js"
     }
   },
-  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE.md"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsc",
@@ -27,7 +32,14 @@
   "bin": {
     "boundary-proxy": "dist/proxy/cli.js"
   },
-  "keywords": ["api", "sdk", "normalization", "circuit-breaker", "rate-limiting", "retry"],
+  "keywords": [
+    "api",
+    "sdk",
+    "normalization",
+    "circuit-breaker",
+    "rate-limiting",
+    "retry"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
