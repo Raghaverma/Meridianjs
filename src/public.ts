@@ -73,6 +73,24 @@ export { AnthropicAdapter } from "./providers/anthropic/adapter.js";
 export { OpenAIAdapter } from "./providers/openai/adapter.js";
 export { StripeAdapter } from "./providers/stripe/adapter.js";
 export { GitHubAdapter } from "./providers/github/adapter.js";
+export { RazorpayAdapter } from "./providers/razorpay/adapter.js";
+export { CashfreeAdapter } from "./providers/cashfree/adapter.js";
+export { PayuAdapter } from "./providers/payu/adapter.js";
+export { JuspayAdapter } from "./providers/juspay/adapter.js";
+export { Msg91Adapter } from "./providers/msg91/adapter.js";
+export { ExotelAdapter } from "./providers/exotel/adapter.js";
+export { GupshupAdapter } from "./providers/gupshup/adapter.js";
+export { SetuAdapter } from "./providers/setu/adapter.js";
+export { DecentroAdapter } from "./providers/decentro/adapter.js";
+export { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
+export { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
+export { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
+export { DigioAdapter } from "./providers/digio/adapter.js";
+export { KarzaAdapter } from "./providers/karza/adapter.js";
+export { IdfyAdapter } from "./providers/idfy/adapter.js";
+export { CleartaxAdapter } from "./providers/cleartax/adapter.js";
+export { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
+export { PerfiosAdapter } from "./providers/perfios/adapter.js";
 
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";

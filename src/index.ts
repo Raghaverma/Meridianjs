@@ -21,6 +21,24 @@ import { GitHubAdapter } from "./providers/github/adapter.js";
 import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
 import { OpenAIAdapter } from "./providers/openai/adapter.js";
 import { StripeAdapter } from "./providers/stripe/adapter.js";
+import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
+import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
+import { PayuAdapter } from "./providers/payu/adapter.js";
+import { JuspayAdapter } from "./providers/juspay/adapter.js";
+import { Msg91Adapter } from "./providers/msg91/adapter.js";
+import { ExotelAdapter } from "./providers/exotel/adapter.js";
+import { GupshupAdapter } from "./providers/gupshup/adapter.js";
+import { SetuAdapter } from "./providers/setu/adapter.js";
+import { DecentroAdapter } from "./providers/decentro/adapter.js";
+import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
+import { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
+import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
+import { DigioAdapter } from "./providers/digio/adapter.js";
+import { KarzaAdapter } from "./providers/karza/adapter.js";
+import { IdfyAdapter } from "./providers/idfy/adapter.js";
+import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
+import { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
+import { PerfiosAdapter } from "./providers/perfios/adapter.js";
 import { sanitizeObject } from "./core/observability-sanitizer.js";
 
 
@@ -29,6 +47,24 @@ const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   anthropic: AnthropicAdapter,
   openai: OpenAIAdapter,
   stripe: StripeAdapter,
+  razorpay: RazorpayAdapter,
+  cashfree: CashfreeAdapter,
+  payu: PayuAdapter,
+  juspay: JuspayAdapter,
+  msg91: Msg91Adapter,
+  exotel: ExotelAdapter,
+  gupshup: GupshupAdapter,
+  setu: SetuAdapter,
+  decentro: DecentroAdapter,
+  shiprocket: ShiprocketAdapter,
+  delhivery: DelhiveryAdapter,
+  hyperverge: HyperVergeAdapter,
+  digio: DigioAdapter,
+  karza: KarzaAdapter,
+  idfy: IdfyAdapter,
+  cleartax: CleartaxAdapter,
+  mapmyindia: MapmyindiaAdapter,
+  perfios: PerfiosAdapter,
 };
 
 
@@ -452,6 +488,24 @@ export class Meridian {
   provider(name: "openai"): ProviderClient | undefined;
   provider(name: "stripe"): ProviderClient | undefined;
   provider(name: "github"): ProviderClient | undefined;
+  provider(name: "razorpay"): ProviderClient | undefined;
+  provider(name: "cashfree"): ProviderClient | undefined;
+  provider(name: "payu"): ProviderClient | undefined;
+  provider(name: "juspay"): ProviderClient | undefined;
+  provider(name: "msg91"): ProviderClient | undefined;
+  provider(name: "exotel"): ProviderClient | undefined;
+  provider(name: "gupshup"): ProviderClient | undefined;
+  provider(name: "setu"): ProviderClient | undefined;
+  provider(name: "decentro"): ProviderClient | undefined;
+  provider(name: "shiprocket"): ProviderClient | undefined;
+  provider(name: "delhivery"): ProviderClient | undefined;
+  provider(name: "hyperverge"): ProviderClient | undefined;
+  provider(name: "digio"): ProviderClient | undefined;
+  provider(name: "karza"): ProviderClient | undefined;
+  provider(name: "idfy"): ProviderClient | undefined;
+  provider(name: "cleartax"): ProviderClient | undefined;
+  provider(name: "mapmyindia"): ProviderClient | undefined;
+  provider(name: "perfios"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined {
     this.ensureStarted();

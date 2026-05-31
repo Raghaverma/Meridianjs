@@ -1,0 +1,407 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1780245609700,
+  "projectRoot": "/Users/mac/Desktop/Raghav/Meridianjs",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vitest",
+        "version": "1.6.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build 2>&1",
+    "testCommand": "npm test 2>&1",
+    "lintCommand": "npm run lint",
+    "devCommand": null,
+    "scripts": {
+      "build": "tsc",
+      "typecheck": "tsc --noEmit",
+      "test": "vitest",
+      "test:watch": "vitest --watch",
+      "lint": "biome check .",
+      "format": "biome format --write .",
+      "prepublishOnly": "npm run build",
+      "proxy": "node dist/proxy/cli.js",
+      "proxy:build": "npm run build && npm run proxy"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase/PascalCase",
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "examples",
+      "scripts",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "examples": {
+      "path": "examples",
+      "purpose": "Example code",
+      "fileCount": 1,
+      "lastAccessed": 1780245609691,
+      "keyFiles": [
+        "basic-usage.ts"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1780245609692,
+      "keyFiles": [
+        "strip-comments.cjs"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 5,
+      "lastAccessed": 1780245609694,
+      "keyFiles": [
+        "consumer.test.ts",
+        "index.test.ts",
+        "index.ts",
+        "public.ts",
+        "safety.test.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/index.ts",
+      "accessCount": 9,
+      "lastAccessed": 1780246698647,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/razorpay/pagination.ts",
+      "accessCount": 7,
+      "lastAccessed": 1780246261224,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/razorpay/index.ts",
+      "accessCount": 7,
+      "lastAccessed": 1780246261429,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/razorpay/adapter.ts",
+      "accessCount": 6,
+      "lastAccessed": 1780246260760,
+      "type": "file"
+    },
+    {
+      "path": "src/core/types.ts",
+      "accessCount": 6,
+      "lastAccessed": 1780246264863,
+      "type": "file"
+    },
+    {
+      "path": "src/public.ts",
+      "accessCount": 5,
+      "lastAccessed": 1780246705552,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/stripe/adapter.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780246265403,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/stripe/pagination.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780246265604,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/stripe/index.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780246009765,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/razorpay/adapter.test.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780246060385,
+      "type": "file"
+    },
+    {
+      "path": "src/core/normalizer.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780246245492,
+      "type": "file"
+    },
+    {
+      "path": "src/core/header-parser.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780246246026,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/github/adapter.test.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780245693856,
+      "type": "file"
+    },
+    {
+      "path": "tsconfig.json",
+      "accessCount": 1,
+      "lastAccessed": 1780246006408,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1780246006441,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/github/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246013279,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/github/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246013500,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/github/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246013694,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/anthropic/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246013964,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/anthropic/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246014115,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/anthropic/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246014392,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/openai/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246014550,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/openai/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246014819,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/openai/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246014883,
+      "type": "file"
+    },
+    {
+      "path": ".biome.json",
+      "accessCount": 1,
+      "lastAccessed": 1780246019211,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/cashfree/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246212894,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/payu/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246232691,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/juspay/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246255998,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/gupshup/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246256517,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/gupshup/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246264071,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/gupshup/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246264786,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/msg91/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246275679,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/hyperverge/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246283602,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/hyperverge/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246286956,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/hyperverge/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246287454,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/setu/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246296900,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/exotel/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246297270,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/cleartax/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246298735,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/cashfree/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246305357,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/cleartax/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246306406,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/cleartax/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246307080,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/payu/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246312103,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/decentro/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246314673,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/digio/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246315977,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/juspay/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246316927,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/msg91/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246321865,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/digio/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246322529,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/digio/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246323135,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/exotel/pagination.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246328714,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/shiprocket/adapter.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780246330171,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}
