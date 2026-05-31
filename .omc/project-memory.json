@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "echo \"=== BUILD ===\"; npm run build > /tmp/build.log 2>&1; echo \"build_exit=$?\"; tail -3 /tmp/build.log; echo \"=== TYPECHECK ===\"; npm run typecheck > /tmp/tc.log 2>&1; echo \"typecheck_exit=$?\"; echo \"=== LINT ===\"; npm run lint > /tmp/lint.log 2>&1; echo \"lint_exit=$?\"; tail -3 /tmp/lint.log",
-    "testCommand": "node_modules/.bin/vitest run 2>&1 | grep -E \"(Test Files|Tests )\" | tail -3",
+    "buildCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs; echo \"=== branch + log ===\"; git branch --show-current; git log --oneline -3; echo \"=== files on disk now ===\"; ls src/core/streaming.ts src/providers/twilio/adapter.ts >/dev/null 2>&1 && echo \"feature files present ✓\"; echo \"=== TYPECHECK ===\"; npm run typecheck >/tmp/tc.log 2>&1; echo \"exit=$?\"; echo \"=== BUILD ===\"; npm run build >/tmp/b.log 2>&1; echo \"exit=$?\"; echo \"=== TESTS ===\"; node_modules/.bin/vitest run 2>&1 | grep -E \"(Test Files|Tests )\" | tail -2",
+    "testCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs; echo \"=== branch + log ===\"; git branch --show-current; git log --oneline -3; echo \"=== files on disk now ===\"; ls src/core/streaming.ts src/providers/twilio/adapter.ts >/dev/null 2>&1 && echo \"feature files present ✓\"; echo \"=== TYPECHECK ===\"; npm run typecheck >/tmp/tc.log 2>&1; echo \"exit=$?\"; echo \"=== BUILD ===\"; npm run build >/tmp/b.log 2>&1; echo \"exit=$?\"; echo \"=== TESTS ===\"; node_modules/.bin/vitest run 2>&1 | grep -E \"(Test Files|Tests )\" | tail -2",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {

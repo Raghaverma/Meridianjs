@@ -1,5 +1,3 @@
-<div align="center">
-
 # Meridian
 
 **One SDK. Every API. Zero inconsistency.**
@@ -15,8 +13,6 @@ A TypeScript-first SDK that enforces a single stable contract across all third-p
 [![Adapters](https://img.shields.io/badge/adapters-23-blueviolet)](#provider-coverage)
 
 [Installation](#installation) · [Quick Start](#quick-start) · [Providers](#provider-coverage) · [Architecture](#architecture) · [API](#public-api) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
-
-</div>
 
 ---
 
@@ -100,7 +96,7 @@ Every response has the same shape, regardless of provider:
 ### Global
 
 | Provider | Category | Auth |
-|---|---|---|
+| --- | --- | --- |
 | **GitHub** | Developer Tools | Bearer token |
 | **Anthropic** | AI / LLM | `x-api-key` header |
 | **OpenAI** | AI / LLM | Bearer token |
@@ -110,7 +106,7 @@ Every response has the same shape, regardless of provider:
 ### India — Payments
 
 | Provider | Auth | Webhook |
-|---|---|---|
+| --- | --- | --- |
 | **Razorpay** | Basic (`key_id:key_secret`) | ✅ HMAC-SHA256 |
 | **Cashfree** | `x-client-id` + `x-client-secret` | ✅ HMAC-SHA256 |
 | **PayU** | Basic (`key:salt`) | ✅ HMAC-SHA512 |
@@ -119,7 +115,7 @@ Every response has the same shape, regardless of provider:
 ### India — Communications
 
 | Provider | Auth | Key Endpoints |
-|---|---|---|
+| --- | --- | --- |
 | **MSG91** | `authkey` header | SMS, OTP, WhatsApp, Email · ✅ webhook |
 | **Exotel** | Basic (`SID:APIKey`) | Calls, SMS, Virtual Numbers · ✅ webhook |
 | **Gupshup** | `apikey` header | WhatsApp Business, SMS · ✅ webhook |
@@ -127,7 +123,7 @@ Every response has the same shape, regardless of provider:
 ### India — Banking / Fintech
 
 | Provider | Auth | Key Endpoints |
-|---|---|---|
+| --- | --- | --- |
 | **Setu** | Bearer token | AA consent, UPI, BBPS |
 | **Decentro** | `clientId\|clientSecret\|moduleSecret` | KYC, UPI, Virtual Accounts |
 | **Perfios** | `x-api-key` header | Bank statement analysis, ITR |
@@ -135,14 +131,14 @@ Every response has the same shape, regardless of provider:
 ### India — Logistics
 
 | Provider | Auth | Key Endpoints |
-|---|---|---|
+| --- | --- | --- |
 | **Shiprocket** | Bearer JWT | Orders, Shipments, Tracking, NDR |
 | **Delhivery** | Bearer token | Waybills, Tracking, COD |
 
 ### India — KYC / Identity / eSign
 
 | Provider | Auth | Key Endpoints |
-|---|---|---|
+| --- | --- | --- |
 | **HyperVerge** | `appId\|appKey` headers | Face match, Liveness, OCR |
 | **Digio** | Basic (`clientId:clientSecret`) | eSign, eStamp, Documents |
 | **Karza** | `x-karza-key` header | PAN, GST, Bank verify, ITR |
@@ -151,7 +147,7 @@ Every response has the same shape, regardless of provider:
 ### India — Tax / Compliance / Maps
 
 | Provider | Auth | Key Endpoints |
-|---|---|---|
+| --- | --- | --- |
 | **Cleartax** | `x-cleartax-auth-token` | GST filing, e-invoicing, IRN |
 | **MapMyIndia** | Bearer token | Geocode, Directions, Places |
 
@@ -181,10 +177,10 @@ flowchart TD
             RL --> CB --> IK --> RT --> AU --> BQ
         end
 
-        subgraph Adapters["Provider Adapters (23)"]
+        subgraph Adapters["Provider Adapters (22)"]
             direction LR
             PAY["💳 Payments\nRazorpay · Cashfree · PayU · Juspay · Stripe"]
-            COM["📱 Communications\nMSG91 · Exotel · Gupshup · Twilio"]
+            COM["📱 Communications\nMSG91 · Exotel · Gupshup"]
             FIN["🏦 Banking / Fintech\nSetu · Decentro · Perfios"]
             LOG["📦 Logistics\nShiprocket · Delhivery"]
             KYC["🪪 KYC / Identity\nHyperVerge · Digio · Karza · IDfy"]
@@ -213,36 +209,36 @@ flowchart TD
 
 ### Pipeline Stages
 
-```
+```text
   Your Code
       │
       ▼
   ┌───────────────────────────────────────────────────────────────────┐
-  │                        Request Pipeline                            │
+  │                        Request Pipeline                           │
   │                                                                   │
-  │  ① Rate Limiter          ② Circuit Breaker      ③ Idempotency    │
-  │  ┌─────────────┐         ┌───────────────┐      ┌─────────────┐  │
-  │  │ Token bucket│         │ CLOSED        │      │ Resolve or  │  │
-  │  │ Adaptive    │────────►│ OPEN          │─────►│ generate    │  │
-  │  │ backoff     │         │ HALF_OPEN     │      │ key         │  │
-  │  └─────────────┘         └───────────────┘      └─────────────┘  │
+  │  ① Rate Limiter          ② Circuit Breaker      ③ Idempotency   │
+  │  ┌─────────────┐         ┌───────────────┐      ┌─────────────┐   │
+  │  │ Token bucket│         │ CLOSED        │      │ Resolve or  │   │
+  │  │ Adaptive    │────────►│ OPEN          │─────►│ generate    │   │
+  │  │ backoff     │         │ HALF_OPEN     │      │ key         │   │
+  │  └─────────────┘         └───────────────┘      └─────────────┘   │
   │                                                        │          │
-  │  ④ Retry Strategy        ⑤ Auth Strategy    ⑥ Build Request      │
-  │  ┌─────────────┐         ┌───────────────┐  ┌──────────────────┐ │
-  │  │ Exp backoff │         │ authStrategy()│  │ buildRequest()   │ │
-  │  │ + jitter    │◄────────│ → AuthToken   │  │ URL · headers    │ │
-  │  │ retryable?  │         └───────────────┘  │ body · auth      │ │
-  │  └─────────────┘                            └──────────────────┘ │
+  │  ④ Retry Strategy        ⑤ Auth Strategy    ⑥ Build Request     │
+  │  ┌─────────────┐         ┌───────────────┐  ┌──────────────────┐  │
+  │  │ Exp backoff │         │ authStrategy()│  │ buildRequest()   │  │
+  │  │ + jitter    │◄────────│ → AuthToken   │  │ URL · headers    │  │
+  │  │ retryable?  │         └───────────────┘  │ body · auth      │  │
+  │  └─────────────┘                            └──────────────────┘  │
   └──────────────────────────────────────────────────┬────────────────┘
                                                      │
-                                          ┌──────────▼──────────┐
+                                          ┌──────────▼───────────┐
                                           │   Provider Adapter   │
                                           │  buildRequest()      │
                                           │  parseResponse()     │
                                           │  parseError()        │
                                           │  rateLimitPolicy()   │
                                           │  paginationStrategy()│
-                                          └──────────┬──────────┘
+                                          └──────────┬───────────┘
                                                      │ fetch()
                                                      ▼
                                                External API
@@ -257,20 +253,20 @@ flowchart TD
 
 ### Multi-Provider Isolation
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────┐
-│                       Meridian Instance                            │
-│                                                                   │
+│                       Meridian Instance                          │
+│                                                                  │
 │  provider("razorpay")   ──► [ CB ] [ RL ] ──► RazorpayAdapter    │
 │  provider("cashfree")   ──► [ CB ] [ RL ] ──► CashfreeAdapter    │
 │  provider("karza")      ──► [ CB ] [ RL ] ──► KarzaAdapter       │
 │  provider("shiprocket") ──► [ CB ] [ RL ] ──► ShiprocketAdapter  │
 │  provider("github")     ──► [ CB ] [ RL ] ──► GitHubAdapter      │
-│                                                                   │
-│  CB = Circuit Breaker (independent per provider)                  │
-│  RL = Rate Limiter    (independent per provider)                  │
-│                                                                   │
-│  One provider tripping its circuit breaker never affects others.  │
+│                                                                  │
+│  CB = Circuit Breaker (independent per provider)                 │
+│  RL = Rate Limiter    (independent per provider)                 │
+│                                                                  │
+│  One provider tripping its circuit breaker never affects others. │
 └──────────────────────────────────────────────────────────────────┘
                 │                              │
                 ▼                              ▼
@@ -338,8 +334,6 @@ const isValid = payuAdapter.verifyWebhook(
 );
 ```
 
-Timing-safe `verifyWebhook` is available on all 11 payment/comms adapters (Razorpay, Cashfree, PayU, Juspay, MSG91, Setu, Decentro, Shiprocket, Stripe, Exotel, Gupshup). Pass the **raw** request body (string/Buffer), not parsed JSON. See [docs/WEBHOOKS.md](docs/WEBHOOKS.md) for the full table and per-provider signature schemes.
-
 ### Unified Error Handling
 
 ```typescript
@@ -397,7 +391,7 @@ const meridian = await Meridian.create({
 ## Safety Guarantees
 
 | Guarantee | Behaviour |
-|---|---|
+| --- | --- |
 | **Fail-fast init** | All methods throw if called before `Meridian.create()` resolves |
 | **Fail-closed state** | `distributed` mode requires `StateStorage` — startup fails without it |
 | **Secret redaction** | `authorization`, `cookie`, `token`, `apiKey` auto-redacted in all logs, errors, and metrics |
@@ -423,7 +417,7 @@ const meridian = await Meridian.create({
   },
 
   observability: new ConsoleObservability(),
-  compliance:    { piiRedaction: true, indiaMode: true, auditLog: true },
+  compliance:    { piiRedaction: true, auditLog: true },
   mode:          "distributed",
   stateStorage:  new RedisStateStorage(client),
 });
@@ -440,7 +434,6 @@ client.put<T>(endpoint, options?)     // PUT
 client.patch<T>(endpoint, options?)   // PATCH
 client.delete<T>(endpoint, options?)  // DELETE
 client.paginate<T>(endpoint, options?) // AsyncGenerator — auto-follows cursors
-client.stream<T>(endpoint, options?)   // AsyncGenerator<StreamChunk<T>> — SSE streaming
 ```
 
 ### `MeridianError`
@@ -472,7 +465,7 @@ npx boundary-proxy 8080  # custom port
 
 Route pattern: `http://localhost:4242/<provider>/<endpoint>`
 
-```
+```text
 GET  /github/repos/octocat/Hello-World  →  api.github.com
 POST /razorpay/v1/orders               →  api.razorpay.com
 GET  /anthropic/v1/messages            →  api.anthropic.com
@@ -482,19 +475,19 @@ GET  /anthropic/v1/messages            →  api.anthropic.com
 
 ## Project Status
 
-**v0.1.3** — 23 adapters, 565 tests, zero TypeScript errors. Core pipeline stable. API surface settled — all additions are additive and non-breaking.
+**v0.1.3** — 22 adapters, 565 tests, zero TypeScript errors. Core pipeline stable. API surface settled — all additions are additive and non-breaking.
 
 | Milestone | Status |
-|---|---|
+| --- | --- |
 | Core pipeline (rate limit, circuit breaker, retry, idempotency) | ✅ Stable |
-| 23 provider adapters (global + Indian ecosystem) | ✅ Stable |
+| 22 provider adapters (global + Indian ecosystem) | ✅ Stable |
 | Contract test coverage for all adapters | ✅ 565 tests |
-| Webhook verification across all payment/comms adapters | ✅ Stable |
-| Twilio adapter | ✅ Stable |
-| Streaming support (OpenAI / Anthropic SSE) | ✅ Stable |
-| Mock adapter for testing | ✅ Stable |
-| India Compliance Mode (DPDPA) | ✅ Stable |
-| SendGrid + BillDesk + Signzy | 📋 v0.3 |
+| Webhook verification (Cashfree, PayU, Decentro, Shiprocket) | ✅ Partial |
+| Webhook verification on all remaining adapters | 🔄 Next |
+| Twilio + SendGrid | 📋 v0.2 |
+| Streaming support (OpenAI / Anthropic SSE) | 📋 v0.4 |
+| Mock adapter for testing | 📋 v0.4 |
+| India Compliance Mode (DPDPA) | 📋 v0.5 |
 
 See [ROADMAP.md](ROADMAP.md) for the full plan and version targets.
 
@@ -503,6 +496,7 @@ See [ROADMAP.md](ROADMAP.md) for the full plan and version targets.
 ## Non-Goals
 
 - UI components or dashboards
+- API mocking / stubbing (planned v0.4)
 - Request recording or replay
 - GraphQL (planned v1)
 - Multi-region routing
@@ -530,6 +524,4 @@ MIT — see [LICENSE.md](LICENSE.md).
 
 ---
 
-<div align="center">
-  <sub>Built for the Indian and global developer ecosystem · TypeScript-first · Zero runtime dependencies</sub>
-</div>
+Built for the Indian and global developer ecosystem · TypeScript-first · Zero runtime dependencies
