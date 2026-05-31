@@ -94,6 +94,9 @@ export { CleartaxAdapter } from "./providers/cleartax/adapter.js";
 export { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
 export { PerfiosAdapter } from "./providers/perfios/adapter.js";
 export { TwilioAdapter } from "./providers/twilio/adapter.js";
+export { SendgridAdapter } from "./providers/sendgrid/adapter.js";
+export { MailgunAdapter } from "./providers/mailgun/adapter.js";
+export { VonageAdapter } from "./providers/vonage/adapter.js";
 
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";

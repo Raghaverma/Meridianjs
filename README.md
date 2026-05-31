@@ -11,8 +11,8 @@ A TypeScript-first SDK that enforces a single stable contract across all third-p
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org)
-[![Tests](https://img.shields.io/badge/tests-565%20passing-brightgreen)](https://vitest.dev)
-[![Adapters](https://img.shields.io/badge/adapters-23-blueviolet)](#provider-coverage)
+[![Tests](https://img.shields.io/badge/tests-625%20passing-brightgreen)](https://vitest.dev)
+[![Adapters](https://img.shields.io/badge/adapters-26-blueviolet)](#provider-coverage)
 
 [Installation](#installation) · [Quick Start](#quick-start) · [Providers](#provider-coverage) · [Architecture](#architecture) · [API](#public-api) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
@@ -94,7 +94,7 @@ Every response has the same shape, regardless of provider:
 
 ## Provider Coverage
 
-23 adapters, fully implemented and contract-tested (565 tests).
+26 adapters, fully implemented and contract-tested (625 tests).
 
 ### Global
 
@@ -105,6 +105,9 @@ Every response has the same shape, regardless of provider:
 | **OpenAI** | AI / LLM | Bearer token |
 | **Stripe** | Payments | Basic (`key:`) · ✅ webhook |
 | **Twilio** | Communications | Basic (`SID:AuthToken`) · ✅ webhook |
+| **SendGrid** | Communications | Bearer token · ✅ webhook |
+| **Mailgun** | Communications | Basic (`api:key`) · ✅ webhook |
+| **Vonage** | Communications | Query parameter (`api_key:api_secret`) · ✅ webhook |
 
 ### India — Payments
 
@@ -154,7 +157,7 @@ Every response has the same shape, regardless of provider:
 | **Cleartax** | `x-cleartax-auth-token` | GST filing, e-invoicing, IRN |
 | **MapMyIndia** | Bearer token | Geocode, Directions, Places |
 
-> **Planned next:** BillDesk, SendGrid, Freshworks, Signzy — see [ROADMAP.md](ROADMAP.md)
+> **Planned next:** BillDesk, Freshworks, Signzy — see [ROADMAP.md](ROADMAP.md)
 
 ---
 

@@ -195,6 +195,7 @@ export interface ErrorContext {
 export interface AuthConfig {
   token?: string;
   apiKey?: string;
+  apiSecret?: string;
   apiKeyHeader?: string;
   apiKeyQuery?: string;
   username?: string;
@@ -207,6 +208,7 @@ export interface AuthConfig {
 
 export interface AuthToken {
   token: string;
+  secret?: string | undefined;
   expiresAt?: Date;
   refreshToken?: string;
 }

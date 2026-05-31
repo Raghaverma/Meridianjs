@@ -26,12 +26,17 @@ const SUPPORTED_PROVIDERS = [
   "cleartax",
   "mapmyindia",
   "perfios",
+  "twilio",
+  "sendgrid",
+  "mailgun",
+  "vonage",
 ] as const;
 
 const PROVIDER_CATEGORIES: Record<string, string[]> = {
   Payments: ["stripe", "razorpay", "cashfree", "payu", "juspay"],
-  Comms: ["msg91", "exotel", "gupshup"],
+  Comms: ["msg91", "exotel", "gupshup", "twilio", "sendgrid", "mailgun", "vonage"],
   "Banking/UPI": ["setu", "decentro"],
+
   Logistics: ["shiprocket", "delhivery"],
   KYC: ["hyperverge", "digio", "karza", "idfy"],
   "Tax/Maps": ["cleartax", "mapmyindia", "perfios"],
@@ -132,6 +137,28 @@ function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
     cleartax: { auth: { token: process.env.CLEARTAX_AUTH_TOKEN ?? "" } },
     mapmyindia: { auth: { token: process.env.MAPMYINDIA_TOKEN ?? "" } },
     perfios: { auth: { apiKey: process.env.PERFIOS_API_KEY ?? "" } },
+    twilio: {
+      auth: {
+        username: process.env.TWILIO_SID ?? "",
+        password: process.env.TWILIO_AUTH_TOKEN ?? "",
+      },
+    },
+    sendgrid: {
+      auth: {
+        apiKey: cred("sendgrid", "apiKey", "SENDGRID_API_KEY"),
+      },
+    },
+    mailgun: {
+      auth: {
+        apiKey: cred("mailgun", "apiKey", "MAILGUN_API_KEY"),
+      },
+    },
+    vonage: {
+      auth: {
+        apiKey: cred("vonage", "apiKey", "VONAGE_API_KEY"),
+        apiSecret: process.env.VONAGE_API_SECRET ?? "",
+      },
+    },
   };
 
   return {

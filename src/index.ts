@@ -27,16 +27,20 @@ import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
 import { IdfyAdapter } from "./providers/idfy/adapter.js";
 import { JuspayAdapter } from "./providers/juspay/adapter.js";
 import { KarzaAdapter } from "./providers/karza/adapter.js";
+import { MailgunAdapter } from "./providers/mailgun/adapter.js";
 import { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
 import { Msg91Adapter } from "./providers/msg91/adapter.js";
 import { OpenAIAdapter } from "./providers/openai/adapter.js";
 import { PayuAdapter } from "./providers/payu/adapter.js";
 import { PerfiosAdapter } from "./providers/perfios/adapter.js";
 import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
+import { SendgridAdapter } from "./providers/sendgrid/adapter.js";
 import { SetuAdapter } from "./providers/setu/adapter.js";
 import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
 import { StripeAdapter } from "./providers/stripe/adapter.js";
 import { TwilioAdapter } from "./providers/twilio/adapter.js";
+import { VonageAdapter } from "./providers/vonage/adapter.js";
+
 import { ProviderCircuitBreaker } from "./strategies/circuit-breaker.js";
 import { IdempotencyResolver } from "./strategies/idempotency.js";
 import { RateLimiter } from "./strategies/rate-limit.js";
@@ -66,6 +70,9 @@ const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   mapmyindia: MapmyindiaAdapter,
   perfios: PerfiosAdapter,
   twilio: TwilioAdapter,
+  sendgrid: SendgridAdapter,
+  mailgun: MailgunAdapter,
+  vonage: VonageAdapter,
 };
 
 function getBuiltinAdapter(
@@ -547,7 +554,11 @@ export class Meridian {
   provider(name: "mapmyindia"): ProviderClient | undefined;
   provider(name: "perfios"): ProviderClient | undefined;
   provider(name: "twilio"): ProviderClient | undefined;
+  provider(name: "sendgrid"): ProviderClient | undefined;
+  provider(name: "mailgun"): ProviderClient | undefined;
+  provider(name: "vonage"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
+
   provider(name: string): ProviderClient | undefined {
     this.ensureStarted();
 

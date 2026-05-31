@@ -31,6 +31,9 @@ Returns `true` when the signature is valid, `false` otherwise. Never throws.
 | `stripe`     | Stripe          | HMAC-SHA256 hex over raw payload; additionally supports the `Stripe-Signature` header format (`t=<timestamp>,v1=<hex>`) where the signed payload is `"${timestamp}.${rawBody}"` |
 | `exotel`     | Exotel          | HMAC-SHA256 hex over raw payload |
 | `gupshup`    | Gupshup         | HMAC-SHA256 hex over raw payload |
+| `sendgrid`   | SendGrid        | Ed25519 signature over payload (typically `timestamp + rawBody`); signature is base64-encoded in `X-Twilio-Email-Event-Webhook-Signature` header, public key is base64-encoded |
+| `mailgun`    | Mailgun         | HMAC-SHA256 hex over concatenated payload (`timestamp + token`) from the JSON body |
+| `vonage`     | Vonage          | HMAC-SHA256 hex over parameter-sorted query string |
 
 ## Usage
 
