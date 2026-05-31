@@ -1,3 +1,5 @@
+<!-- markdownlint-disable-file MD041 MD033 -->
+<div align="center">
 # Meridian
 
 **One SDK. Every API. Zero inconsistency.**
@@ -14,6 +16,7 @@ A TypeScript-first SDK that enforces a single stable contract across all third-p
 
 [Installation](#installation) · [Quick Start](#quick-start) · [Providers](#provider-coverage) · [Architecture](#architecture) · [API](#public-api) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
+</div>
 ---
 
 ## Problem Statement
