@@ -1,21 +1,20 @@
-
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { parseRetryAfter } from "../../core/header-parser.js";
+import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
-  ProviderAdapter,
+  AdapterInput,
   AuthConfig,
   AuthToken,
-  RawResponse,
-  NormalizedResponse,
-  RateLimitInfo,
-  PaginationStrategy,
-  IdempotencyConfig,
-  AdapterInput,
   BuiltRequest,
+  IdempotencyConfig,
+  NormalizedResponse,
+  PaginationStrategy,
+  ProviderAdapter,
+  RateLimitInfo,
+  RawResponse,
 } from "../../core/types.js";
-import { MeridianError, IdempotencyLevel, SDK_VERSION } from "../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
 import { ExotelPaginationStrategy } from "./pagination.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
-import { parseRetryAfter } from "../../core/header-parser.js";
-
 
 interface ExotelErrorBody {
   RestException: {
@@ -25,11 +24,10 @@ interface ExotelErrorBody {
   };
 }
 
-
 export class ExotelAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "https://api.exotel.com") {
+  constructor(baseUrl = "https://api.exotel.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -49,7 +47,7 @@ export class ExotelAdapter implements ProviderAdapter {
     const credentials = Buffer.from(authToken.token).toString("base64");
 
     const headers: Record<string, string> = {
-      "Authorization": `Basic ${credentials}`,
+      Authorization: `Basic ${credentials}`,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
@@ -98,7 +96,7 @@ export class ExotelAdapter implements ProviderAdapter {
           "network",
           true,
           "Network request failed. Check your connection and try again.",
-          { originalError: raw.message }
+          { originalError: raw.message },
         );
       }
     }
@@ -140,7 +138,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? "Authentication failed. Check your Exotel SID and API key.",
         { exotelCode: errorCode },
         undefined,
-        401
+        401,
       );
     }
 
@@ -151,7 +149,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? "Permission denied. Your API credentials lack the required permissions.",
         { exotelCode: errorCode },
         undefined,
-        403
+        403,
       );
     }
 
@@ -162,7 +160,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? "Resource not found.",
         { exotelCode: errorCode },
         undefined,
-        404
+        404,
       );
     }
 
@@ -174,7 +172,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
         { exotelCode: errorCode, retryAfter: retryAfter?.toISOString() },
         retryAfter,
-        429
+        429,
       );
     }
 
@@ -185,7 +183,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? "Request validation failed.",
         { exotelCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -196,7 +194,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? `Exotel API returned error ${status}. This may be temporary.`,
         { status, exotelCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -207,7 +205,7 @@ export class ExotelAdapter implements ProviderAdapter {
         errorMessage ?? `Request failed with status ${status}.`,
         { status, exotelCode: errorCode },
         undefined,
-        status
+        status,
       );
     }
 
@@ -217,7 +215,7 @@ export class ExotelAdapter implements ProviderAdapter {
       `Unexpected response status ${status}.`,
       { status },
       undefined,
-      status
+      status,
     );
   }
 
@@ -233,7 +231,7 @@ export class ExotelAdapter implements ProviderAdapter {
           "Set auth.username (SID) + auth.password (API key).",
         {},
         undefined,
-        401
+        401,
       );
     }
 
@@ -246,12 +244,12 @@ export class ExotelAdapter implements ProviderAdapter {
     const resetStr = headers.get("X-RateLimit-Reset");
 
     if (limitStr && remainingStr) {
-      const limit = parseInt(limitStr, 10);
-      const remaining = parseInt(remainingStr, 10);
+      const limit = Number.parseInt(limitStr, 10);
+      const remaining = Number.parseInt(remainingStr, 10);
 
       if (!isNaN(limit) && !isNaN(remaining)) {
         const reset = resetStr
-          ? new Date(parseInt(resetStr, 10) * 1000)
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
           : new Date(Date.now() + 60_000);
         return { limit, remaining, reset };
       }
@@ -279,19 +277,40 @@ export class ExotelAdapter implements ProviderAdapter {
     };
   }
 
+  verifyWebhook(payload: string | Buffer, signature: string, secret: string): boolean {
+    const expected = createHmac("sha256", secret).update(payload).digest("hex");
+    try {
+      const a = Buffer.from(expected);
+      const b = Buffer.from(signature);
+      if (a.length !== b.length) return false;
+      return timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
+  }
+
   private createMeridianError(
     category: MeridianError["category"],
     retryable: boolean,
     message: string,
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "exotel", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "exotel",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(
-    headers: Headers | Record<string, string> | undefined
+    headers: Headers | Record<string, string> | undefined,
   ): Date | undefined {
     if (!headers) return undefined;
 

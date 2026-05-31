@@ -1,0 +1,36 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Twilio Adapter - Contract Tests > parseError - Canonical Error Categories > should map 401 to auth category 1`] = `
+{
+  "category": "auth",
+  "hasMetadata": true,
+  "message": "Authenticate",
+  "provider": "twilio",
+  "retryable": false,
+}
+`;
+
+exports[`Twilio Adapter - Contract Tests > parseResponse - Normalized Response Shape > should normalize a successful response with the correct structure 1`] = `
+{
+  "data": {
+    "messages": [
+      {
+        "body": "Hello",
+        "sid": "SM123",
+      },
+    ],
+    "next_page_uri": null,
+  },
+  "meta": {
+    "provider": "twilio",
+    "rateLimit": {
+      "limit": 100,
+      "remaining": 100,
+      "reset": 2023-11-14T22:13:20.000Z,
+    },
+    "requestId": "test-request-id",
+    "schemaVersion": "1.0.0",
+    "warnings": [],
+  },
+}
+`;

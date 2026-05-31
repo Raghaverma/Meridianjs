@@ -1,0 +1,32 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StripeAdapter - Contract Tests > parseError - Canonical Error Categories > should map 401 to auth category 1`] = `
+{
+  "category": "auth",
+  "hasMetadata": true,
+  "message": "No such API key: sk_test_***",
+  "provider": "stripe",
+  "retryable": false,
+}
+`;
+
+exports[`StripeAdapter - Contract Tests > parseResponse > should normalize a successful response with correct structure 1`] = `
+{
+  "data": {
+    "amount": 1000,
+    "id": "ch_123",
+    "object": "charge",
+  },
+  "meta": {
+    "provider": "stripe",
+    "rateLimit": {
+      "limit": 100,
+      "remaining": 99,
+      "reset": 2023-11-14T22:13:20.000Z,
+    },
+    "requestId": "test-request-id",
+    "schemaVersion": "1.0.0",
+    "warnings": [],
+  },
+}
+`;

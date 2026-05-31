@@ -1,46 +1,46 @@
-
-
+import { assertValidAdapter } from "./core/adapter-validator.js";
+import { sanitizeObject } from "./core/observability-sanitizer.js";
+import { type PipelineConfig, RequestPipeline } from "./core/pipeline.js";
+import { type StreamChunk, parseSSEStream } from "./core/streaming.js";
 import type {
-  MeridianConfig,
-  ProviderConfig,
-  NormalizedResponse,
+  AdapterInput,
   CircuitBreakerStatus,
+  MeridianConfig,
+  NormalizedResponse,
   ObservabilityAdapter,
+  ProviderConfig,
   RequestOptions,
 } from "./core/types.js";
-import { RequestPipeline, type PipelineConfig } from "./core/pipeline.js";
+import { IdempotencyLevel } from "./core/types.js";
+import type { ProviderAdapter } from "./core/types.js";
+import { ConsoleObservability } from "./observability/console.js";
+import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
+import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
+import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
+import { DecentroAdapter } from "./providers/decentro/adapter.js";
+import { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
+import { DigioAdapter } from "./providers/digio/adapter.js";
+import { ExotelAdapter } from "./providers/exotel/adapter.js";
+import { GitHubAdapter } from "./providers/github/adapter.js";
+import { GupshupAdapter } from "./providers/gupshup/adapter.js";
+import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
+import { IdfyAdapter } from "./providers/idfy/adapter.js";
+import { JuspayAdapter } from "./providers/juspay/adapter.js";
+import { KarzaAdapter } from "./providers/karza/adapter.js";
+import { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
+import { Msg91Adapter } from "./providers/msg91/adapter.js";
+import { OpenAIAdapter } from "./providers/openai/adapter.js";
+import { PayuAdapter } from "./providers/payu/adapter.js";
+import { PerfiosAdapter } from "./providers/perfios/adapter.js";
+import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
+import { SetuAdapter } from "./providers/setu/adapter.js";
+import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
+import { StripeAdapter } from "./providers/stripe/adapter.js";
+import { TwilioAdapter } from "./providers/twilio/adapter.js";
 import { ProviderCircuitBreaker } from "./strategies/circuit-breaker.js";
+import { IdempotencyResolver } from "./strategies/idempotency.js";
 import { RateLimiter } from "./strategies/rate-limit.js";
 import { RetryStrategy } from "./strategies/retry.js";
-import { IdempotencyResolver } from "./strategies/idempotency.js";
-import { IdempotencyLevel } from "./core/types.js";
-import { ConsoleObservability } from "./observability/console.js";
-import type { ProviderAdapter } from "./core/types.js";
-import { assertValidAdapter } from "./core/adapter-validator.js";
-import { GitHubAdapter } from "./providers/github/adapter.js";
-import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
-import { OpenAIAdapter } from "./providers/openai/adapter.js";
-import { StripeAdapter } from "./providers/stripe/adapter.js";
-import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
-import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
-import { PayuAdapter } from "./providers/payu/adapter.js";
-import { JuspayAdapter } from "./providers/juspay/adapter.js";
-import { Msg91Adapter } from "./providers/msg91/adapter.js";
-import { ExotelAdapter } from "./providers/exotel/adapter.js";
-import { GupshupAdapter } from "./providers/gupshup/adapter.js";
-import { SetuAdapter } from "./providers/setu/adapter.js";
-import { DecentroAdapter } from "./providers/decentro/adapter.js";
-import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
-import { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
-import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
-import { DigioAdapter } from "./providers/digio/adapter.js";
-import { KarzaAdapter } from "./providers/karza/adapter.js";
-import { IdfyAdapter } from "./providers/idfy/adapter.js";
-import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
-import { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
-import { PerfiosAdapter } from "./providers/perfios/adapter.js";
-import { sanitizeObject } from "./core/observability-sanitizer.js";
-
 
 const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
@@ -65,25 +65,22 @@ const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   cleartax: CleartaxAdapter,
   mapmyindia: MapmyindiaAdapter,
   perfios: PerfiosAdapter,
+  twilio: TwilioAdapter,
 };
-
 
 function getBuiltinAdapter(
   name: string,
-  cache: Map<string, ProviderAdapter>
+  cache: Map<string, ProviderAdapter>,
 ): ProviderAdapter | null {
-  
   if (cache.has(name)) {
     return cache.get(name)!;
   }
 
-  
   const AdapterClass = BUILTIN_ADAPTER_CLASSES[name];
   if (!AdapterClass) {
     return null;
   }
 
-  
   const adapter = new AdapterClass();
   cache.set(name, adapter);
   return adapter;
@@ -95,9 +92,12 @@ export interface ProviderClient {
   put<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>;
   patch<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>;
   delete<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>;
-  paginate<T = unknown>(endpoint: string, options?: RequestOptions): AsyncGenerator<NormalizedResponse<T>>;
+  paginate<T = unknown>(
+    endpoint: string,
+    options?: RequestOptions,
+  ): AsyncGenerator<NormalizedResponse<T>>;
+  stream<T = unknown>(endpoint: string, options?: RequestOptions): AsyncGenerator<StreamChunk<T>>;
 }
-
 
 export class Meridian {
   private config: MeridianConfig;
@@ -109,49 +109,44 @@ export class Meridian {
   private adapterCache: Map<string, ProviderAdapter> = new Map();
 
   private constructor(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
-    
     this.validateConfig(config);
 
-    
-    const providers = "providers" in config && config.providers
-      ? config.providers
-      : (() => {
-          
-          const knownKeys = new Set([
-            "defaults",
-            "schemaValidation",
-            "observability",
-            "observabilitySanitizer",
-            "idempotency",
-            "providers",
-            "stateStorage",
-            "localUnsafe",
-            "mode",
-            "compliance",
-          ]);
-          const providerConfigs: Record<string, ProviderConfig> = {};
-          
-          for (const [key, value] of Object.entries(config)) {
-            if (!knownKeys.has(key) && value && typeof value === "object") {
-              providerConfigs[key] = value as ProviderConfig;
+    const providers =
+      "providers" in config && config.providers
+        ? config.providers
+        : (() => {
+            const knownKeys = new Set([
+              "defaults",
+              "schemaValidation",
+              "observability",
+              "observabilitySanitizer",
+              "idempotency",
+              "providers",
+              "stateStorage",
+              "localUnsafe",
+              "mode",
+              "compliance",
+            ]);
+            const providerConfigs: Record<string, ProviderConfig> = {};
+
+            for (const [key, value] of Object.entries(config)) {
+              if (!knownKeys.has(key) && value && typeof value === "object") {
+                providerConfigs[key] = value as ProviderConfig;
+              }
             }
-          }
-          
-          return providerConfigs;
-        })();
-    
-    
+
+            return providerConfigs;
+          })();
+
     this.config = {
       ...config,
       providers,
     };
-    
-    
+
     if (adapters) {
       this.adapters = adapters;
     }
 
-    
     if (Array.isArray(this.config.observability)) {
       this.observability = this.config.observability;
     } else if (this.config.observability) {
@@ -159,22 +154,15 @@ export class Meridian {
     } else {
       this.observability = [new ConsoleObservability()];
     }
-
-    
-    
-    
   }
 
-  
   static async create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
     const b = new Meridian(config, adapters);
     await b.start();
     return b;
   }
 
-  
   private emitLocalStateWarning(): void {
-    
     const warning = [
       "[Meridian] WARNING: Using in-memory state for circuit breaker and rate limiter.",
       "This state will be lost on process restart or serverless cold start.",
@@ -185,14 +173,11 @@ export class Meridian {
       "See: https://github.com/Raghaverma/Meridian#state-persistence",
     ].join("\n");
 
-    
-    
     const safeMetadata = sanitizeObject(
       { component: "Meridian", type: "state_warning" },
-      this.config.observabilitySanitizer
+      this.config.observabilitySanitizer,
     );
     if (this.observability && this.observability.length > 0) {
-      
       const errors: Array<{ adapter: string; error: unknown }> = [];
       for (const obs of this.observability) {
         try {
@@ -205,26 +190,24 @@ export class Meridian {
         }
       }
 
-      
       if (errors.length === this.observability.length) {
         console.warn(warning);
         console.error(
           `[Meridian] All observability adapters failed for logWarning:\n${errors
             .map(
               ({ adapter, error }) =>
-                `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`
+                `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`,
             )
-            .join("\n")}`
+            .join("\n")}`,
         );
       } else if (errors.length > 0) {
-        
         console.error(
           `[Meridian] Some observability adapters failed for logWarning (${errors.length}/${this.observability.length}):\n${errors
             .map(
               ({ adapter, error }) =>
-                `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`
+                `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`,
             )
-            .join("\n")}`
+            .join("\n")}`,
         );
       }
     } else {
@@ -235,7 +218,6 @@ export class Meridian {
   private validateConfig(config: MeridianConfig): void {
     const errors: string[] = [];
 
-    
     if (config.defaults?.rateLimit) {
       const { tokensPerSecond, maxTokens, queueSize } = config.defaults.rateLimit;
       if (tokensPerSecond !== undefined && tokensPerSecond <= 0) {
@@ -249,7 +231,6 @@ export class Meridian {
       }
     }
 
-    
     if (config.defaults?.retry) {
       const { maxRetries, baseDelay, maxDelay } = config.defaults.retry;
       if (maxRetries !== undefined && maxRetries < 0) {
@@ -263,7 +244,6 @@ export class Meridian {
       }
     }
 
-    
     if (config.defaults?.circuitBreaker) {
       const { failureThreshold, timeout, successThreshold } = config.defaults.circuitBreaker;
       if (failureThreshold !== undefined && failureThreshold <= 0) {
@@ -277,7 +257,6 @@ export class Meridian {
       }
     }
 
-    
     if (config.defaults?.timeout !== undefined && config.defaults.timeout <= 0) {
       errors.push("defaults.timeout must be positive");
     }
@@ -289,12 +268,10 @@ export class Meridian {
 
   private async initializeProvider(
     providerName: string,
-    providerConfig: ProviderConfig
+    providerConfig: ProviderConfig,
   ): Promise<void> {
-    
     let adapter = providerConfig.adapter ?? this.adapters.get(providerName);
 
-    
     if (!adapter) {
       const builtinAdapter = getBuiltinAdapter(providerName, this.adapterCache);
       if (builtinAdapter) {
@@ -302,38 +279,30 @@ export class Meridian {
         adapter = builtinAdapter;
       }
     }
-    
+
     if (!adapter) {
       throw new Error(
-        `No adapter found for provider: ${providerName}. Provide adapter in config or use registerProvider().`
+        `No adapter found for provider: ${providerName}. Provide adapter in config or use registerProvider().`,
       );
     }
 
-    
     await assertValidAdapter(adapter, providerName);
 
-    
     this.adapters.set(providerName, adapter);
 
-    
     const circuitBreakerConfig = {
       ...this.config.defaults?.circuitBreaker,
       ...providerConfig.circuitBreaker,
     };
-    const circuitBreaker = new ProviderCircuitBreaker(
-      providerName,
-      circuitBreakerConfig
-    );
+    const circuitBreaker = new ProviderCircuitBreaker(providerName, circuitBreakerConfig);
     this.circuitBreakers.set(providerName, circuitBreaker);
 
-    
     const rateLimitConfig = {
       ...this.config.defaults?.rateLimit,
       ...providerConfig.rateLimit,
     };
     const rateLimiter = new RateLimiter(rateLimitConfig);
 
-    
     const retryConfig = {
       ...this.config.defaults?.retry,
       ...providerConfig.retry,
@@ -344,11 +313,10 @@ export class Meridian {
         ...idempotencyConfig,
         ...providerConfig.idempotency,
       },
-      this.config.idempotency?.defaultLevel ?? IdempotencyLevel.SAFE
+      this.config.idempotency?.defaultLevel ?? IdempotencyLevel.SAFE,
     );
     const retryStrategy = new RetryStrategy(retryConfig, idempotencyResolver);
 
-    
     const pipelineConfig: PipelineConfig = {
       provider: providerName,
       adapter,
@@ -359,11 +327,11 @@ export class Meridian {
       idempotencyResolver,
       observability: this.observability,
       timeout: this.config.defaults?.timeout ?? undefined,
-      autoGenerateIdempotencyKeys:
-        this.config.idempotency?.autoGenerateKeys ?? false,
+      autoGenerateIdempotencyKeys: this.config.idempotency?.autoGenerateKeys ?? false,
       sanitizerOptions: {
         ...(this.config.observabilitySanitizer ?? {}),
         piiRedaction: this.config.compliance?.piiRedaction,
+        indiaMode: this.config.compliance?.indiaMode,
       },
       compliance: this.config.compliance,
     };
@@ -371,7 +339,6 @@ export class Meridian {
 
     this.pipelines.set(providerName, pipeline);
 
-    
     (this as any)[providerName] = this.createProviderClient(providerName);
   }
 
@@ -382,12 +349,12 @@ export class Meridian {
       throw new Error(`Adapter not found for provider: ${providerName}`);
     }
     const meridian = this;
-    const maxPages = 1000; 
+    const maxPages = 1000;
 
     const makeRequest = async <T>(
       method: string,
       endpoint: string,
-      options: RequestOptions = {}
+      options: RequestOptions = {},
     ): Promise<NormalizedResponse<T>> => {
       meridian.ensureStarted();
       return pipeline.execute<T>(endpoint, {
@@ -398,10 +365,10 @@ export class Meridian {
 
     const paginate = async function* <T>(
       endpoint: string,
-      options: RequestOptions = {}
+      options: RequestOptions = {},
     ): AsyncGenerator<NormalizedResponse<T>> {
       meridian.ensureStarted();
-      
+
       const currentAdapter = meridian.adapters.get(providerName);
       if (!currentAdapter) {
         throw new Error(`Adapter not found for provider: ${providerName}`);
@@ -409,13 +376,10 @@ export class Meridian {
       let currentEndpoint = endpoint;
       let currentOptions: RequestOptions = { ...options, method: "GET" };
       let pageCount = 0;
-      const seenCursors = new Set<string>(); 
+      const seenCursors = new Set<string>();
 
       const paginationStrategy = currentAdapter.paginationStrategy();
 
-      
-      
-      
       while (pageCount < maxPages) {
         const response = await makeRequest<T>("GET", currentEndpoint, currentOptions);
         pageCount++;
@@ -426,38 +390,114 @@ export class Meridian {
         const cursor = response.meta.pagination?.cursor;
 
         if (!hasNext || !cursor) {
-
           break;
         }
 
-        
-        
         if (seenCursors.has(cursor)) {
           throw new Error(
             `Pagination cycle detected: cursor "${cursor}" was encountered twice. ` +
-            `This indicates a malformed pagination implementation. Stopping at page ${pageCount}.`
+              `This indicates a malformed pagination implementation. Stopping at page ${pageCount}.`,
           );
         }
         seenCursors.add(cursor);
 
-        const next = paginationStrategy.buildNextRequest(
-          currentEndpoint,
-          currentOptions,
-          cursor
-        );
+        const next = paginationStrategy.buildNextRequest(currentEndpoint, currentOptions, cursor);
         currentEndpoint = next.endpoint;
         currentOptions = next.options;
       }
 
-      
-      
       if (pageCount >= maxPages) {
-        
-        
         throw new Error(
           `Pagination limit reached: ${maxPages} pages. ` +
-          `This may indicate an infinite pagination loop. Consider using a more specific query.`
+            `This may indicate an infinite pagination loop. Consider using a more specific query.`,
         );
+      }
+    };
+
+    const stream = async function* <T>(
+      endpoint: string,
+      options: RequestOptions = {},
+    ): AsyncGenerator<StreamChunk<T>> {
+      meridian.ensureStarted();
+
+      const currentAdapter = meridian.adapters.get(providerName);
+      if (!currentAdapter) {
+        throw new Error(`Adapter not found for provider: ${providerName}`);
+      }
+
+      const providerConfig = meridian.config.providers?.[providerName];
+      const authConfig = providerConfig?.auth ?? {};
+
+      // Mirror pipeline auth resolution: resolve a token from the adapter's
+      // auth strategy. refreshAuth is intentionally not wired for v1.
+      const authToken = await currentAdapter.authStrategy(authConfig);
+
+      const streamOptions: RequestOptions = {
+        ...options,
+        method: options.method ?? "POST",
+      };
+
+      const adapterInput: AdapterInput = {
+        endpoint,
+        options: streamOptions,
+        authToken,
+      };
+      if (providerConfig?.baseUrl !== undefined) {
+        adapterInput.baseUrl = providerConfig.baseUrl;
+      }
+      const built = currentAdapter.buildRequest(adapterInput);
+
+      const fetchInit: RequestInit = {
+        method: built.method,
+        headers: built.headers,
+      };
+      if (built.body !== undefined) {
+        fetchInit.body = built.body;
+      }
+
+      const response = await fetch(built.url, fetchInit);
+
+      if (!response.ok) {
+        // Normalize streaming errors to MeridianError like the rest of the SDK.
+        let body: unknown;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType?.includes("application/json")) {
+            body = await response.json();
+          } else {
+            body = await response.text();
+          }
+        } catch {
+          body = {};
+        }
+        throw currentAdapter.parseError({
+          status: response.status,
+          headers: response.headers,
+          body,
+        });
+      }
+
+      if (!response.body) {
+        throw currentAdapter.parseError({
+          status: response.status,
+          headers: response.headers,
+          body: { message: "Streaming response has no readable body." },
+        });
+      }
+
+      const parseStreamChunk = currentAdapter.parseStreamChunk?.bind(currentAdapter);
+
+      for await (const chunk of parseSSEStream(response.body)) {
+        if (parseStreamChunk) {
+          const data = parseStreamChunk(chunk.raw) as T;
+          const mapped: StreamChunk<T> = { data, raw: chunk.raw };
+          if (chunk.event !== undefined) {
+            mapped.event = chunk.event;
+          }
+          yield mapped;
+        } else {
+          yield chunk as StreamChunk<T>;
+        }
       }
     };
 
@@ -474,6 +514,8 @@ export class Meridian {
         makeRequest<T>("DELETE", endpoint, options),
       paginate: <T = unknown>(endpoint: string, options?: RequestOptions) =>
         paginate<T>(endpoint, options),
+      stream: <T = unknown>(endpoint: string, options?: RequestOptions) =>
+        stream<T>(endpoint, options),
     };
   }
 
@@ -483,7 +525,6 @@ export class Meridian {
     return circuitBreaker?.getStatus() ?? null;
   }
 
-  
   provider(name: "anthropic"): ProviderClient | undefined;
   provider(name: "openai"): ProviderClient | undefined;
   provider(name: "stripe"): ProviderClient | undefined;
@@ -506,70 +547,60 @@ export class Meridian {
   provider(name: "cleartax"): ProviderClient | undefined;
   provider(name: "mapmyindia"): ProviderClient | undefined;
   provider(name: "perfios"): ProviderClient | undefined;
+  provider(name: "twilio"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined {
     this.ensureStarted();
-    
-    
-    
+
     return (this as any)[name] as ProviderClient | undefined;
   }
 
   async registerProvider(
     name: string,
     adapter: ProviderAdapter,
-    config: ProviderConfig
+    config: ProviderConfig,
   ): Promise<void> {
     this.ensureStarted();
-    
+
     this.adapters.set(name, adapter);
-    
-    
+
     if (!this.config.providers) {
       this.config.providers = {};
     }
-    
-    
+
     this.config.providers[name] = {
       ...config,
-      adapter, 
+      adapter,
     };
-    
-    
+
     if (this.started) {
       await this.initializeProvider(name, this.config.providers[name]!);
     }
   }
 
-  
   async start(): Promise<void> {
-    
     if (this.config.mode === "distributed" && !this.config.stateStorage) {
       throw new Error(
         "Meridian requires a configured stateStorage in 'distributed' mode. " +
-        "Provide a StateStorage implementation (e.g., Redis) for distributed deployments. " +
-        "If you intend to use local in-memory state, set mode to 'local' or omit the mode field."
+          "Provide a StateStorage implementation (e.g., Redis) for distributed deployments. " +
+          "If you intend to use local in-memory state, set mode to 'local' or omit the mode field.",
       );
     }
 
-    
-    
     if (!this.config.stateStorage && !this.config.localUnsafe && this.config.mode !== "local") {
       throw new Error(
         "Meridian requires a configured stateStorage unless 'localUnsafe' is set to true. " +
-        "For production deployments, provide a StateStorage implementation. " +
-        "For local development, explicitly set 'localUnsafe: true' to acknowledge the limitation."
+          "For production deployments, provide a StateStorage implementation. " +
+          "For local development, explicitly set 'localUnsafe: true' to acknowledge the limitation.",
       );
     }
 
-    
     if (this.config.providers) {
       for (const [providerName, providerConfig] of Object.entries(this.config.providers)) {
         await this.initializeProvider(providerName, providerConfig as ProviderConfig);
       }
     }
 
-    
     if (this.config.mode !== "distributed" && this.config.localUnsafe) {
       this.emitLocalStateWarning();
     }
@@ -577,21 +608,17 @@ export class Meridian {
     this.started = true;
   }
 
-  
   private ensureStarted(): void {
     if (!this.started) {
       throw new Error(
         "Meridian SDK must be initialized before use. " +
-        "Call 'await Meridian.create(config)' and await the result before using any methods."
+          "Call 'await Meridian.create(config)' and await the result before using any methods.",
       );
     }
   }
 }
 
-
 export * from "./core/types.js";
 export * from "./observability/index.js";
 export * from "./strategies/index.js";
 export * from "./validation/index.js";
-
-

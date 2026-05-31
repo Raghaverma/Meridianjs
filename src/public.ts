@@ -1,4 +1,3 @@
-
 /**
  * Public API surface for Meridian SDK.
  *
@@ -33,6 +32,9 @@ export type { ProviderAdapter } from "./core/types.js";
 
 // Provider client interface
 export type { ProviderClient } from "./index.js";
+
+// Streaming (SSE) support
+export type { StreamChunk } from "./core/streaming.js";
 
 // Observability extension point
 export type {
@@ -91,6 +93,7 @@ export { IdfyAdapter } from "./providers/idfy/adapter.js";
 export { CleartaxAdapter } from "./providers/cleartax/adapter.js";
 export { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
 export { PerfiosAdapter } from "./providers/perfios/adapter.js";
+export { TwilioAdapter } from "./providers/twilio/adapter.js";
 
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";

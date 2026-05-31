@@ -1,0 +1,32 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAI Adapter - Contract Tests > parseError - Canonical Error Categories > should map 401 to auth category 1`] = `
+{
+  "category": "auth",
+  "hasMetadata": true,
+  "message": "Incorrect API key provided",
+  "provider": "openai",
+  "retryable": false,
+}
+`;
+
+exports[`OpenAI Adapter - Contract Tests > parseResponse - Normalized Response Shape > should normalize successful response with correct structure 1`] = `
+{
+  "data": {
+    "choices": [],
+    "id": "chatcmpl-abc",
+    "object": "chat.completion",
+  },
+  "meta": {
+    "provider": "openai",
+    "rateLimit": {
+      "limit": 3500,
+      "remaining": 3499,
+      "reset": 2099-01-01T00:00:00.000Z,
+    },
+    "requestId": "test-request-id",
+    "schemaVersion": "1.0.0",
+    "warnings": [],
+  },
+}
+`;

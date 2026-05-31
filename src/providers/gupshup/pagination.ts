@@ -9,8 +9,8 @@ export class GupshupPaginationStrategy implements PaginationStrategy {
       const items = Array.isArray(body["messages"])
         ? (body["messages"] as unknown[])
         : Array.isArray(body["response"])
-        ? (body["response"] as unknown[])
-        : null;
+          ? (body["response"] as unknown[])
+          : null;
       if (items !== null) {
         const currentOffset = 0; // accumulated by buildNextRequest
         return items.length > 0 ? String(currentOffset + items.length) : null;
@@ -33,8 +33,8 @@ export class GupshupPaginationStrategy implements PaginationStrategy {
       const items = Array.isArray(body["messages"])
         ? (body["messages"] as unknown[])
         : Array.isArray(body["response"])
-        ? (body["response"] as unknown[])
-        : null;
+          ? (body["response"] as unknown[])
+          : null;
       if (items !== null) {
         return items.length >= this.defaultLimit;
       }
@@ -45,10 +45,10 @@ export class GupshupPaginationStrategy implements PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    const currentOffset = parseInt(String(options.query?.["offset"] ?? 0), 10);
-    const itemsReturned = parseInt(cursor, 10) - currentOffset;
+    const currentOffset = Number.parseInt(String(options.query?.["offset"] ?? 0), 10);
+    const itemsReturned = Number.parseInt(cursor, 10) - currentOffset;
     return {
       endpoint,
       options: {

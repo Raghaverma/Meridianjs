@@ -1,9 +1,3 @@
-
-
-
-
-
-
 export interface NormalizedResponse<T = unknown> {
   data: T;
   meta: ResponseMeta;
@@ -30,18 +24,7 @@ export interface PaginationInfo {
   total?: number;
 }
 
-
-
-
-
-
-export type MeridianErrorCategory =
-  | "auth"
-  | "rate_limit"
-  | "network"
-  | "provider"
-  | "validation";
-
+export type MeridianErrorCategory = "auth" | "rate_limit" | "network" | "provider" | "validation";
 
 export type MeridianErrorCode =
   | "AUTH_FAILED"
@@ -53,26 +36,18 @@ export type MeridianErrorCode =
   | "TIMEOUT"
   | "UNKNOWN";
 
-
 export class MeridianError extends Error {
-
   category: MeridianErrorCategory;
-
 
   retryable: boolean;
 
-
   provider: string;
-
 
   requestId: string;
 
-
   status?: number;
 
-
   metadata?: Record<string, unknown>;
-
 
   retryAfter?: Date;
 
@@ -81,10 +56,10 @@ export class MeridianError extends Error {
     category: MeridianErrorCategory,
     provider: string,
     retryable: boolean,
-    requestId: string = "",
+    requestId = "",
     metadata?: Record<string, unknown>,
     retryAfter?: Date,
-    status?: number
+    status?: number,
   ) {
     super(message);
     this.name = "MeridianError";
@@ -92,7 +67,6 @@ export class MeridianError extends Error {
     this.provider = provider;
     this.retryable = retryable;
     this.requestId = requestId;
-
 
     if (status !== undefined) {
       this.status = status;
@@ -103,7 +77,6 @@ export class MeridianError extends Error {
     if (retryAfter !== undefined) {
       this.retryAfter = retryAfter;
     }
-
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, MeridianError);
@@ -119,8 +92,10 @@ export class MeridianError extends Error {
   }
 }
 
-
-export function mapCategoryToErrorCode(category: MeridianErrorCategory, status?: number): MeridianErrorCode {
+export function mapCategoryToErrorCode(
+  category: MeridianErrorCategory,
+  status?: number,
+): MeridianErrorCode {
   switch (category) {
     case "auth":
       return "AUTH_FAILED";
@@ -146,7 +121,6 @@ export function mapCategoryToErrorCode(category: MeridianErrorCategory, status?:
   }
 }
 
-
 export function isRetryableByCode(code: MeridianErrorCode): boolean {
   switch (code) {
     case "NETWORK_ERROR":
@@ -163,7 +137,6 @@ export function isRetryableByCode(code: MeridianErrorCode): boolean {
   }
 }
 
-
 export type ErrorType =
   | "AUTH_ERROR"
   | "RATE_LIMIT"
@@ -171,7 +144,6 @@ export type ErrorType =
   | "PROVIDER_ERROR"
   | "NETWORK_ERROR"
   | "CIRCUIT_OPEN";
-
 
 export interface NormalizedError extends Error {
   type: ErrorType;
@@ -181,10 +153,6 @@ export interface NormalizedError extends Error {
   retryable: boolean;
   retryAfter?: Date;
 }
-
-
-
-
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
@@ -228,15 +196,11 @@ export interface ErrorContext {
   identity?: string | undefined;
 }
 
-
-
-
-
 export interface AuthConfig {
   token?: string;
   apiKey?: string;
-  apiKeyHeader?: string; 
-  apiKeyQuery?: string; 
+  apiKeyHeader?: string;
+  apiKeyQuery?: string;
   username?: string;
   password?: string;
   clientId?: string;
@@ -251,23 +215,17 @@ export interface AuthToken {
   refreshToken?: string;
 }
 
-
 export interface StateStorage {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds?: number): Promise<void>;
   del(key: string): Promise<void>;
 }
 
-
-
-
-
 export interface RawResponse {
   status: number;
   headers: Headers;
   body: unknown;
 }
-
 
 export interface AdapterInput {
   endpoint: string;
@@ -276,7 +234,6 @@ export interface AdapterInput {
   baseUrl?: string;
 }
 
-
 export interface BuiltRequest {
   url: string;
   method: string;
@@ -284,26 +241,18 @@ export interface BuiltRequest {
   body?: string | undefined;
 }
 
-
 export interface ProviderAdapter {
-
   buildRequest(input: AdapterInput): BuiltRequest;
-
 
   parseResponse(raw: RawResponse): NormalizedResponse;
 
-
   parseError(raw: unknown): MeridianError;
-
 
   authStrategy(config: AuthConfig): Promise<AuthToken>;
 
-
   rateLimitPolicy(headers: Headers): RateLimitInfo;
 
-
   paginationStrategy(): PaginationStrategy;
-
 
   getIdempotencyConfig(): IdempotencyConfig;
 
@@ -312,15 +261,17 @@ export interface ProviderAdapter {
 
   /** Optional: verify a provider webhook signature. Returns true if valid. */
   verifyWebhook?(payload: string | Buffer, signature: string, secret: string): boolean;
-}
 
+  /** Optional: parse one raw SSE data payload into a typed chunk. Defaults to JSON.parse. */
+  parseStreamChunk?(raw: string): unknown;
+}
 
 export interface LegacyProviderAdapter {
   authenticate(config: AuthConfig): Promise<AuthToken>;
   makeRequest(
     endpoint: string,
     options: RequestOptions,
-    authToken: AuthToken
+    authToken: AuthToken,
   ): Promise<RawResponse>;
   normalizeResponse(raw: RawResponse): NormalizedResponse;
   parseRateLimit(headers: Headers): RateLimitInfo;
@@ -329,25 +280,17 @@ export interface LegacyProviderAdapter {
   getIdempotencyConfig(): IdempotencyConfig;
 }
 
-
-
-
-
 export enum IdempotencyLevel {
-  SAFE = "SAFE", 
-  IDEMPOTENT = "IDEMPOTENT", 
-  CONDITIONAL = "CONDITIONAL", 
-  UNSAFE = "UNSAFE", 
+  SAFE = "SAFE",
+  IDEMPOTENT = "IDEMPOTENT",
+  CONDITIONAL = "CONDITIONAL",
+  UNSAFE = "UNSAFE",
 }
 
 export interface IdempotencyConfig {
-  defaultSafeOperations: Set<string>; 
-  operationOverrides: Map<string, IdempotencyLevel>; 
+  defaultSafeOperations: Set<string>;
+  operationOverrides: Map<string, IdempotencyLevel>;
 }
-
-
-
-
 
 export interface PaginationStrategy {
   extractCursor(response: RawResponse): string | null;
@@ -356,27 +299,23 @@ export interface PaginationStrategy {
   buildNextRequest(
     endpoint: string,
     options: RequestOptions,
-    cursor: string
+    cursor: string,
   ): { endpoint: string; options: RequestOptions };
 }
 
-
-
-
-
 export enum CircuitState {
-  CLOSED = "CLOSED", 
-  OPEN = "OPEN", 
-  HALF_OPEN = "HALF_OPEN", 
+  CLOSED = "CLOSED",
+  OPEN = "OPEN",
+  HALF_OPEN = "HALF_OPEN",
 }
 
 export interface CircuitBreakerConfig {
-  failureThreshold: number; 
-  successThreshold: number; 
-  timeout: number; 
-  volumeThreshold: number; 
-  rollingWindowMs: number; 
-  errorThresholdPercentage: number; 
+  failureThreshold: number;
+  successThreshold: number;
+  timeout: number;
+  volumeThreshold: number;
+  rollingWindowMs: number;
+  errorThresholdPercentage: number;
 }
 
 export interface CircuitBreakerStatus {
@@ -387,31 +326,19 @@ export interface CircuitBreakerStatus {
   nextAttempt: Date | null;
 }
 
-
-
-
-
 export interface RateLimitConfig {
   tokensPerSecond: number;
   maxTokens: number;
   adaptiveBackoff: boolean;
-  queueSize?: number; 
+  queueSize?: number;
 }
-
-
-
-
 
 export interface RetryConfig {
   maxRetries: number;
-  baseDelay: number; 
-  maxDelay: number; 
+  baseDelay: number;
+  maxDelay: number;
   jitter: boolean;
 }
-
-
-
-
 
 export interface Schema {
   type: string;
@@ -430,11 +357,7 @@ export interface SchemaMetadata {
 }
 
 export interface SchemaDrift {
-  type:
-    | "FIELD_REMOVED"
-    | "TYPE_CHANGED"
-    | "REQUIRED_ADDED"
-    | "REQUIRED_REMOVED";
+  type: "FIELD_REMOVED" | "TYPE_CHANGED" | "REQUIRED_ADDED" | "REQUIRED_REMOVED";
   field: string;
   oldValue: unknown;
   newValue: unknown;
@@ -442,19 +365,10 @@ export interface SchemaDrift {
 }
 
 export interface SchemaStorage {
-  save(
-    provider: string,
-    endpoint: string,
-    schema: Schema,
-    version: string
-  ): Promise<void>;
+  save(provider: string, endpoint: string, schema: Schema, version: string): Promise<void>;
   load(provider: string, endpoint: string): Promise<Schema | null>;
   list(provider: string): Promise<SchemaMetadata[]>;
 }
-
-
-
-
 
 export interface Metric {
   name: string;
@@ -471,13 +385,9 @@ export interface ObservabilityAdapter {
   recordMetric(metric: Metric): void;
 }
 
-
-
-
-
 export interface ProviderConfig {
   auth: AuthConfig;
-  adapter?: ProviderAdapter; 
+  adapter?: ProviderAdapter;
   baseUrl?: string;
   retry?: Partial<RetryConfig>;
   circuitBreaker?: Partial<CircuitBreakerConfig>;
@@ -504,28 +414,25 @@ export interface MeridianConfig {
     defaultLevel: IdempotencyLevel;
     autoGenerateKeys?: boolean;
   };
-  
+
   mode?: "local" | "distributed";
-  
+
   stateStorage?: StateStorage;
-  
+
   observabilitySanitizer?: {
     redactedKeys?: string[];
   };
-  
+
   localUnsafe?: boolean;
-  
+
   compliance?: {
     piiRedaction?: boolean | undefined;
     auditLog?: boolean | undefined;
+    indiaMode?: boolean | undefined;
   };
-  
+
   [providerName: string]: unknown;
 }
-
-
-
-
 
 import packageJson from "../../package.json";
 export const SDK_VERSION = packageJson.version;
@@ -533,4 +440,3 @@ export const SDK_VERSION = packageJson.version;
 export interface ProviderVersion {
   [provider: string]: string;
 }
-

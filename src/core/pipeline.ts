@@ -1,24 +1,22 @@
-
-
+import { randomUUID } from "crypto";
+import type { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
+import type { IdempotencyResolver } from "../strategies/idempotency.js";
+import type { RateLimiter } from "../strategies/rate-limit.js";
+import type { RetryStrategy } from "../strategies/retry.js";
+import { sanitizeMeridianError } from "./error-sanitizer.js";
+import { sanitizeMetric, sanitizeObject } from "./observability-sanitizer.js";
+import { sanitizeRequestOptions } from "./request-sanitizer.js";
 import type {
-  ProviderAdapter,
-  RequestOptions,
+  ErrorContext,
   NormalizedResponse,
   ObservabilityAdapter,
-  RequestContext,
-  ResponseContext,
-  ErrorContext,
+  ProviderAdapter,
   RawResponse,
+  RequestContext,
+  RequestOptions,
+  ResponseContext,
 } from "./types.js";
 import { MeridianError } from "./types.js";
-import { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
-import { RateLimiter } from "../strategies/rate-limit.js";
-import { RetryStrategy } from "../strategies/retry.js";
-import { IdempotencyResolver } from "../strategies/idempotency.js";
-import { sanitizeMeridianError } from "./error-sanitizer.js";
-import { sanitizeObject, sanitizeMetric } from "./observability-sanitizer.js";
-import { sanitizeRequestOptions } from "./request-sanitizer.js";
-import { randomUUID } from "crypto";
 
 import type { AuthConfig, AuthToken } from "./types.js";
 
@@ -33,8 +31,20 @@ export interface PipelineConfig {
   observability: ObservabilityAdapter[];
   timeout: number | undefined;
   autoGenerateIdempotencyKeys?: boolean;
-  sanitizerOptions?: { redactedKeys?: string[]; piiRedaction?: boolean | undefined } | undefined;
-  compliance?: { piiRedaction?: boolean | undefined; auditLog?: boolean | undefined } | undefined;
+  sanitizerOptions?:
+    | {
+        redactedKeys?: string[];
+        piiRedaction?: boolean | undefined;
+        indiaMode?: boolean | undefined;
+      }
+    | undefined;
+  compliance?:
+    | {
+        piiRedaction?: boolean | undefined;
+        auditLog?: boolean | undefined;
+        indiaMode?: boolean | undefined;
+      }
+    | undefined;
 }
 
 export class RequestPipeline {
@@ -63,10 +73,9 @@ export class RequestPipeline {
     return token;
   }
 
-  
   private safelyBroadcastObservability(
     action: (adapter: ObservabilityAdapter) => void,
-    actionName: string
+    actionName: string,
   ): void {
     const errors: Array<{ adapter: string; error: unknown }> = [];
 
@@ -81,49 +90,42 @@ export class RequestPipeline {
       }
     }
 
-    
-    
     if (errors.length > 0) {
       const errorSummary = errors
         .map(
           ({ adapter, error }) =>
-            `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`
+            `  - ${adapter}: ${error instanceof Error ? error.message : String(error)}`,
         )
         .join("\n");
 
       console.error(
-        `[Meridian] Observability failure in ${actionName} (${errors.length}/${this.config.observability.length} adapters failed):\n${errorSummary}`
+        `[Meridian] Observability failure in ${actionName} (${errors.length}/${this.config.observability.length} adapters failed):\n${errorSummary}`,
       );
     }
   }
 
-  async execute<T>(
-    endpoint: string,
-    options: RequestOptions = {}
-  ): Promise<NormalizedResponse<T>> {
+  async execute<T>(endpoint: string, options: RequestOptions = {}): Promise<NormalizedResponse<T>> {
     const requestId = randomUUID();
     const method = options.method ?? "GET";
     const startTime = Date.now();
 
-    
     if (this.config.autoGenerateIdempotencyKeys && !options.idempotencyKey) {
       options.idempotencyKey = randomUUID();
     }
 
-    
     const idempotencyLevel = this.config.idempotencyResolver.getIdempotencyLevel(
       method,
       endpoint,
-      options
+      options,
     );
-    
-    
+
     const identity = options.identity;
-    
-    
+
     const sanitizerOpts = {
       ...this.config.sanitizerOptions,
-      piiRedaction: this.config.compliance?.piiRedaction || this.config.sanitizerOptions?.piiRedaction
+      piiRedaction:
+        this.config.compliance?.piiRedaction || this.config.sanitizerOptions?.piiRedaction,
+      indiaMode: this.config.compliance?.indiaMode || this.config.sanitizerOptions?.indiaMode,
     };
 
     const sanitizedOptions = sanitizeRequestOptions(options, sanitizerOpts);
@@ -138,19 +140,12 @@ export class RequestPipeline {
       identity,
     };
 
-    
-    this.safelyBroadcastObservability(
-      (obs) => obs.logRequest(requestContext),
-      "logRequest"
-    );
+    this.safelyBroadcastObservability((obs) => obs.logRequest(requestContext), "logRequest");
 
     try {
-
       await this.getAuthToken(); // warm the cache before acquiring the rate limiter
 
-
       await this.config.rateLimiter.acquire();
-
 
       const response = await this.config.retryStrategy.execute(
         async () => {
@@ -160,8 +155,10 @@ export class RequestPipeline {
             } catch (err) {
               // On 401, attempt a one-shot token refresh if the adapter supports it
               if (
-                typeof err === "object" && err !== null &&
-                "status" in err && (err as { status: number }).status === 401 &&
+                typeof err === "object" &&
+                err !== null &&
+                "status" in err &&
+                (err as { status: number }).status === 401 &&
                 typeof (this.config.adapter as { refreshAuth?: unknown }).refreshAuth === "function"
               ) {
                 const currentToken = this.cachedToken;
@@ -178,26 +175,15 @@ export class RequestPipeline {
           });
         },
         idempotencyLevel,
-        !!options.idempotencyKey
+        !!options.idempotencyKey,
       );
 
-      
-      const rateLimitInfo = this.config.adapter.rateLimitPolicy(
-        response.headers
-      );
-      this.config.rateLimiter.updateFromHeaders(
-        response.headers,
-        rateLimitInfo
-      );
+      const rateLimitInfo = this.config.adapter.rateLimitPolicy(response.headers);
+      this.config.rateLimiter.updateFromHeaders(response.headers, rateLimitInfo);
 
-      
       const normalized = this.config.adapter.parseResponse(response);
 
-      
       normalized.meta.requestId = requestId;
-
-      
-      
 
       const duration = Date.now() - startTime;
 
@@ -212,55 +198,57 @@ export class RequestPipeline {
         identity,
       };
 
-      
+      this.safelyBroadcastObservability((obs) => obs.logResponse(responseContext), "logResponse");
+
       this.safelyBroadcastObservability(
-        (obs) => obs.logResponse(responseContext),
-        "logResponse"
+        (obs) =>
+          obs.recordMetric(
+            sanitizeMetric(
+              {
+                name: "meridian.request.count",
+                value: 1,
+                tags: {
+                  provider: this.config.provider,
+                  endpoint,
+                  status: String(response.status),
+                },
+                timestamp: new Date(),
+              },
+              this.config.sanitizerOptions,
+            ),
+          ),
+        "recordMetric:request.count",
       );
 
-      
       this.safelyBroadcastObservability(
-        (obs) => obs.recordMetric(sanitizeMetric({
-          name: "meridian.request.count",
-          value: 1,
-          tags: {
-            provider: this.config.provider,
-            endpoint,
-            status: String(response.status),
-          },
-          timestamp: new Date(),
-        }, this.config.sanitizerOptions)),
-        "recordMetric:request.count"
-      );
-
-      
-      this.safelyBroadcastObservability(
-        (obs) => obs.recordMetric(sanitizeMetric({
-          name: "meridian.request.duration",
-          value: duration,
-          tags: {
-            provider: this.config.provider,
-            endpoint,
-          },
-          timestamp: new Date(),
-        }, this.config.sanitizerOptions)),
-        "recordMetric:request.duration"
+        (obs) =>
+          obs.recordMetric(
+            sanitizeMetric(
+              {
+                name: "meridian.request.duration",
+                value: duration,
+                tags: {
+                  provider: this.config.provider,
+                  endpoint,
+                },
+                timestamp: new Date(),
+              },
+              this.config.sanitizerOptions,
+            ),
+          ),
+        "recordMetric:request.duration",
       );
 
       return normalized as NormalizedResponse<T>;
     } catch (error) {
       const duration = Date.now() - startTime;
 
-
-
       let meridianError: MeridianError;
       try {
         const adapterError = this.config.adapter.parseError(error);
 
-
         meridianError = sanitizeMeridianError(adapterError, this.config.provider, requestId);
       } catch (parseError) {
-
         meridianError = sanitizeMeridianError(
           {
             message: error instanceof Error ? error.message : String(error),
@@ -270,16 +258,13 @@ export class RequestPipeline {
             },
           },
           this.config.provider,
-          requestId
+          requestId,
         );
       }
 
-      
       if (meridianError.category === "rate_limit" && meridianError.retryAfter) {
         this.config.rateLimiter.handle429(
-          Math.floor(
-            (meridianError.retryAfter.getTime() - Date.now()) / 1000
-          )
+          Math.floor((meridianError.retryAfter.getTime() - Date.now()) / 1000),
         );
       }
 
@@ -294,65 +279,59 @@ export class RequestPipeline {
         identity,
       };
 
-      
-      
-      
-      
       try {
         const sanitizedError = { ...meridianError } as any;
         if (sanitizedError.metadata) {
-          sanitizedError.metadata = sanitizeObject(sanitizedError.metadata, this.config.sanitizerOptions) as Record<string, unknown>;
+          sanitizedError.metadata = sanitizeObject(
+            sanitizedError.metadata,
+            this.config.sanitizerOptions,
+          ) as Record<string, unknown>;
         }
         errorContext = { ...errorContext, error: sanitizedError };
-      } catch {
-        
-      }
+      } catch {}
 
-      
-      this.safelyBroadcastObservability(
-        (obs) => obs.logError(errorContext),
-        "logError"
-      );
+      this.safelyBroadcastObservability((obs) => obs.logError(errorContext), "logError");
 
-      
       this.safelyBroadcastObservability(
-        (obs) => obs.recordMetric(sanitizeMetric({
-          name: "meridian.request.error",
-          value: 1,
-          tags: {
-            provider: this.config.provider,
-            endpoint,
-            errorCategory: meridianError.category,
-          },
-          timestamp: new Date(),
-        }, this.config.sanitizerOptions)),
-        "recordMetric:request.error"
+        (obs) =>
+          obs.recordMetric(
+            sanitizeMetric(
+              {
+                name: "meridian.request.error",
+                value: 1,
+                tags: {
+                  provider: this.config.provider,
+                  endpoint,
+                  errorCategory: meridianError.category,
+                },
+                timestamp: new Date(),
+              },
+              this.config.sanitizerOptions,
+            ),
+          ),
+        "recordMetric:request.error",
       );
 
       throw meridianError;
     }
   }
 
-  
   private async executeHttpRequest(
     endpoint: string,
     options: RequestOptions,
-    authToken: AuthToken
+    authToken: AuthToken,
   ): Promise<RawResponse> {
     const timeout = this.config.timeout ?? 30000;
 
-    
     const builtRequest = this.config.adapter.buildRequest({
       endpoint,
       options,
       authToken,
     });
 
-    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    
     const fetchOptions: RequestInit = {
       method: builtRequest.method,
       headers: builtRequest.headers,
@@ -365,7 +344,6 @@ export class RequestPipeline {
     try {
       const response = await fetch(builtRequest.url, fetchOptions);
 
-      
       let body: unknown;
       try {
         const contentType = response.headers.get("content-type");
@@ -378,13 +356,11 @@ export class RequestPipeline {
         body = {};
       }
 
-      
       const headersMap = new Headers();
       response.headers.forEach((value, key) => {
         headersMap.set(key, value);
       });
 
-      
       if (!response.ok) {
         throw {
           status: response.status,
@@ -399,7 +375,6 @@ export class RequestPipeline {
         body,
       } as RawResponse;
     } catch (error) {
-
       if (error instanceof Error && error.name === "AbortError") {
         throw new MeridianError(
           `Request timeout after ${timeout}ms`,
@@ -413,7 +388,7 @@ export class RequestPipeline {
             method: builtRequest.method,
           },
           undefined,
-          undefined
+          undefined,
         );
       }
       throw error;
@@ -421,6 +396,4 @@ export class RequestPipeline {
       clearTimeout(timeoutId);
     }
   }
-
 }
-

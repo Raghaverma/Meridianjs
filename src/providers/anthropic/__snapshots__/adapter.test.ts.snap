@@ -1,0 +1,32 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Anthropic Adapter - Contract Tests > parseError - Canonical Error Categories > should map 401 to auth category 1`] = `
+{
+  "category": "auth",
+  "hasMetadata": true,
+  "message": "Invalid API key",
+  "provider": "anthropic",
+  "retryable": false,
+}
+`;
+
+exports[`Anthropic Adapter - Contract Tests > parseResponse - Normalized Response Shape > should normalize successful response with correct structure 1`] = `
+{
+  "data": {
+    "content": [],
+    "id": "msg_01abc",
+    "type": "message",
+  },
+  "meta": {
+    "provider": "anthropic",
+    "rateLimit": {
+      "limit": 1000,
+      "remaining": 999,
+      "reset": 2099-01-01T00:00:00.000Z,
+    },
+    "requestId": "test-request-id",
+    "schemaVersion": "1.0.0",
+    "warnings": [],
+  },
+}
+`;

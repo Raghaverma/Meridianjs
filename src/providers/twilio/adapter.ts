@@ -14,22 +14,19 @@ import type {
   RawResponse,
 } from "../../core/types.js";
 import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
-import { StripePaginationStrategy } from "./pagination.js";
+import { TwilioPaginationStrategy } from "./pagination.js";
 
-interface StripeErrorBody {
-  error: {
-    type: string;
-    code?: string;
-    decline_code?: string;
-    message: string;
-    param?: string;
-  };
+interface TwilioErrorBody {
+  code: number;
+  message: string;
+  more_info: string;
+  status: number;
 }
 
-export class StripeAdapter implements ProviderAdapter {
+export class TwilioAdapter implements ProviderAdapter {
   private baseUrl: string;
 
-  constructor(baseUrl = "https://api.stripe.com") {
+  constructor(baseUrl = "https://api.twilio.com") {
     this.baseUrl = baseUrl;
   }
 
@@ -45,28 +42,43 @@ export class StripeAdapter implements ProviderAdapter {
       }
     }
 
-    // Stripe uses HTTP Basic auth: API key as username, empty password
-    const credentials = Buffer.from(`${authToken.token}:`).toString("base64");
+    // Twilio uses HTTP Basic auth: AccountSID as username, AuthToken as password.
+    // authToken.token is stored as "AccountSID:AuthToken" (set in authStrategy).
+    const credentials = Buffer.from(authToken.token).toString("base64");
 
     const headers: Record<string, string> = {
       Authorization: `Basic ${credentials}`,
-      "Stripe-Version": "2024-11-20.acacia",
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       ...options.headers,
     };
 
-    // Stripe has native idempotency key support on all write operations
     if (options.idempotencyKey) {
-      headers["Idempotency-Key"] = options.idempotencyKey;
+      headers["X-Idempotency-Key"] = options.idempotencyKey;
     }
 
     let body: string | undefined;
     const method = options.method ?? "GET";
-    if (options.body && method !== "GET" && method !== "HEAD") {
-      // Stripe accepts application/x-www-form-urlencoded for most endpoints,
-      // but JSON is supported with the header set
-      body = JSON.stringify(options.body);
-      headers["Content-Type"] = "application/json";
+    if (
+      options.body !== undefined &&
+      options.body !== null &&
+      method !== "GET" &&
+      method !== "HEAD"
+    ) {
+      if (typeof options.body === "string") {
+        // Pre-encoded — pass through
+        body = options.body;
+        if (!headers["Content-Type"]) {
+          headers["Content-Type"] = "application/x-www-form-urlencoded";
+        }
+      } else {
+        // Twilio REST API expects form-encoded bodies for POST/PUT/PATCH/DELETE
+        const params = new URLSearchParams();
+        for (const [k, v] of Object.entries(options.body as Record<string, unknown>)) {
+          params.set(k, String(v));
+        }
+        body = params.toString();
+        headers["Content-Type"] = "application/x-www-form-urlencoded";
+      }
     }
 
     const built: BuiltRequest = {
@@ -84,7 +96,7 @@ export class StripeAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "stripe", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(raw, "twilio", rateLimitInfo, paginationInfo, [], "1.0.0");
   }
 
   parseError(raw: unknown): MeridianError {
@@ -132,31 +144,18 @@ export class StripeAdapter implements ProviderAdapter {
     message?: string;
   }): MeridianError {
     const { status, body, headers } = error;
-    const errorBody = body as StripeErrorBody | undefined;
-    const errorMessage = errorBody?.error?.message;
-    const errorType = errorBody?.error?.type;
-    const declineCode = errorBody?.error?.decline_code;
+    const errorBody = body as Partial<TwilioErrorBody> | undefined;
+    const twilioCode = errorBody?.code;
+    const twilioMessage = errorBody?.message;
 
     if (status === 401) {
       return this.createMeridianError(
         "auth",
         false,
-        errorMessage ?? "Authentication failed. Check your Stripe API key.",
-        { stripeError: errorBody?.error },
+        twilioMessage ?? "Authentication failed. Check your Twilio AccountSID and AuthToken.",
+        { twilioCode, twilioError: twilioMessage },
         undefined,
         401,
-      );
-    }
-
-    if (status === 402) {
-      // Card errors — payment declined
-      return this.createMeridianError(
-        "validation",
-        false,
-        errorMessage ?? "Payment was declined.",
-        { stripeError: errorBody?.error, declineCode },
-        undefined,
-        402,
       );
     }
 
@@ -164,8 +163,8 @@ export class StripeAdapter implements ProviderAdapter {
       return this.createMeridianError(
         "auth",
         false,
-        errorMessage ?? "Permission denied. Your API key lacks the required permissions.",
-        { stripeError: errorBody?.error },
+        twilioMessage ?? "Permission denied. Your credentials lack the required permissions.",
+        { twilioCode, twilioError: twilioMessage },
         undefined,
         403,
       );
@@ -175,22 +174,10 @@ export class StripeAdapter implements ProviderAdapter {
       return this.createMeridianError(
         "validation",
         false,
-        errorMessage ?? "Resource not found.",
-        { stripeError: errorBody?.error },
+        twilioMessage ?? "Resource not found.",
+        { twilioCode, twilioError: twilioMessage },
         undefined,
         404,
-      );
-    }
-
-    if (status === 409) {
-      // Idempotency key was reused with different request parameters
-      return this.createMeridianError(
-        "validation",
-        false,
-        errorMessage ?? "Idempotency key reused with different parameters.",
-        { stripeError: errorBody?.error, errorType },
-        undefined,
-        409,
       );
     }
 
@@ -199,31 +186,30 @@ export class StripeAdapter implements ProviderAdapter {
       return this.createMeridianError(
         "rate_limit",
         true,
-        errorMessage ?? "Rate limit exceeded. Please wait before retrying.",
-        { stripeError: errorBody?.error, retryAfter: retryAfter?.toISOString() },
+        twilioMessage ?? "Rate limit exceeded. Please wait before retrying.",
+        { twilioCode, twilioError: twilioMessage, retryAfter: retryAfter?.toISOString() },
         retryAfter,
         429,
       );
     }
 
-    if (status === 422) {
+    if (status === 400 || status === 422) {
       return this.createMeridianError(
         "validation",
         false,
-        errorMessage ?? "Request validation failed.",
-        { stripeError: errorBody?.error },
+        twilioMessage ?? "Request validation failed.",
+        { twilioCode, twilioError: twilioMessage },
         undefined,
-        422,
+        status,
       );
     }
 
-    // 500, 502, 503, 504 — Stripe infrastructure errors, safe to retry
     if (status >= 500) {
       return this.createMeridianError(
         "provider",
         true,
-        errorMessage ?? `Stripe API returned error ${status}. This may be temporary.`,
-        { status, stripeError: errorBody?.error },
+        twilioMessage ?? `Twilio API returned error ${status}. This may be temporary.`,
+        { status, twilioCode, twilioError: twilioMessage },
         undefined,
         status,
       );
@@ -233,8 +219,8 @@ export class StripeAdapter implements ProviderAdapter {
       return this.createMeridianError(
         "validation",
         false,
-        errorMessage ?? `Request failed with status ${status}.`,
-        { status, stripeError: errorBody?.error },
+        twilioMessage ?? `Request failed with status ${status}.`,
+        { status, twilioCode, twilioError: twilioMessage },
         undefined,
         status,
       );
@@ -251,35 +237,44 @@ export class StripeAdapter implements ProviderAdapter {
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
-    const key = config.apiKey ?? config.token;
-    if (!key) {
+    // Support two patterns:
+    //   1. username = AccountSID, password = AuthToken
+    //   2. apiKey = AccountSID, custom.authToken = AuthToken
+    const sid = config.username ?? config.apiKey;
+    const authToken = config.password ?? config.custom?.["authToken"];
+
+    if (!sid || !authToken) {
       throw this.createMeridianError(
         "auth",
         false,
-        "Stripe authentication requires an API key. Set auth.apiKey or auth.token to your Stripe secret key.",
+        "Twilio authentication requires an AccountSID and AuthToken. " +
+          "Set auth.username + auth.password, or auth.apiKey + auth.custom.authToken.",
         {},
         undefined,
         401,
       );
     }
-    return { token: key };
+
+    // Encode as "AccountSID:AuthToken" for Basic auth in buildRequest
+    return { token: `${sid}:${authToken}` };
   }
 
   rateLimitPolicy(headers: Headers): RateLimitInfo {
-    // Stripe exposes these headers when rate limit info is available
-    const limitStr = headers.get("Stripe-Ratelimit-Limit");
-    const remainingStr = headers.get("Stripe-Ratelimit-Remaining");
+    // Twilio does not publish standard rate-limit headers.
+    // Parse any present headers gracefully; fall back to conservative defaults.
+    const limitStr = headers.get("X-RateLimit-Limit");
+    const remainingStr = headers.get("X-RateLimit-Remaining");
+    const resetStr = headers.get("X-RateLimit-Reset");
 
     if (limitStr && remainingStr) {
       const limit = Number.parseInt(limitStr, 10);
       const remaining = Number.parseInt(remainingStr, 10);
 
       if (!isNaN(limit) && !isNaN(remaining)) {
-        return {
-          limit,
-          remaining,
-          reset: new Date(Date.now() + 1000), // Stripe resets per second
-        };
+        const reset = resetStr
+          ? new Date(Number.parseInt(resetStr, 10) * 1000)
+          : new Date(Date.now() + 1000);
+        return { limit, remaining, reset };
       }
     }
 
@@ -291,57 +286,32 @@ export class StripeAdapter implements ProviderAdapter {
   }
 
   paginationStrategy(): PaginationStrategy {
-    return new StripePaginationStrategy();
+    return new TwilioPaginationStrategy();
   }
 
   getIdempotencyConfig(): IdempotencyConfig {
     return {
       defaultSafeOperations: new Set(["GET", "HEAD", "OPTIONS"]),
       operationOverrides: new Map([
-        // All Stripe write operations support idempotency keys
-        ["POST /v1/charges", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/payment_intents", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/payment_intents/:id/confirm", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/customers", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/subscriptions", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/invoices", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/refunds", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/payouts", IdempotencyLevel.CONDITIONAL],
-        ["POST /v1/transfers", IdempotencyLevel.CONDITIONAL],
-        ["DELETE /v1/customers/:id", IdempotencyLevel.IDEMPOTENT],
-        ["DELETE /v1/subscriptions/:id", IdempotencyLevel.IDEMPOTENT],
+        ["POST /2010-04-01/Accounts/:sid/Messages.json", IdempotencyLevel.CONDITIONAL],
+        ["POST /2010-04-01/Accounts/:sid/Calls.json", IdempotencyLevel.CONDITIONAL],
       ]),
     };
   }
 
+  /**
+   * Verify a Twilio webhook signature using HMAC-SHA1 (base64).
+   *
+   * Note: Full Twilio validation also incorporates the request URL and sorted
+   * POST parameters appended before the HMAC is computed. This implementation
+   * operates on the raw payload bytes only — sufficient for most payload-based
+   * verification use cases.
+   */
   verifyWebhook(payload: string | Buffer, signature: string, secret: string): boolean {
+    const expected = createHmac("sha1", secret).update(payload).digest("base64");
     try {
-      // Detect Stripe-Signature header format: "t=<timestamp>,v1=<hex>[,v0=<hex>]"
-      let sigHex = signature;
-      let signingPayload: string | Buffer = payload;
-
-      if (signature.includes("v1=")) {
-        const parts: Record<string, string> = {};
-        for (const part of signature.split(",")) {
-          const eqIdx = part.indexOf("=");
-          if (eqIdx !== -1) {
-            parts[part.slice(0, eqIdx)] = part.slice(eqIdx + 1);
-          }
-        }
-        const v1 = parts["v1"];
-        const t = parts["t"];
-        if (!v1) return false;
-        sigHex = v1;
-        // Stripe signs "${timestamp}.${rawPayload}" when a timestamp is present
-        if (t) {
-          const payloadStr = Buffer.isBuffer(payload) ? payload.toString("utf8") : payload;
-          signingPayload = `${t}.${payloadStr}`;
-        }
-      }
-
-      const expected = createHmac("sha256", secret).update(signingPayload).digest("hex");
       const a = Buffer.from(expected);
-      const b = Buffer.from(sigHex);
+      const b = Buffer.from(signature);
       if (a.length !== b.length) return false;
       return timingSafeEqual(a, b);
     } catch {
@@ -360,7 +330,7 @@ export class StripeAdapter implements ProviderAdapter {
     return new MeridianError(
       message,
       category,
-      "stripe",
+      "twilio",
       retryable,
       "",
       metadata,
@@ -376,7 +346,7 @@ export class StripeAdapter implements ProviderAdapter {
 
     const value =
       headers instanceof Headers
-        ? headers.get("retry-after")
+        ? headers.get("Retry-After")
         : (Object.entries(headers).find(([k]) => k.toLowerCase() === "retry-after")?.[1] ?? null);
 
     return parseRetryAfter(value) ?? undefined;

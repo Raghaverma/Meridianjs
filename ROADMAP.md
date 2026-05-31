@@ -15,35 +15,34 @@ Future direction for the Meridian SDK — covering Indian and international prov
 | OpenAI | AI/LLM | ✅ Stable |
 | Stripe | Payments | ✅ Stable |
 | Razorpay | Payments (India) | ✅ Stable |
-| Cashfree | Payments (India) | ⚠️ Implemented, needs tests |
-| PayU | Payments (India) | ⚠️ Implemented, needs tests |
-| Juspay | Payments (India) | ⚠️ Implemented, needs tests |
-| MSG91 | Communications (India) | ⚠️ Implemented, needs tests |
-| Exotel | Communications (India) | ⚠️ Implemented, needs tests |
-| Gupshup | Communications (India) | ⚠️ Implemented, needs tests |
-| Setu | Banking/Fintech (India) | ⚠️ Implemented, needs tests |
-| Decentro | Banking/Fintech (India) | ⚠️ Implemented, needs tests |
-| Perfios | Financial Data (India) | ⚠️ Implemented, needs tests |
-| Shiprocket | Logistics (India) | ⚠️ Implemented, needs tests |
-| Delhivery | Logistics (India) | ⚠️ Implemented, needs tests |
-| HyperVerge | KYC/Identity (India) | ⚠️ Implemented, needs tests |
-| Digio | eSign/KYC (India) | ⚠️ Implemented, needs tests |
-| Karza | KYC/Verification (India) | ⚠️ Implemented, needs tests |
-| IDfy | KYC/Identity (India) | ⚠️ Implemented, needs tests |
-| Cleartax | Tax/Compliance (India) | ⚠️ Implemented, needs tests |
-| MapMyIndia | Maps/Geo (India) | ⚠️ Implemented, needs tests |
+| Cashfree | Payments (India) | ✅ Stable |
+| PayU | Payments (India) | ✅ Stable |
+| Juspay | Payments (India) | ✅ Stable |
+| MSG91 | Communications (India) | ✅ Stable |
+| Exotel | Communications (India) | ✅ Stable |
+| Gupshup | Communications (India) | ✅ Stable |
+| Setu | Banking/Fintech (India) | ✅ Stable |
+| Decentro | Banking/Fintech (India) | ✅ Stable |
+| Perfios | Financial Data (India) | ✅ Stable |
+| Shiprocket | Logistics (India) | ✅ Stable |
+| Delhivery | Logistics (India) | ✅ Stable |
+| HyperVerge | KYC/Identity (India) | ✅ Stable |
+| Digio | eSign/KYC (India) | ✅ Stable |
+| Karza | KYC/Verification (India) | ✅ Stable |
+| IDfy | KYC/Identity (India) | ✅ Stable |
+| Cleartax | Tax/Compliance (India) | ✅ Stable |
+| MapMyIndia | Maps/Geo (India) | ✅ Stable |
+| Twilio | Communications (Intl) | ✅ Stable |
 
 > **Legend**: ✅ Adapter implemented and tested · ⚠️ Adapter implemented, contract tests pending · 📋 Planned
 
-**Note on `verifyWebhook`**: Several adapters (Cashfree, Shiprocket, and others) already expose a `verifyWebhook(payload, signature, secret)` method using HMAC-SHA256 — this is ahead of the Phase 3 plan. The remaining work is to expose this consistently across all payment/comms adapters and document the API.
+**Note on `verifyWebhook`**: `verifyWebhook(payload, signature, secret)` is now exposed consistently across all payment/comms adapters (Razorpay, Cashfree, PayU, Juspay, MSG91, Setu, Decentro, Shiprocket, Stripe, Exotel, Gupshup) using timing-safe HMAC-SHA256. Stripe additionally accepts the `Stripe-Signature` `t=…,v1=…` header format, and Twilio uses HMAC-SHA1. The API is documented in [docs/WEBHOOKS.md](docs/WEBHOOKS.md).
 
 ---
 
-## Phase 1 — Test Coverage for All Implemented Adapters (Near-term)
+## Phase 1 — Test Coverage for All Implemented Adapters ✅ COMPLETE
 
-All 17 Indian adapters are fully implemented and TypeScript-clean. The immediate priority is contract test coverage for each, following the pattern in `src/providers/razorpay/adapter.test.ts`. Until tests exist, these adapters should be considered unverified.
-
-Priority order within each category:
+All 17 Indian adapters are fully implemented, TypeScript-clean, and contract-tested (343 tests passing across 25 test files as of v0.1.3). The notes below are preserved for reference when adding new adapters in this category.
 
 ### Payments (India)
 
@@ -264,9 +263,9 @@ Priority order within each category:
 
 Beyond provider coverage, these SDK-level features have the highest return:
 
-### Webhook Signature Verification
+### Webhook Signature Verification ✅ DONE
 
-Every payment and communication provider sends webhooks with HMAC signatures. Meridian should expose a `verifyWebhook` utility per adapter so users never re-implement HMAC-SHA256 validation:
+Every payment and communication provider sends webhooks with HMAC signatures. Meridian exposes a `verifyWebhook` utility per adapter so users never re-implement HMAC-SHA256 validation. Implemented across all payment/comms adapters; see [docs/WEBHOOKS.md](docs/WEBHOOKS.md).
 
 ```typescript
 // Proposed API
@@ -282,9 +281,9 @@ const isValid = adapter.verifyWebhook({
 
 **Priority:** High — Razorpay, Cashfree, Stripe, MSG91, Shiprocket all use HMAC-based webhook verification.
 
-### Streaming Response Support
+### Streaming Response Support ✅ DONE
 
-Required for OpenAI and Anthropic chat completions (SSE streams). The current pipeline assumes request/response. A `stream()` method on `ProviderClient` is needed:
+Implemented as an additive `stream()` method on `ProviderClient` (separate from the buffered pipeline) with a robust SSE parser (`parseSSEStream`) and an optional `parseStreamChunk` adapter hook. Handles multi-line `data:`, the `[DONE]` sentinel, and chunk-boundary splits. Used for OpenAI and Anthropic SSE streams:
 
 ```typescript
 // Proposed API
@@ -293,9 +292,9 @@ for await (const chunk of meridian.provider("openai").stream("/v1/chat/completio
 }
 ```
 
-### Mock / Sandbox Adapter
+### Mock / Sandbox Adapter ✅ DONE
 
-A `MockAdapter` that intercepts calls without making network requests — critical for payment and KYC adapters where sandbox environments have rate limits:
+A `MockAdapter` (exported from `meridianjs`, with `Fixtures` helpers) intercepts calls without making network requests — critical for payment and KYC adapters where sandbox environments have rate limits. Supports `onRequest`, `simulateError`, `simulateDelay`, and call recording:
 
 ```typescript
 // Proposed API
@@ -318,9 +317,9 @@ const results = await meridian.provider("razorpay").batch([
 ]);
 ```
 
-### India Compliance Mode (`IndiaCompliance`)
+### India Compliance Mode (`IndiaCompliance`) ✅ DONE
 
-DPDPA (Digital Personal Data Protection Act, 2023) requires specific PII handling. A built-in compliance mode that auto-redacts Aadhaar numbers, PAN, bank account numbers, and VPAs from all observability paths:
+DPDPA (Digital Personal Data Protection Act, 2023) requires specific PII handling. The `compliance.indiaMode` flag auto-redacts Aadhaar numbers, PAN, bank account numbers, and UPI VPAs (in addition to generic email/phone/SSN/card patterns) from all observability paths, including nested request-body values:
 
 ```typescript
 // Proposed API
@@ -387,9 +386,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 | Version | Target | Focus |
 |---|---|---|
 | **v0.1.x** (current) | Q2 2026 | Razorpay stable; all 17 Indian adapters implemented; `verifyWebhook` on select adapters |
-| **v0.2.0** | Q3 2026 | Contract tests for all 17 Indian adapters; `verifyWebhook` consistent across all payment/comms adapters |
-| **v0.3.0** | Q3 2026 | Phase 2 Indian providers (BillDesk, Twilio, Signzy, Bureau.id, Freshworks) |
-| **v0.4.0** | Q4 2026 | Streaming support (OpenAI/Anthropic), Mock adapter for testing |
-| **v0.5.0** | Q4 2026 | Batch operations, India Compliance Mode (DPDPA), UPI helpers |
+| **v0.2.0** | Q3 2026 | ✅ Contract tests for AI adapters (Anthropic/OpenAI/Stripe) + Twilio; ✅ `verifyWebhook` consistent across all payment/comms adapters + documented |
+| **v0.3.0** | Q3 2026 | Phase 2 Indian providers (BillDesk, Signzy, Bureau.id, Freshworks); Twilio ✅ delivered early |
+| **v0.4.0** | Q4 2026 | ✅ Streaming support (OpenAI/Anthropic), ✅ Mock adapter for testing — both delivered early |
+| **v0.5.0** | Q4 2026 | Batch operations, ✅ India Compliance Mode (DPDPA) delivered early, UPI helpers |
 | **v0.6.0** | Q1 2027 | International expansion (Adyen, Twilio, SendGrid, Cohere, Auth0) |
 | **v1.0.0** | Q2 2027 | Stable API contract, full international provider set, ecosystem packages |
