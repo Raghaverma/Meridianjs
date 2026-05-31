@@ -4,6 +4,7 @@ import { type PipelineConfig, RequestPipeline } from "./core/pipeline.js";
 import { type StreamChunk, parseSSEStream } from "./core/streaming.js";
 import type {
   AdapterInput,
+  BatchRequest,
   CircuitBreakerStatus,
   MeridianConfig,
   NormalizedResponse,
@@ -11,18 +12,23 @@ import type {
   ProviderConfig,
   RequestOptions,
 } from "./core/types.js";
-import { IdempotencyLevel } from "./core/types.js";
+import { IdempotencyLevel, MeridianError } from "./core/types.js";
 import type { ProviderAdapter } from "./core/types.js";
 import { ConsoleObservability } from "./observability/console.js";
+import { AdyenAdapter } from "./providers/adyen/adapter.js";
 import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
+import { Auth0Adapter } from "./providers/auth0/adapter.js";
+import { BraintreeAdapter } from "./providers/braintree/adapter.js";
 import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
 import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
 import { DecentroAdapter } from "./providers/decentro/adapter.js";
 import { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
 import { DigioAdapter } from "./providers/digio/adapter.js";
 import { ExotelAdapter } from "./providers/exotel/adapter.js";
+import { GeminiAdapter } from "./providers/gemini/adapter.js";
 import { GitHubAdapter } from "./providers/github/adapter.js";
 import { GupshupAdapter } from "./providers/gupshup/adapter.js";
+import { HubSpotAdapter } from "./providers/hubspot/adapter.js";
 import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
 import { IdfyAdapter } from "./providers/idfy/adapter.js";
 import { JuspayAdapter } from "./providers/juspay/adapter.js";
@@ -33,11 +39,13 @@ import { Msg91Adapter } from "./providers/msg91/adapter.js";
 import { OpenAIAdapter } from "./providers/openai/adapter.js";
 import { PayuAdapter } from "./providers/payu/adapter.js";
 import { PerfiosAdapter } from "./providers/perfios/adapter.js";
+import { PhonePeAdapter } from "./providers/phonepe/adapter.js";
 import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
 import { SendgridAdapter } from "./providers/sendgrid/adapter.js";
 import { SetuAdapter } from "./providers/setu/adapter.js";
 import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
 import { StripeAdapter } from "./providers/stripe/adapter.js";
+import { SupabaseAdapter } from "./providers/supabase/adapter.js";
 import { TwilioAdapter } from "./providers/twilio/adapter.js";
 import { VonageAdapter } from "./providers/vonage/adapter.js";
 
@@ -73,6 +81,13 @@ const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   sendgrid: SendgridAdapter,
   mailgun: MailgunAdapter,
   vonage: VonageAdapter,
+  adyen: AdyenAdapter,
+  gemini: GeminiAdapter,
+  auth0: Auth0Adapter,
+  hubspot: HubSpotAdapter,
+  supabase: SupabaseAdapter,
+  braintree: BraintreeAdapter,
+  phonepe: PhonePeAdapter,
 };
 
 function getBuiltinAdapter(
@@ -104,6 +119,10 @@ export interface ProviderClient {
     options?: RequestOptions,
   ): AsyncGenerator<NormalizedResponse<T>>;
   stream<T = unknown>(endpoint: string, options?: RequestOptions): AsyncGenerator<StreamChunk<T>>;
+  batch<T = unknown>(
+    requests: Array<BatchRequest>,
+    concurrencyLimit?: number,
+  ): Promise<Array<NormalizedResponse<T> | MeridianError>>;
 }
 
 export class Meridian {
@@ -507,6 +526,30 @@ export class Meridian {
       }
     };
 
+    const runWithConcurrency = async <T>(
+      tasks: Array<() => Promise<T>>,
+      concurrencyLimit: number,
+    ): Promise<Array<T>> => {
+      const results: T[] = new Array(tasks.length);
+      let currentIndex = 0;
+
+      const worker = async () => {
+        while (currentIndex < tasks.length) {
+          const index = currentIndex++;
+          const task = tasks[index];
+          if (task) {
+            results[index] = await task();
+          }
+        }
+      };
+
+      const workers = Array.from({ length: Math.min(concurrencyLimit, tasks.length) }, () =>
+        worker(),
+      );
+      await Promise.all(workers);
+      return results;
+    };
+
     return {
       get: <T = unknown>(endpoint: string, options?: RequestOptions) =>
         makeRequest<T>("GET", endpoint, options),
@@ -522,6 +565,29 @@ export class Meridian {
         paginate<T>(endpoint, options),
       stream: <T = unknown>(endpoint: string, options?: RequestOptions) =>
         stream<T>(endpoint, options),
+      batch: async <T = unknown>(
+        requests: Array<BatchRequest>,
+        concurrencyLimit = 10,
+      ): Promise<Array<NormalizedResponse<T> | MeridianError>> => {
+        meridian.ensureStarted();
+        const currentAdapter = meridian.adapters.get(providerName);
+        if (!currentAdapter) {
+          throw new Error(`Adapter not found for provider: ${providerName}`);
+        }
+
+        const tasks = requests.map((req) => async () => {
+          try {
+            return await makeRequest<T>(req.method, req.endpoint, req.options);
+          } catch (err) {
+            if (err instanceof MeridianError) {
+              return err;
+            }
+            return currentAdapter.parseError(err);
+          }
+        });
+
+        return runWithConcurrency(tasks, concurrencyLimit);
+      },
     };
   }
 
@@ -557,6 +623,13 @@ export class Meridian {
   provider(name: "sendgrid"): ProviderClient | undefined;
   provider(name: "mailgun"): ProviderClient | undefined;
   provider(name: "vonage"): ProviderClient | undefined;
+  provider(name: "adyen"): ProviderClient | undefined;
+  provider(name: "braintree"): ProviderClient | undefined;
+  provider(name: "phonepe"): ProviderClient | undefined;
+  provider(name: "gemini"): ProviderClient | undefined;
+  provider(name: "auth0"): ProviderClient | undefined;
+  provider(name: "hubspot"): ProviderClient | undefined;
+  provider(name: "supabase"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
 
   provider(name: string): ProviderClient | undefined {

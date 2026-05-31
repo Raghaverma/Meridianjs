@@ -160,6 +160,12 @@ export interface RequestOptions {
   identity?: string | undefined;
 }
 
+export interface BatchRequest {
+  method: string;
+  endpoint: string;
+  options?: RequestOptions;
+}
+
 export interface RequestContext {
   provider: string;
   endpoint: string;

@@ -34,6 +34,7 @@ Returns `true` when the signature is valid, `false` otherwise. Never throws.
 | `sendgrid`   | SendGrid        | Ed25519 signature over payload (typically `timestamp + rawBody`); signature is base64-encoded in `X-Twilio-Email-Event-Webhook-Signature` header, public key is base64-encoded |
 | `mailgun`    | Mailgun         | HMAC-SHA256 hex over concatenated payload (`timestamp + token`) from the JSON body |
 | `vonage`     | Vonage          | HMAC-SHA256 hex over parameter-sorted query string |
+| `adyen`      | Adyen           | HMAC-SHA256 base64 over concatenated payment details string |
 
 ## Usage
 

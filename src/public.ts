@@ -18,6 +18,7 @@ export type {
   RateLimitInfo,
   RequestOptions,
   CircuitBreakerStatus,
+  BatchRequest,
 } from "./core/types.js";
 
 // Error type - frozen contract
@@ -97,6 +98,13 @@ export { TwilioAdapter } from "./providers/twilio/adapter.js";
 export { SendgridAdapter } from "./providers/sendgrid/adapter.js";
 export { MailgunAdapter } from "./providers/mailgun/adapter.js";
 export { VonageAdapter } from "./providers/vonage/adapter.js";
+export { AdyenAdapter } from "./providers/adyen/adapter.js";
+export { BraintreeAdapter } from "./providers/braintree/adapter.js";
+export { PhonePeAdapter } from "./providers/phonepe/adapter.js";
+export { GeminiAdapter } from "./providers/gemini/adapter.js";
+export { Auth0Adapter } from "./providers/auth0/adapter.js";
+export { HubSpotAdapter } from "./providers/hubspot/adapter.js";
+export { SupabaseAdapter } from "./providers/supabase/adapter.js";
 
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";

@@ -36,11 +36,16 @@ Future direction for the Meridian SDK — covering Indian and international prov
 | SendGrid | Communications (Intl) | ✅ Stable |
 | Mailgun | Communications (Intl) | ✅ Stable |
 | Vonage | Communications (Intl) | ✅ Stable |
+| Adyen | Payments (Intl) | ✅ Stable |
+| Google Gemini | AI/LLM (Intl) | ✅ Stable |
+| Auth0 | Auth/Identity (Intl) | ✅ Stable |
+| HubSpot | CRM (Intl) | ✅ Stable |
+| Supabase | Databases (Intl) | ✅ Stable |
 
 > **Legend**: ✅ Adapter implemented and tested · ⚠️ Adapter implemented, contract tests pending · 📋 Planned
 
 
-**Note on `verifyWebhook`**: `verifyWebhook(payload, signature, secret)` is now exposed consistently across all payment/comms adapters (Razorpay, Cashfree, PayU, Juspay, MSG91, Setu, Decentro, Shiprocket, Stripe, Exotel, Gupshup, Twilio, SendGrid, Mailgun, Vonage) using timing-safe HMAC-SHA256. Stripe additionally accepts the `Stripe-Signature` `t=…,v1=…` header format, Twilio uses HMAC-SHA1, SendGrid uses Ed25519, Mailgun uses HMAC-SHA256 over JSON body signature object, and Vonage uses HMAC-SHA256 over parameter-sorted query string. The API is documented in [docs/WEBHOOKS.md](docs/WEBHOOKS.md).
+**Note on `verifyWebhook`**: `verifyWebhook(payload, signature, secret)` is now exposed consistently across all payment/comms adapters (Razorpay, Cashfree, PayU, Juspay, MSG91, Setu, Decentro, Shiprocket, Stripe, Exotel, Gupshup, Twilio, SendGrid, Mailgun, Vonage, Adyen) using timing-safe HMAC-SHA256. Stripe additionally accepts the `Stripe-Signature` `t=…,v1=…` header format, Twilio uses HMAC-SHA1, SendGrid uses Ed25519, Mailgun uses HMAC-SHA256 over JSON body signature object, Vonage uses HMAC-SHA256 over parameter-sorted query string, and Adyen uses HMAC-SHA256 over concatenated notification details. The API is documented in [docs/WEBHOOKS.md](docs/WEBHOOKS.md).
 
 ---
 
@@ -394,6 +399,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 | **v0.3.0** | Q3 2026 | Phase 2 Indian providers (BillDesk, Signzy, Bureau.id, Freshworks); Twilio ✅ delivered early |
 | **v0.4.0** | Q4 2026 | ✅ Streaming support (OpenAI/Anthropic), ✅ Mock adapter for testing — both delivered early |
 | **v0.5.0** | Q4 2026 | Batch operations, ✅ India Compliance Mode (DPDPA) delivered early, UPI helpers |
-| **v0.6.0** | Q1 2027 | International expansion (Adyen, Cohere, Auth0); Twilio + SendGrid + Mailgun + Vonage ✅ delivered early |
+| **v0.6.0** | Q1 2027 | International expansion (Adyen, Cohere, Auth0, Gemini, HubSpot, Supabase); Twilio + SendGrid + Mailgun + Vonage + Adyen + Gemini + Auth0 + HubSpot + Supabase ✅ delivered early |
 
 | **v1.0.0** | Q2 2027 | Stable API contract, full international provider set, ecosystem packages |

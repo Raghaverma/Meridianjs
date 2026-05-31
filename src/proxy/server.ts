@@ -30,18 +30,25 @@ const SUPPORTED_PROVIDERS = [
   "sendgrid",
   "mailgun",
   "vonage",
+  "adyen",
+  "braintree",
+  "phonepe",
+  "gemini",
+  "auth0",
+  "hubspot",
+  "supabase",
 ] as const;
 
 const PROVIDER_CATEGORIES: Record<string, string[]> = {
-  Payments: ["stripe", "razorpay", "cashfree", "payu", "juspay"],
+  Payments: ["stripe", "razorpay", "cashfree", "payu", "juspay", "adyen", "braintree", "phonepe"],
   Comms: ["msg91", "exotel", "gupshup", "twilio", "sendgrid", "mailgun", "vonage"],
   "Banking/UPI": ["setu", "decentro"],
 
   Logistics: ["shiprocket", "delhivery"],
-  KYC: ["hyperverge", "digio", "karza", "idfy"],
+  KYC: ["hyperverge", "digio", "karza", "idfy", "auth0"],
   "Tax/Maps": ["cleartax", "mapmyindia", "perfios"],
-  AI: ["anthropic", "openai"],
-  Dev: ["github"],
+  AI: ["anthropic", "openai", "gemini"],
+  Dev: ["github", "hubspot", "supabase"],
 };
 
 export interface ProxyServerOptions {
@@ -157,6 +164,45 @@ function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
       auth: {
         apiKey: cred("vonage", "apiKey", "VONAGE_API_KEY"),
         apiSecret: process.env.VONAGE_API_SECRET ?? "",
+      },
+    },
+    adyen: {
+      auth: {
+        apiKey: cred("adyen", "apiKey", "ADYEN_API_KEY"),
+      },
+    },
+    gemini: {
+      auth: {
+        apiKey: cred("gemini", "apiKey", "GEMINI_API_KEY"),
+      },
+    },
+    auth0: {
+      auth: {
+        token: cred("auth0", "token", "AUTH0_MANAGEMENT_TOKEN"),
+      },
+    },
+    hubspot: {
+      auth: {
+        token: cred("hubspot", "token", "HUBSPOT_ACCESS_TOKEN"),
+      },
+    },
+    supabase: {
+      auth: {
+        token: cred("supabase", "token", "SUPABASE_KEY"),
+      },
+    },
+    braintree: {
+      auth: {
+        clientId: process.env.BRAINTREE_MERCHANT_ID ?? "",
+        username: process.env.BRAINTREE_PUBLIC_KEY ?? "",
+        password: process.env.BRAINTREE_PRIVATE_KEY ?? "",
+      },
+    },
+    phonepe: {
+      auth: {
+        clientId: process.env.PHONEPE_MERCHANT_ID ?? "",
+        apiKey: process.env.PHONEPE_SALT_KEY ?? "",
+        password: process.env.PHONEPE_SALT_INDEX ?? "1",
       },
     },
   };
