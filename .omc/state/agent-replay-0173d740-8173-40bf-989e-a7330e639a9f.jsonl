@@ -2,3 +2,8 @@
 {"t":0,"agent":"system","event":"mode_change","mode_from":"none","mode_to":"autopilot"}
 {"t":0,"agent":"system","event":"skill_invoked","skill_name":"oh-my-claudecode:cancel"}
 {"t":0,"agent":"aae2d42","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a765c7e","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a67e964","agent_type":"workflow-subagent","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a95f5f3","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a67e964","agent_type":"workflow-subagent","event":"agent_stop","success":true,"duration_ms":10327}
+{"t":0,"agent":"a78aa28","agent_type":"unknown","event":"agent_stop","success":true}

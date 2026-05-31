@@ -33,7 +33,7 @@
   },
   "build": {
     "buildCommand": "echo \"=== BUILD ===\"; npm run build > /tmp/build.log 2>&1; echo \"build_exit=$?\"; tail -3 /tmp/build.log; echo \"=== TYPECHECK ===\"; npm run typecheck > /tmp/tc.log 2>&1; echo \"typecheck_exit=$?\"; echo \"=== LINT ===\"; npm run lint > /tmp/lint.log 2>&1; echo \"lint_exit=$?\"; tail -3 /tmp/lint.log",
-    "testCommand": "npx vitest run --reporter=dot > /tmp/test.log 2>&1; echo \"test_exit=$?\"; grep -E \"Test Files|Tests \" /tmp/test.log | tail -4",
+    "testCommand": "node_modules/.bin/vitest run 2>&1 | grep -E \"(Test Files|Tests )\" | tail -3",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -140,8 +140,14 @@
     },
     {
       "path": "src/providers/cashfree/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247301510,
+      "accessCount": 5,
+      "lastAccessed": 1780250346443,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/shiprocket/adapter.ts",
+      "accessCount": 5,
+      "lastAccessed": 1780250346954,
       "type": "file"
     },
     {
@@ -160,12 +166,6 @@
       "path": "src/providers/setu/adapter.ts",
       "accessCount": 4,
       "lastAccessed": 1780247311339,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/shiprocket/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247314317,
       "type": "file"
     },
     {

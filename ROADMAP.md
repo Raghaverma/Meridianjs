@@ -15,31 +15,35 @@ Future direction for the Meridian SDK — covering Indian and international prov
 | OpenAI | AI/LLM | ✅ Stable |
 | Stripe | Payments | ✅ Stable |
 | Razorpay | Payments (India) | ✅ Stable |
-| Cashfree | Payments (India) | 🚧 Registered |
-| PayU | Payments (India) | 🚧 Registered |
-| Juspay | Payments (India) | 🚧 Registered |
-| MSG91 | Communications (India) | 🚧 Registered |
-| Exotel | Communications (India) | 🚧 Registered |
-| Gupshup | Communications (India) | 🚧 Registered |
-| Setu | Banking/Fintech (India) | 🚧 Registered |
-| Decentro | Banking/Fintech (India) | 🚧 Registered |
-| Perfios | Financial Data (India) | 🚧 Registered |
-| Shiprocket | Logistics (India) | 🚧 Registered |
-| Delhivery | Logistics (India) | 🚧 Registered |
-| HyperVerge | KYC/Identity (India) | 🚧 Registered |
-| Digio | eSign/KYC (India) | 🚧 Registered |
-| Karza | KYC/Verification (India) | 🚧 Registered |
-| IDfy | KYC/Identity (India) | 🚧 Registered |
-| Cleartax | Tax/Compliance (India) | 🚧 Registered |
-| MapMyIndia | Maps/Geo (India) | 🚧 Registered |
+| Cashfree | Payments (India) | ⚠️ Implemented, needs tests |
+| PayU | Payments (India) | ⚠️ Implemented, needs tests |
+| Juspay | Payments (India) | ⚠️ Implemented, needs tests |
+| MSG91 | Communications (India) | ⚠️ Implemented, needs tests |
+| Exotel | Communications (India) | ⚠️ Implemented, needs tests |
+| Gupshup | Communications (India) | ⚠️ Implemented, needs tests |
+| Setu | Banking/Fintech (India) | ⚠️ Implemented, needs tests |
+| Decentro | Banking/Fintech (India) | ⚠️ Implemented, needs tests |
+| Perfios | Financial Data (India) | ⚠️ Implemented, needs tests |
+| Shiprocket | Logistics (India) | ⚠️ Implemented, needs tests |
+| Delhivery | Logistics (India) | ⚠️ Implemented, needs tests |
+| HyperVerge | KYC/Identity (India) | ⚠️ Implemented, needs tests |
+| Digio | eSign/KYC (India) | ⚠️ Implemented, needs tests |
+| Karza | KYC/Verification (India) | ⚠️ Implemented, needs tests |
+| IDfy | KYC/Identity (India) | ⚠️ Implemented, needs tests |
+| Cleartax | Tax/Compliance (India) | ⚠️ Implemented, needs tests |
+| MapMyIndia | Maps/Geo (India) | ⚠️ Implemented, needs tests |
 
-> **Legend**: ✅ Adapter implemented and tested · 🚧 Registered in registry, adapter not yet built · 📋 Planned
+> **Legend**: ✅ Adapter implemented and tested · ⚠️ Adapter implemented, contract tests pending · 📋 Planned
+
+**Note on `verifyWebhook`**: Several adapters (Cashfree, Shiprocket, and others) already expose a `verifyWebhook(payload, signature, secret)` method using HMAC-SHA256 — this is ahead of the Phase 3 plan. The remaining work is to expose this consistently across all payment/comms adapters and document the API.
 
 ---
 
-## Phase 1 — Complete Registered Adapters (Near-term)
+## Phase 1 — Test Coverage for All Implemented Adapters (Near-term)
 
-All providers listed as 🚧 above need full adapter implementations. Priority order within each category:
+All 17 Indian adapters are fully implemented and TypeScript-clean. The immediate priority is contract test coverage for each, following the pattern in `src/providers/razorpay/adapter.test.ts`. Until tests exist, these adapters should be considered unverified.
+
+Priority order within each category:
 
 ### Payments (India)
 
@@ -382,10 +386,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 
 | Version | Target | Focus |
 |---|---|---|
-| **v0.1.x** (current) | Q2 2026 | Razorpay stable; registered adapters scaffolded |
-| **v0.2.0** | Q3 2026 | All 17 registered adapters implemented and tested |
-| **v0.3.0** | Q3 2026 | Phase 2 Indian providers (BillDesk, Twilio, Signzy, Bureau.id) |
-| **v0.4.0** | Q4 2026 | Webhook verification utilities across all payment adapters |
-| **v0.5.0** | Q4 2026 | Streaming support (OpenAI/Anthropic), Mock adapter |
-| **v0.6.0** | Q1 2027 | Batch operations, India Compliance Mode, UPI helpers |
+| **v0.1.x** (current) | Q2 2026 | Razorpay stable; all 17 Indian adapters implemented; `verifyWebhook` on select adapters |
+| **v0.2.0** | Q3 2026 | Contract tests for all 17 Indian adapters; `verifyWebhook` consistent across all payment/comms adapters |
+| **v0.3.0** | Q3 2026 | Phase 2 Indian providers (BillDesk, Twilio, Signzy, Bureau.id, Freshworks) |
+| **v0.4.0** | Q4 2026 | Streaming support (OpenAI/Anthropic), Mock adapter for testing |
+| **v0.5.0** | Q4 2026 | Batch operations, India Compliance Mode (DPDPA), UPI helpers |
+| **v0.6.0** | Q1 2027 | International expansion (Adyen, Twilio, SendGrid, Cohere, Auth0) |
 | **v1.0.0** | Q2 2027 | Stable API contract, full international provider set, ecosystem packages |
