@@ -1,6 +1,24 @@
+<div align="center">
+
 # Meridian
 
-A TypeScript SDK that normalizes third-party API interactions through a unified request pipeline, enforcing consistent error handling, rate limiting, and response shapes across providers — with deep coverage of the Indian tech ecosystem (payments, KYC, logistics, communications, fintech) alongside global providers.
+**One SDK. Every API. Zero inconsistency.**
+
+A TypeScript-first SDK that enforces a single stable contract across all third-party API providers — normalizing error handling, rate limiting, pagination, and response shapes so your application code never changes when providers do. Deep coverage of the Indian tech ecosystem alongside global providers.
+
+[![npm version](https://img.shields.io/npm/v/meridianjs?color=0070f3&label=npm)](https://www.npmjs.com/package/meridianjs)
+[![npm downloads](https://img.shields.io/npm/dm/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org)
+[![Tests](https://img.shields.io/badge/tests-565%20passing-brightgreen)](https://vitest.dev)
+[![Adapters](https://img.shields.io/badge/adapters-23-blueviolet)](#provider-coverage)
+
+[Installation](#installation) · [Quick Start](#quick-start) · [Providers](#provider-coverage) · [Architecture](#architecture) · [API](#public-api) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
+
+</div>
+
+---
 
 ## Problem Statement
 
@@ -8,39 +26,16 @@ Applications integrating multiple third-party APIs face inconsistent response fo
 
 Meridian provides a single abstraction layer that normalizes these differences, allowing applications to interact with any provider through a consistent interface while maintaining type safety and resilience patterns.
 
-## Provider Coverage
+```typescript
+// Same interface. Every provider. Always.
+const { data, meta } = await meridian.provider("razorpay").get("/v1/payments/pay_123");
+console.log(meta.rateLimit.remaining); // normalized from any provider
+console.log(meta.provider);            // "razorpay"
+```
 
-### Stable
+If Razorpay changes their error format tomorrow, you don't change a line of your code.
 
-| Provider | Category |
-|---|---|
-| GitHub | Developer Tools |
-| Anthropic | AI/LLM |
-| OpenAI | AI/LLM |
-| Stripe | Payments (Global) |
-| Razorpay | Payments (India) |
-
-### In Progress (registered, adapters being built)
-
-**Indian payments:** Cashfree, PayU, Juspay  
-**Indian communications:** MSG91, Exotel, Gupshup  
-**Indian banking/fintech:** Setu, Decentro, Perfios  
-**Indian logistics:** Shiprocket, Delhivery  
-**Indian KYC/identity:** HyperVerge, Digio, Karza, IDfy  
-**Indian tax/compliance:** Cleartax  
-**Indian maps:** MapMyIndia
-
-See [ROADMAP.md](ROADMAP.md) for the full planned provider list and timeline.
-
-## Non-Goals
-
-- UI components or dashboards
-- API mocking or stubbing frameworks (planned for v0.5)
-- Request recording or replay functionality
-- GraphQL support (planned for v1)
-- Webhook handling utilities (planned for v0.4)
-- Multi-region routing
-- Built-in caching (applications can layer caching on top)
+---
 
 ## Installation
 
@@ -48,182 +43,493 @@ See [ROADMAP.md](ROADMAP.md) for the full planned provider list and timeline.
 npm install meridianjs
 ```
 
-## Requirements
+**Requires Node.js ≥ 18.0.0** (`fetch`, `Headers`, `AbortController`, `crypto.randomUUID` used natively — no polyfills needed).
 
-- **Node.js ≥18.0.0** (required for `fetch`, `Headers`, `AbortController`, `crypto.randomUUID`)
+---
 
-## Usage
-
-**IMPORTANT**: Meridian requires async initialization. Always use `Meridian.create()`:
+## Quick Start
 
 ```typescript
 import { Meridian } from "meridianjs";
 
-// ✅ CORRECT: Async initialization
 const meridian = await Meridian.create({
-  github: {
-    auth: { token: process.env.GITHUB_TOKEN },
-  },
-  localUnsafe: true, // Required for local development without StateStorage
-});
-
-const { data, meta } = await meridian.github.get("/users/octocat");
-console.log(meta.rateLimit.remaining);
-```
-
-### Razorpay (Indian Payments)
-
-```typescript
-const meridian = await Meridian.create({
-  localUnsafe: true,
+  localUnsafe: true, // for local dev — see State Management for production
   razorpay: {
-    // Option A: username = key_id, password = key_secret
     auth: {
       username: process.env.RAZORPAY_KEY_ID,
       password: process.env.RAZORPAY_KEY_SECRET,
     },
   },
+  github: {
+    auth: { token: process.env.GITHUB_TOKEN },
+  },
 });
 
-// Create an order
-const { data } = await meridian.provider("razorpay").post("/v1/orders", {
-  body: { amount: 50000, currency: "INR", receipt: "order_rcptid_11" },
+// Payments
+const order = await meridian.provider("razorpay").post("/v1/orders", {
+  body: { amount: 50000, currency: "INR" },
 });
 
-// Paginate payments (uses skip/count automatically)
-for await (const page of meridian.provider("razorpay").paginate("/v1/payments", {
-  query: { count: 25 },
-})) {
+// Paginate automatically — cursors handled for you
+for await (const page of meridian.provider("razorpay").paginate("/v1/payments")) {
   console.log(page.data.items);
 }
 ```
 
-**❌ NEVER use `new Meridian()`** - the constructor is private and will fail.
-
-### Production Deployment
-
-For distributed deployments (serverless, multiple instances), you **must** provide a `StateStorage` implementation:
+Every response has the same shape, regardless of provider:
 
 ```typescript
-import { Meridian } from "meridianjs";
+{
+  data: T,
+  meta: {
+    provider: string,
+    requestId: string,
+    rateLimit: { limit: number, remaining: number, reset: Date },
+    pagination?: { hasNext: boolean, cursor?: string },
+    warnings: string[],
+  }
+}
+```
+
+---
+
+## Provider Coverage
+
+23 adapters, fully implemented and contract-tested (565 tests).
+
+### Global
+
+| Provider | Category | Auth |
+|---|---|---|
+| **GitHub** | Developer Tools | Bearer token |
+| **Anthropic** | AI / LLM | `x-api-key` header |
+| **OpenAI** | AI / LLM | Bearer token |
+| **Stripe** | Payments | Basic (`key:`) · ✅ webhook |
+| **Twilio** | Communications | Basic (`SID:AuthToken`) · ✅ webhook |
+
+### India — Payments
+
+| Provider | Auth | Webhook |
+|---|---|---|
+| **Razorpay** | Basic (`key_id:key_secret`) | ✅ HMAC-SHA256 |
+| **Cashfree** | `x-client-id` + `x-client-secret` | ✅ HMAC-SHA256 |
+| **PayU** | Basic (`key:salt`) | ✅ HMAC-SHA512 |
+| **Juspay** | Basic (`apiKey:`) | ✅ HMAC-SHA256 |
+
+### India — Communications
+
+| Provider | Auth | Key Endpoints |
+|---|---|---|
+| **MSG91** | `authkey` header | SMS, OTP, WhatsApp, Email · ✅ webhook |
+| **Exotel** | Basic (`SID:APIKey`) | Calls, SMS, Virtual Numbers · ✅ webhook |
+| **Gupshup** | `apikey` header | WhatsApp Business, SMS · ✅ webhook |
+
+### India — Banking / Fintech
+
+| Provider | Auth | Key Endpoints |
+|---|---|---|
+| **Setu** | Bearer token | AA consent, UPI, BBPS |
+| **Decentro** | `clientId\|clientSecret\|moduleSecret` | KYC, UPI, Virtual Accounts |
+| **Perfios** | `x-api-key` header | Bank statement analysis, ITR |
+
+### India — Logistics
+
+| Provider | Auth | Key Endpoints |
+|---|---|---|
+| **Shiprocket** | Bearer JWT | Orders, Shipments, Tracking, NDR |
+| **Delhivery** | Bearer token | Waybills, Tracking, COD |
+
+### India — KYC / Identity / eSign
+
+| Provider | Auth | Key Endpoints |
+|---|---|---|
+| **HyperVerge** | `appId\|appKey` headers | Face match, Liveness, OCR |
+| **Digio** | Basic (`clientId:clientSecret`) | eSign, eStamp, Documents |
+| **Karza** | `x-karza-key` header | PAN, GST, Bank verify, ITR |
+| **IDfy** | `api-key` + `account-id` headers | Identity checks, Background verify |
+
+### India — Tax / Compliance / Maps
+
+| Provider | Auth | Key Endpoints |
+|---|---|---|
+| **Cleartax** | `x-cleartax-auth-token` | GST filing, e-invoicing, IRN |
+| **MapMyIndia** | Bearer token | Geocode, Directions, Places |
+
+> **Planned next:** BillDesk, SendGrid, Freshworks, Signzy — see [ROADMAP.md](ROADMAP.md)
+
+---
+
+## Architecture
+
+### Request Flow
+
+```mermaid
+flowchart TD
+    App(["🖥️ Your Application\nmeridian.provider('x').post(...)"])
+
+    subgraph SDK["Meridian SDK"]
+        direction TB
+
+        subgraph Pipeline["Request Pipeline"]
+            direction LR
+            RL["🪣 Rate Limiter\nToken bucket + adaptive backoff"]
+            CB["⚡ Circuit Breaker\nClosed / Open / Half-open"]
+            IK["🔑 Idempotency Resolver\nSAFE / CONDITIONAL / IDEMPOTENT"]
+            RT["🔄 Retry Strategy\nExp. backoff + jitter"]
+            AU["🔐 Auth Strategy\nauthStrategy(config)"]
+            BQ["🔧 Build Request\nbuildRequest(input)"]
+            RL --> CB --> IK --> RT --> AU --> BQ
+        end
+
+        subgraph Adapters["Provider Adapters (23)"]
+            direction LR
+            PAY["💳 Payments\nRazorpay · Cashfree · PayU · Juspay · Stripe"]
+            COM["📱 Communications\nMSG91 · Exotel · Gupshup · Twilio"]
+            FIN["🏦 Banking / Fintech\nSetu · Decentro · Perfios"]
+            LOG["📦 Logistics\nShiprocket · Delhivery"]
+            KYC["🪪 KYC / Identity\nHyperVerge · Digio · Karza · IDfy"]
+            TAX["🧾 Tax / Maps\nCleartax · MapMyIndia"]
+            GLB["🌐 Global\nGitHub · OpenAI · Anthropic"]
+        end
+
+        OBS["📊 Observability\nlogRequest · logResponse · logError · recordMetric"]
+        STATE[("💾 State Storage\nCircuit breaker · Rate limiter\nRedis / In-memory")]
+    end
+
+    EXT[["🌍 External APIs"]]
+    RES(["✅ NormalizedResponse&lt;T&gt;\n{ data, meta: { provider, rateLimit, pagination } }"])
+    ERR(["❌ MeridianError\n{ category, retryable, status, provider }"])
+
+    App --> RL
+    BQ --> Adapters
+    Adapters -->|fetch| EXT
+    EXT -->|raw response| Adapters
+    Adapters -->|parseResponse| RES
+    Adapters -->|parseError| ERR
+    Pipeline <-->|log + metrics| OBS
+    CB <-->|read/write| STATE
+    RL <-->|read/write| STATE
+```
+
+### Pipeline Stages
+
+```
+  Your Code
+      │
+      ▼
+  ┌───────────────────────────────────────────────────────────────────┐
+  │                        Request Pipeline                            │
+  │                                                                   │
+  │  ① Rate Limiter          ② Circuit Breaker      ③ Idempotency    │
+  │  ┌─────────────┐         ┌───────────────┐      ┌─────────────┐  │
+  │  │ Token bucket│         │ CLOSED        │      │ Resolve or  │  │
+  │  │ Adaptive    │────────►│ OPEN          │─────►│ generate    │  │
+  │  │ backoff     │         │ HALF_OPEN     │      │ key         │  │
+  │  └─────────────┘         └───────────────┘      └─────────────┘  │
+  │                                                        │          │
+  │  ④ Retry Strategy        ⑤ Auth Strategy    ⑥ Build Request      │
+  │  ┌─────────────┐         ┌───────────────┐  ┌──────────────────┐ │
+  │  │ Exp backoff │         │ authStrategy()│  │ buildRequest()   │ │
+  │  │ + jitter    │◄────────│ → AuthToken   │  │ URL · headers    │ │
+  │  │ retryable?  │         └───────────────┘  │ body · auth      │ │
+  │  └─────────────┘                            └──────────────────┘ │
+  └──────────────────────────────────────────────────┬────────────────┘
+                                                     │
+                                          ┌──────────▼──────────┐
+                                          │   Provider Adapter   │
+                                          │  buildRequest()      │
+                                          │  parseResponse()     │
+                                          │  parseError()        │
+                                          │  rateLimitPolicy()   │
+                                          │  paginationStrategy()│
+                                          └──────────┬──────────┘
+                                                     │ fetch()
+                                                     ▼
+                                               External API
+                                                     │
+                                    ┌────────────────┴────────────────┐
+                                    ▼                                  ▼
+                          NormalizedResponse<T>                 MeridianError
+                          { data, meta: {                       { category,
+                            provider, requestId,                  retryable,
+                            rateLimit, pagination } }              provider, status }
+```
+
+### Multi-Provider Isolation
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                       Meridian Instance                            │
+│                                                                   │
+│  provider("razorpay")   ──► [ CB ] [ RL ] ──► RazorpayAdapter    │
+│  provider("cashfree")   ──► [ CB ] [ RL ] ──► CashfreeAdapter    │
+│  provider("karza")      ──► [ CB ] [ RL ] ──► KarzaAdapter       │
+│  provider("shiprocket") ──► [ CB ] [ RL ] ──► ShiprocketAdapter  │
+│  provider("github")     ──► [ CB ] [ RL ] ──► GitHubAdapter      │
+│                                                                   │
+│  CB = Circuit Breaker (independent per provider)                  │
+│  RL = Rate Limiter    (independent per provider)                  │
+│                                                                   │
+│  One provider tripping its circuit breaker never affects others.  │
+└──────────────────────────────────────────────────────────────────┘
+                │                              │
+                ▼                              ▼
+      StateStorage (Redis)            Observability Adapters
+      circuit breaker state           Console / OTel / Prometheus
+      rate limiter state              logs · metrics · traces
+```
+
+---
+
+## Usage Examples
+
+### Cashfree Payment Order
+
+```typescript
+const meridian = await Meridian.create({
+  localUnsafe: true,
+  cashfree: {
+    auth: {
+      custom: {
+        clientId: process.env.CASHFREE_CLIENT_ID,
+        clientSecret: process.env.CASHFREE_CLIENT_SECRET,
+      },
+    },
+  },
+});
+
+const order = await meridian.provider("cashfree").post("/pg/orders", {
+  body: {
+    order_amount: 100.00,
+    order_currency: "INR",
+    customer_details: { customer_id: "user_123", customer_phone: "9999999999" },
+  },
+  idempotencyKey: "order-xyz-123",
+});
+```
+
+### Karza PAN Verification
+
+```typescript
+const result = await meridian.provider("karza").post("/v3/pan/verify", {
+  body: { pan: "ABCDE1234F", consent: "Y" },
+});
+```
+
+### Webhook Verification
+
+```typescript
+import { CashfreeAdapter, PayuAdapter } from "meridianjs";
+
+// Cashfree — HMAC-SHA256, base64
+const cfAdapter = new CashfreeAdapter();
+const isValid = cfAdapter.verifyWebhook(
+  req.rawBody,
+  req.headers["x-webhook-signature"],
+  process.env.CASHFREE_WEBHOOK_SECRET
+);
+
+// PayU — HMAC-SHA512, hex
+const payuAdapter = new PayuAdapter();
+const isValid = payuAdapter.verifyWebhook(
+  req.rawBody,
+  req.headers["x-verify"],
+  process.env.PAYU_SALT
+);
+```
+
+Timing-safe `verifyWebhook` is available on all 11 payment/comms adapters (Razorpay, Cashfree, PayU, Juspay, MSG91, Setu, Decentro, Shiprocket, Stripe, Exotel, Gupshup). Pass the **raw** request body (string/Buffer), not parsed JSON. See [docs/WEBHOOKS.md](docs/WEBHOOKS.md) for the full table and per-provider signature schemes.
+
+### Unified Error Handling
+
+```typescript
+import { MeridianError } from "meridianjs";
+
+try {
+  const result = await meridian.provider("razorpay").post("/v1/orders", { body: { ... } });
+} catch (err) {
+  if (err instanceof MeridianError) {
+    switch (err.category) {
+      case "auth":       // bad credentials — do not retry
+        break;
+      case "rate_limit": // check err.retryAfter for when to retry
+        break;
+      case "validation": // bad request — fix the payload
+        break;
+      case "provider":   // upstream 5xx — safe to retry (err.retryable === true)
+        break;
+      case "network":    // connection issue — safe to retry
+        break;
+    }
+  }
+}
+```
+
+---
+
+## State Management
+
+### Local Development
+
+```typescript
+const meridian = await Meridian.create({
+  localUnsafe: true, // in-memory — fine for dev, never for production
+  razorpay: { auth: { ... } },
+});
+```
+
+### Production (Serverless / Distributed)
+
+```typescript
 import { RedisStateStorage } from "./your-redis-storage.js";
 
 const meridian = await Meridian.create({
   mode: "distributed",
-  stateStorage: new RedisStateStorage(redisClient), // Required in distributed mode
-  github: {
-    auth: { token: process.env.GITHUB_TOKEN },
-  },
+  stateStorage: new RedisStateStorage(redisClient), // required — startup fails without it
+  razorpay: { auth: { ... } },
 });
 ```
 
-**Without `stateStorage` in distributed mode, startup will fail.** This is intentional - in-memory state cannot be shared across instances.
+**Without `stateStorage` in distributed mode, startup will fail.** Circuit breaker and rate limiter state reset on every cold start without it — acceptable for dev, a bug in production.
 
-### Local Development
-
-For local development, explicitly opt-in to unsafe in-memory state:
-
-```typescript
-const meridian = await Meridian.create({
-  mode: "local", // or omit mode
-  localUnsafe: true, // Explicitly acknowledge unsafe state
-  github: {
-    auth: { token: process.env.GITHUB_TOKEN },
-  },
-});
-```
-
-**Warning**: `localUnsafe: true` means circuit breaker and rate limiter state will be lost on process restart. This is acceptable for development but **must not be used in production**.
+---
 
 ## Safety Guarantees
 
-Meridian enforces safety by default:
+| Guarantee | Behaviour |
+|---|---|
+| **Fail-fast init** | All methods throw if called before `Meridian.create()` resolves |
+| **Fail-closed state** | `distributed` mode requires `StateStorage` — startup fails without it |
+| **Secret redaction** | `authorization`, `cookie`, `token`, `apiKey` auto-redacted in all logs, errors, and metrics |
+| **No silent degradation** | Invalid configs fail at startup; adapter validation failures are explicit |
+| **Pagination safety** | Cycle detection + 1000-page hard limit prevent infinite loops |
 
-1. **Fail-Fast Initialization**: SDK cannot be used before initialization completes. All methods throw if called before `Meridian.create()` resolves.
-
-2. **Fail-Closed State Management**: Distributed mode requires `StateStorage`. In-memory state is opt-in only via `localUnsafe: true`.
-
-3. **Guaranteed Secret Redaction**: All observability paths (logs, errors, metrics) automatically redact sensitive fields: `authorization`, `cookie`, `token`, `apiKey`, `api_key`, `body`.
-
-4. **No Silent Degradation**: Runtime failures are explicit. Invalid configurations fail at startup. Adapter validation failures stop initialization.
+---
 
 ## Public API
 
-### Meridian Class
+### `Meridian.create(config)`
 
-- `static create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>): Promise<Meridian>` - **Use this to create instances**
-- `getCircuitStatus(provider: string): CircuitBreakerStatus | null`
-- `registerProvider(name: string, adapter: ProviderAdapter, config: ProviderConfig): Promise<void>`
+```typescript
+const meridian = await Meridian.create({
+  razorpay: { auth: { username: "...", password: "..." } },
+  github:   { auth: { token: "..." } },
+
+  defaults: {
+    retry:          { maxRetries: 3, baseDelay: 100, maxDelay: 5000, jitter: true },
+    circuitBreaker: { failureThreshold: 5, timeout: 30000 },
+    rateLimit:      { tokensPerSecond: 10, maxTokens: 100 },
+    timeout:        10000,
+  },
+
+  observability: new ConsoleObservability(),
+  compliance:    { piiRedaction: true, indiaMode: true, auditLog: true },
+  mode:          "distributed",
+  stateStorage:  new RedisStateStorage(client),
+});
+```
 
 ### Provider Client
 
-Each configured provider exposes a client with:
+```typescript
+const client = meridian.provider("razorpay");
 
-- `get<T>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>`
-- `post<T>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>`
-- `put<T>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>`
-- `patch<T>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>`
-- `delete<T>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>>`
-- `paginate<T>(endpoint: string, options?: RequestOptions): AsyncGenerator<NormalizedResponse<T>>`
-
-## Claw Code Integration (Agent Proxy)
-
-Meridian ships a built-in HTTP proxy that lets AI agents (such as [Claw Code](https://github.com/instructkr)) route all outbound API calls through the Meridian pipeline automatically — rate limiting, circuit breaking, and secret redaction apply to every request without any changes to the agent runtime.
-
-### Start the proxy
-
-```bash
-# After installing meridianjs
-export GITHUB_TOKEN="ghp_..."
-export ANTHROPIC_API_KEY="sk-ant-..."
-export OPENAI_API_KEY="sk-..."
-export STRIPE_SECRET_KEY="sk_live_..."
-
-npx boundary-proxy          # listens on http://127.0.0.1:4242
-npx boundary-proxy 8080     # custom port
-BOUNDARY_PROXY_PORT=9000 npx boundary-proxy
+client.get<T>(endpoint, options?)     // GET
+client.post<T>(endpoint, options?)    // POST
+client.put<T>(endpoint, options?)     // PUT
+client.patch<T>(endpoint, options?)   // PATCH
+client.delete<T>(endpoint, options?)  // DELETE
+client.paginate<T>(endpoint, options?) // AsyncGenerator — auto-follows cursors
+client.stream<T>(endpoint, options?)   // AsyncGenerator<StreamChunk<T>> — SSE streaming
 ```
 
-### Route pattern
-
-```
-http://127.0.0.1:4242/<provider>/<endpoint>
-```
-
-| Example | Forwards to |
-|---|---|
-| `GET /github/repos/octocat/Hello-World` | `GET https://api.github.com/repos/octocat/Hello-World` |
-| `POST /anthropic/v1/messages` | `POST https://api.anthropic.com/v1/messages` |
-| `GET /openai/v1/models` | `GET https://api.openai.com/v1/models` |
-| `GET /stripe/v1/customers` | `GET https://api.stripe.com/v1/customers` |
-
-Every response is a `NormalizedResponse<T>` with a consistent `{ data, meta }` shape regardless of provider.
-
-### Embed programmatically
+### `MeridianError`
 
 ```typescript
-import { BoundaryProxyServer } from "meridianjs";
-
-const proxy = new BoundaryProxyServer({
-  port: 4242,
-  providers: {
-    github:    { token:  process.env.GITHUB_TOKEN },
-    anthropic: { apiKey: process.env.ANTHROPIC_API_KEY },
-    openai:    { apiKey: process.env.OPENAI_API_KEY },
-    stripe:    { apiKey: process.env.STRIPE_SECRET_KEY },
-  },
-});
-
-await proxy.start();
-// → [Boundary Proxy] Listening on http://127.0.0.1:4242
+error.category   // "auth" | "rate_limit" | "network" | "validation" | "provider"
+error.code       // "AUTH_FAILED" | "RATE_LIMITED" | "NOT_FOUND" | "BAD_REQUEST" | "UPSTREAM_5XX" | "NETWORK_ERROR" | "UNKNOWN"
+error.retryable  // boolean
+error.provider   // "razorpay" | "cashfree" | "github" | ...
+error.status     // HTTP status if applicable
+error.retryAfter // Date — present on rate_limit errors
+error.metadata   // sanitized provider context
 ```
+
+---
+
+## Agent Proxy
+
+Meridian ships a built-in HTTP proxy for AI agents and LLM runtimes — rate limiting, circuit breaking, and secret redaction apply automatically to every request.
+
+```bash
+export RAZORPAY_KEY_ID="rzp_live_..."  RAZORPAY_KEY_SECRET="..."
+export GITHUB_TOKEN="ghp_..."
+export STRIPE_SECRET_KEY="sk_live_..."
+
+npx boundary-proxy       # http://127.0.0.1:4242
+npx boundary-proxy 8080  # custom port
+```
+
+Route pattern: `http://localhost:4242/<provider>/<endpoint>`
+
+```
+GET  /github/repos/octocat/Hello-World  →  api.github.com
+POST /razorpay/v1/orders               →  api.razorpay.com
+GET  /anthropic/v1/messages            →  api.anthropic.com
+```
+
+---
 
 ## Project Status
 
-**v0.1.3** — Active development. Core pipeline is stable and tested. Five adapters are fully implemented and production-ready (GitHub, Anthropic, OpenAI, Stripe, Razorpay). Seventeen additional Indian providers are registered and adapters are being built. API surface is settled; additions are additive and non-breaking.
+**v0.1.3** — 23 adapters, 565 tests, zero TypeScript errors. Core pipeline stable. API surface settled — all additions are additive and non-breaking.
 
-See [ROADMAP.md](ROADMAP.md) for planned providers, SDK capabilities, and version targets.
+| Milestone | Status |
+|---|---|
+| Core pipeline (rate limit, circuit breaker, retry, idempotency) | ✅ Stable |
+| 23 provider adapters (global + Indian ecosystem) | ✅ Stable |
+| Contract test coverage for all adapters | ✅ 565 tests |
+| Webhook verification across all payment/comms adapters | ✅ Stable |
+| Twilio adapter | ✅ Stable |
+| Streaming support (OpenAI / Anthropic SSE) | ✅ Stable |
+| Mock adapter for testing | ✅ Stable |
+| India Compliance Mode (DPDPA) | ✅ Stable |
+| SendGrid + BillDesk + Signzy | 📋 v0.3 |
+
+See [ROADMAP.md](ROADMAP.md) for the full plan and version targets.
+
+---
+
+## Non-Goals
+
+- UI components or dashboards
+- Request recording or replay
+- GraphQL (planned v1)
+- Multi-region routing
+- Built-in caching (layer it on top)
+
+---
+
+## Contributing
+
+```bash
+git clone https://github.com/Raghaverma/meridianjs
+npm install
+npm test           # 565 tests
+npm run typecheck  # zero errors
+npm run lint
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the adapter-building guide, error mapping rules, and PR checklist.
+
+---
 
 ## License
 
-MIT. See [LICENSE.md](LICENSE.md) for details.
+MIT — see [LICENSE.md](LICENSE.md).
+
+---
+
+<div align="center">
+  <sub>Built for the Indian and global developer ecosystem · TypeScript-first · Zero runtime dependencies</sub>
+</div>
