@@ -286,26 +286,32 @@ export interface BuiltRequest {
 
 
 export interface ProviderAdapter {
-  
+
   buildRequest(input: AdapterInput): BuiltRequest;
 
-  
+
   parseResponse(raw: RawResponse): NormalizedResponse;
 
-  
+
   parseError(raw: unknown): MeridianError;
 
-  
+
   authStrategy(config: AuthConfig): Promise<AuthToken>;
 
-  
+
   rateLimitPolicy(headers: Headers): RateLimitInfo;
 
-  
+
   paginationStrategy(): PaginationStrategy;
 
-  
+
   getIdempotencyConfig(): IdempotencyConfig;
+
+  /** Optional: refresh an expired token. Called by the pipeline on 401 before retrying. */
+  refreshAuth?(config: AuthConfig, expiredToken: AuthToken): Promise<AuthToken>;
+
+  /** Optional: verify a provider webhook signature. Returns true if valid. */
+  verifyWebhook?(payload: string | Buffer, signature: string, secret: string): boolean;
 }
 
 

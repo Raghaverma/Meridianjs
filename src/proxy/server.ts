@@ -1,10 +1,26 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { appendFileSync, readFileSync, existsSync } from "node:fs";
 import { Meridian } from "../index.js";
 import type { MeridianConfig, ProviderConfig, RequestOptions } from "../core/types.js";
 
-const SUPPORTED_PROVIDERS = ["github", "anthropic", "openai", "stripe"] as const;
-type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
+const SUPPORTED_PROVIDERS = [
+  "github", "anthropic", "openai", "stripe", "razorpay", "cashfree", "payu",
+  "juspay", "msg91", "exotel", "gupshup", "setu", "decentro", "shiprocket",
+  "delhivery", "hyperverge", "digio", "karza", "idfy", "cleartax",
+  "mapmyindia", "perfios",
+] as const;
+
+const PROVIDER_CATEGORIES: Record<string, string[]> = {
+  "Payments":    ["stripe", "razorpay", "cashfree", "payu", "juspay"],
+  "Comms":       ["msg91", "exotel", "gupshup"],
+  "Banking/UPI": ["setu", "decentro"],
+  "Logistics":   ["shiprocket", "delhivery"],
+  "KYC":         ["hyperverge", "digio", "karza", "idfy"],
+  "Tax/Maps":    ["cleartax", "mapmyindia", "perfios"],
+  "AI":          ["anthropic", "openai"],
+  "Dev":         ["github"],
+};
 
 export interface ProxyServerOptions {
   /** Port to listen on. Defaults to 4242. */
@@ -12,49 +28,77 @@ export interface ProxyServerOptions {
   /** Host to bind to. Defaults to 127.0.0.1. */
   host?: string;
   /** Override credentials per provider. Falls back to environment variables. */
-  providers?: Partial<Record<SupportedProvider, { token?: string; apiKey?: string }>>;
+  providers?: Partial<Record<string, { token?: string; apiKey?: string }>>;
+  /** If set, record all requests and responses to this file path as newline-delimited JSON. */
+  recordTo?: string;
+  /** If set, replay responses from this recording file instead of hitting live APIs. */
+  replayFrom?: string;
 }
 
 function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
+  const cred = (
+    providerName: string,
+    optKey: "token" | "apiKey",
+    envVar: string
+  ): string =>
+    (opts.providers as Record<string, Record<string, string>> | undefined)?.[providerName]?.[optKey] ??
+    process.env[envVar] ??
+    "";
+
   const providerConfigs: Record<string, ProviderConfig> = {
-    github: {
-      auth: {
-        token:
-          opts.providers?.github?.token ??
-          process.env.GITHUB_TOKEN ??
-          "",
-      },
-    },
-    anthropic: {
-      auth: {
-        apiKey:
-          opts.providers?.anthropic?.apiKey ??
-          process.env.ANTHROPIC_API_KEY ??
-          "",
-      },
-    },
-    openai: {
-      auth: {
-        apiKey:
-          opts.providers?.openai?.apiKey ??
-          process.env.OPENAI_API_KEY ??
-          "",
-      },
-    },
-    stripe: {
-      auth: {
-        apiKey:
-          opts.providers?.stripe?.apiKey ??
-          process.env.STRIPE_SECRET_KEY ??
-          "",
-      },
-    },
+    github:     { auth: { token:   cred("github",     "token",  "GITHUB_TOKEN") } },
+    anthropic:  { auth: { apiKey:  cred("anthropic",  "apiKey", "ANTHROPIC_API_KEY") } },
+    openai:     { auth: { apiKey:  cred("openai",     "apiKey", "OPENAI_API_KEY") } },
+    stripe:     { auth: { apiKey:  cred("stripe",     "apiKey", "STRIPE_SECRET_KEY") } },
+    razorpay:   { auth: { username: process.env["RAZORPAY_KEY_ID"] ?? "", password: process.env["RAZORPAY_KEY_SECRET"] ?? "" } },
+    cashfree:   { auth: { custom: { clientId: process.env["CASHFREE_CLIENT_ID"] ?? "", clientSecret: process.env["CASHFREE_CLIENT_SECRET"] ?? "" } } },
+    payu:       { auth: { username: process.env["PAYU_MERCHANT_KEY"] ?? "", password: process.env["PAYU_MERCHANT_SALT"] ?? "" } },
+    juspay:     { auth: { apiKey: process.env["JUSPAY_API_KEY"] ?? "" } },
+    msg91:      { auth: { apiKey: process.env["MSG91_AUTH_KEY"] ?? "" } },
+    exotel:     { auth: { username: process.env["EXOTEL_SID"] ?? "", password: process.env["EXOTEL_API_KEY"] ?? "" } },
+    gupshup:    { auth: { apiKey: process.env["GUPSHUP_API_KEY"] ?? "" } },
+    setu:       { auth: { token: process.env["SETU_TOKEN"] ?? "" } },
+    decentro:   { auth: { custom: { clientId: process.env["DECENTRO_CLIENT_ID"] ?? "", clientSecret: process.env["DECENTRO_CLIENT_SECRET"] ?? "", moduleSecret: process.env["DECENTRO_MODULE_SECRET"] ?? "" } } },
+    shiprocket: { auth: { token: process.env["SHIPROCKET_TOKEN"] ?? "" } },
+    delhivery:  { auth: { token: process.env["DELHIVERY_TOKEN"] ?? "" } },
+    hyperverge: { auth: { custom: { appId: process.env["HYPERVERGE_APP_ID"] ?? "", appKey: process.env["HYPERVERGE_APP_KEY"] ?? "" } } },
+    digio:      { auth: { custom: { clientId: process.env["DIGIO_CLIENT_ID"] ?? "", clientSecret: process.env["DIGIO_CLIENT_SECRET"] ?? "" } } },
+    karza:      { auth: { apiKey: process.env["KARZA_API_KEY"] ?? "" } },
+    idfy:       { auth: { apiKey: process.env["IDFY_API_KEY"] ?? "", custom: { accountId: process.env["IDFY_ACCOUNT_ID"] ?? "" } } },
+    cleartax:   { auth: { token: process.env["CLEARTAX_AUTH_TOKEN"] ?? "" } },
+    mapmyindia: { auth: { token: process.env["MAPMYINDIA_TOKEN"] ?? "" } },
+    perfios:    { auth: { apiKey: process.env["PERFIOS_API_KEY"] ?? "" } },
   };
 
   return {
     providers: providerConfigs,
     localUnsafe: true,
   };
+}
+
+function loadReplayMap(filePath: string): Map<string, unknown> {
+  const map = new Map<string, unknown>();
+  if (!existsSync(filePath)) {
+    return map;
+  }
+  const lines = readFileSync(filePath, "utf8").split("\n").filter((l) => l.trim());
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line) as {
+        provider?: string;
+        method?: string;
+        endpoint?: string;
+        response?: unknown;
+      };
+      if (entry.provider && entry.method && entry.endpoint) {
+        const key = `${entry.provider}:${entry.method}:${entry.endpoint}`;
+        map.set(key, entry.response);
+      }
+    } catch {
+      // skip malformed lines
+    }
+  }
+  return map;
 }
 
 async function readBody(req: IncomingMessage): Promise<unknown> {
@@ -87,11 +131,20 @@ export class BoundaryProxyServer {
   private readonly port: number;
   private readonly host: string;
   private readonly opts: ProxyServerOptions;
+  private readonly recordTo: string | undefined;
+  private readonly replayFrom: string | undefined;
+  private replayMap: Map<string, unknown> = new Map();
 
   constructor(opts: ProxyServerOptions = {}) {
     this.opts = opts;
     this.port = opts.port ?? 4242;
     this.host = opts.host ?? "127.0.0.1";
+    this.recordTo = opts.recordTo ?? process.env["MERIDIAN_RECORD_PATH"];
+    this.replayFrom = opts.replayFrom ?? process.env["MERIDIAN_REPLAY_PATH"];
+
+    if (this.replayFrom) {
+      this.replayMap = loadReplayMap(this.replayFrom);
+    }
   }
 
   async start(): Promise<void> {
@@ -110,13 +163,15 @@ export class BoundaryProxyServer {
       server.listen(this.port, this.host, resolve);
     });
 
-    console.log(`[Boundary Proxy] Listening on http://${this.host}:${this.port}`);
-    console.log(
-      `[Boundary Proxy] Usage: http://${this.host}:${this.port}/<provider>/<endpoint>`
-    );
-    console.log(
-      `[Boundary Proxy] Providers: ${SUPPORTED_PROVIDERS.join(", ")}`
-    );
+    const baseUrl = `http://${this.host}:${this.port}`;
+    console.log(`[Meridian Proxy] Listening on ${baseUrl}`);
+    console.log(`[Meridian Proxy] ${SUPPORTED_PROVIDERS.length} providers available:`);
+    for (const [category, providers] of Object.entries(PROVIDER_CATEGORIES)) {
+      const label = `  ${category}:`.padEnd(16);
+      console.log(`${label}${providers.join(", ")}`);
+    }
+    console.log(`[Meridian Proxy] Usage: ${baseUrl}/<provider>/<endpoint>`);
+    console.log(`[Meridian Proxy] Record: set recordTo option or MERIDIAN_RECORD_PATH env var`);
   }
 
   private async handleRequest(
@@ -124,15 +179,28 @@ export class BoundaryProxyServer {
     res: ServerResponse
   ): Promise<void> {
     const url = new URL(req.url ?? "/", `http://${this.host}`);
-    const parts = url.pathname.replace(/^\//, "").split("/");
-    const provider = parts[0] as SupportedProvider;
+    const pathname = url.pathname;
+
+    // Health endpoint — only /_health, not / (which is the missing-provider path)
+    if (pathname === "/_health") {
+      sendJson(res, 200, {
+        status: "ok",
+        providers: [...SUPPORTED_PROVIDERS],
+        recording: Boolean(this.recordTo),
+        replaying: Boolean(this.replayFrom),
+      });
+      return;
+    }
+
+    const parts = pathname.replace(/^\//, "").split("/");
+    const provider = parts[0];
     const endpoint = "/" + parts.slice(1).join("/");
 
     if (!provider) {
       sendJson(res, 400, {
         error: "Missing provider in path.",
         usage: `http://${this.host}:${this.port}/<provider>/<endpoint>`,
-        providers: SUPPORTED_PROVIDERS,
+        providers: [...SUPPORTED_PROVIDERS],
       });
       return;
     }
@@ -141,7 +209,7 @@ export class BoundaryProxyServer {
     if (!providerClient) {
       sendJson(res, 404, {
         error: `Unknown provider: "${provider}"`,
-        providers: SUPPORTED_PROVIDERS,
+        providers: [...SUPPORTED_PROVIDERS],
       });
       return;
     }
@@ -152,6 +220,13 @@ export class BoundaryProxyServer {
     url.searchParams.forEach((val, key) => {
       query[key] = val;
     });
+
+    // Check replay map before hitting live API
+    const replayKey = `${provider}:${method}:${endpoint}`;
+    if (this.replayFrom && this.replayMap.has(replayKey)) {
+      sendJson(res, 200, this.replayMap.get(replayKey));
+      return;
+    }
 
     // Forward incoming headers, excluding hop-by-hop headers
     const headers: Record<string, string> = {};
@@ -190,15 +265,34 @@ export class BoundaryProxyServer {
           response = await providerClient.get(endpoint, options);
       }
 
+      // Record if enabled
+      if (this.recordTo) {
+        const record = {
+          ts: new Date().toISOString(),
+          provider,
+          endpoint,
+          method,
+          query,
+          response,
+        };
+        try {
+          appendFileSync(this.recordTo, JSON.stringify(record) + "\n", "utf8");
+        } catch {
+          // non-fatal: recording failure should not break the response
+        }
+      }
+
       sendJson(res, 200, response);
     } catch (err: unknown) {
       const status =
-        typeof (err as any)?.status === "number" ? (err as any).status : 502;
+        typeof (err as Record<string, unknown>)?.["status"] === "number"
+          ? (err as Record<string, unknown>)["status"] as number
+          : 502;
       sendJson(res, status, {
         error: err instanceof Error ? err.message : String(err),
-        code: (err as any)?.code,
-        category: (err as any)?.category,
-        retryable: (err as any)?.retryable ?? false,
+        code: (err as Record<string, unknown>)?.["code"],
+        category: (err as Record<string, unknown>)?.["category"],
+        retryable: (err as Record<string, unknown>)?.["retryable"] ?? false,
         provider,
       });
     }

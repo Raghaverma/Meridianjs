@@ -39,9 +39,28 @@ export interface PipelineConfig {
 
 export class RequestPipeline {
   private config: PipelineConfig;
+  private cachedToken: AuthToken | null = null;
 
   constructor(config: PipelineConfig) {
     this.config = config;
+  }
+
+  private async getAuthToken(): Promise<AuthToken> {
+    if (this.cachedToken) {
+      if (this.cachedToken.expiresAt) {
+        const bufferMs = 60_000;
+        if (this.cachedToken.expiresAt.getTime() - bufferMs > Date.now()) {
+          return this.cachedToken;
+        }
+        // Token expired or about to expire — fall through to re-fetch
+      } else {
+        // No expiry = static API key — cache forever
+        return this.cachedToken;
+      }
+    }
+    const token = await this.config.adapter.authStrategy(this.config.authConfig);
+    this.cachedToken = token;
+    return token;
   }
 
   
@@ -126,24 +145,36 @@ export class RequestPipeline {
     );
 
     try {
-      
-      const authToken = await this.config.adapter.authStrategy(
-        this.config.authConfig
-      );
 
-      
+      await this.getAuthToken(); // warm the cache before acquiring the rate limiter
+
+
       await this.config.rateLimiter.acquire();
 
-      
+
       const response = await this.config.retryStrategy.execute(
         async () => {
           return await this.config.circuitBreaker.execute(async () => {
-            
-            return await this.executeHttpRequest(
-              endpoint,
-              options,
-              authToken
-            );
+            try {
+              return await this.executeHttpRequest(endpoint, options, await this.getAuthToken());
+            } catch (err) {
+              // On 401, attempt a one-shot token refresh if the adapter supports it
+              if (
+                typeof err === "object" && err !== null &&
+                "status" in err && (err as { status: number }).status === 401 &&
+                typeof (this.config.adapter as { refreshAuth?: unknown }).refreshAuth === "function"
+              ) {
+                const currentToken = this.cachedToken;
+                if (currentToken) {
+                  const refreshed = await (
+                    this.config.adapter as Required<Pick<ProviderAdapter, "refreshAuth">>
+                  ).refreshAuth(this.config.authConfig, currentToken);
+                  this.cachedToken = refreshed;
+                  return await this.executeHttpRequest(endpoint, options, refreshed);
+                }
+              }
+              throw err;
+            }
           });
         },
         idempotencyLevel,

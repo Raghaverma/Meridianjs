@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "npm run build 2>&1",
-    "testCommand": "npm test 2>&1",
+    "buildCommand": "npm run build 2>&1 && echo \"BUILD OK\"",
+    "testCommand": "node_modules/.bin/vitest run 2>&1 | tail -8",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -103,9 +103,27 @@
   },
   "hotPaths": [
     {
+      "path": "src/public.ts",
+      "accessCount": 13,
+      "lastAccessed": 1780247353277,
+      "type": "file"
+    },
+    {
+      "path": "src/core/types.ts",
+      "accessCount": 12,
+      "lastAccessed": 1780247326509,
+      "type": "file"
+    },
+    {
       "path": "src/index.ts",
+      "accessCount": 11,
+      "lastAccessed": 1780247322409,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/razorpay/adapter.ts",
       "accessCount": 9,
-      "lastAccessed": 1780246698647,
+      "lastAccessed": 1780247297969,
       "type": "file"
     },
     {
@@ -121,21 +139,45 @@
       "type": "file"
     },
     {
-      "path": "src/providers/razorpay/adapter.ts",
-      "accessCount": 6,
-      "lastAccessed": 1780246260760,
+      "path": "src/providers/cashfree/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247301510,
       "type": "file"
     },
     {
-      "path": "src/core/types.ts",
-      "accessCount": 6,
-      "lastAccessed": 1780246264863,
+      "path": "src/providers/payu/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247304491,
       "type": "file"
     },
     {
-      "path": "src/public.ts",
-      "accessCount": 5,
-      "lastAccessed": 1780246705552,
+      "path": "src/providers/juspay/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247307918,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/setu/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247311339,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/shiprocket/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247314317,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/msg91/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247317945,
+      "type": "file"
+    },
+    {
+      "path": "src/providers/decentro/adapter.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780247320817,
       "type": "file"
     },
     {
@@ -151,6 +193,12 @@
       "type": "file"
     },
     {
+      "path": "src/core/normalizer.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780247288728,
+      "type": "file"
+    },
+    {
       "path": "src/providers/stripe/index.ts",
       "accessCount": 2,
       "lastAccessed": 1780246009765,
@@ -160,12 +208,6 @@
       "path": "src/providers/razorpay/adapter.test.ts",
       "accessCount": 2,
       "lastAccessed": 1780246060385,
-      "type": "file"
-    },
-    {
-      "path": "src/core/normalizer.ts",
-      "accessCount": 2,
-      "lastAccessed": 1780246245492,
       "type": "file"
     },
     {
@@ -253,24 +295,6 @@
       "type": "file"
     },
     {
-      "path": "src/providers/cashfree/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246212894,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/payu/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246232691,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/juspay/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246255998,
-      "type": "file"
-    },
-    {
       "path": "src/providers/gupshup/adapter.ts",
       "accessCount": 1,
       "lastAccessed": 1780246256517,
@@ -289,12 +313,6 @@
       "type": "file"
     },
     {
-      "path": "src/providers/msg91/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246275679,
-      "type": "file"
-    },
-    {
       "path": "src/providers/hyperverge/adapter.ts",
       "accessCount": 1,
       "lastAccessed": 1780246283602,
@@ -310,12 +328,6 @@
       "path": "src/providers/hyperverge/index.ts",
       "accessCount": 1,
       "lastAccessed": 1780246287454,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/setu/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246296900,
       "type": "file"
     },
     {
@@ -355,12 +367,6 @@
       "type": "file"
     },
     {
-      "path": "src/providers/decentro/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246314673,
-      "type": "file"
-    },
-    {
       "path": "src/providers/digio/adapter.ts",
       "accessCount": 1,
       "lastAccessed": 1780246315977,
@@ -394,12 +400,6 @@
       "path": "src/providers/exotel/pagination.ts",
       "accessCount": 1,
       "lastAccessed": 1780246328714,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/shiprocket/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246330171,
       "type": "file"
     }
   ],

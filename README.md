@@ -1,6 +1,6 @@
 # Meridian
 
-A TypeScript SDK that normalizes third-party API interactions through a unified request pipeline, enforcing consistent error handling, rate limiting, and response shapes across providers.
+A TypeScript SDK that normalizes third-party API interactions through a unified request pipeline, enforcing consistent error handling, rate limiting, and response shapes across providers — with deep coverage of the Indian tech ecosystem (payments, KYC, logistics, communications, fintech) alongside global providers.
 
 ## Problem Statement
 
@@ -8,13 +8,37 @@ Applications integrating multiple third-party APIs face inconsistent response fo
 
 Meridian provides a single abstraction layer that normalizes these differences, allowing applications to interact with any provider through a consistent interface while maintaining type safety and resilience patterns.
 
+## Provider Coverage
+
+### Stable
+
+| Provider | Category |
+|---|---|
+| GitHub | Developer Tools |
+| Anthropic | AI/LLM |
+| OpenAI | AI/LLM |
+| Stripe | Payments (Global) |
+| Razorpay | Payments (India) |
+
+### In Progress (registered, adapters being built)
+
+**Indian payments:** Cashfree, PayU, Juspay  
+**Indian communications:** MSG91, Exotel, Gupshup  
+**Indian banking/fintech:** Setu, Decentro, Perfios  
+**Indian logistics:** Shiprocket, Delhivery  
+**Indian KYC/identity:** HyperVerge, Digio, Karza, IDfy  
+**Indian tax/compliance:** Cleartax  
+**Indian maps:** MapMyIndia
+
+See [ROADMAP.md](ROADMAP.md) for the full planned provider list and timeline.
+
 ## Non-Goals
 
 - UI components or dashboards
-- API mocking or stubbing frameworks
+- API mocking or stubbing frameworks (planned for v0.5)
 - Request recording or replay functionality
-- GraphQL support (v1)
-- Webhook handling (v1)
+- GraphQL support (planned for v1)
+- Webhook handling utilities (planned for v0.4)
 - Multi-region routing
 - Built-in caching (applications can layer caching on top)
 
@@ -45,6 +69,33 @@ const meridian = await Meridian.create({
 
 const { data, meta } = await meridian.github.get("/users/octocat");
 console.log(meta.rateLimit.remaining);
+```
+
+### Razorpay (Indian Payments)
+
+```typescript
+const meridian = await Meridian.create({
+  localUnsafe: true,
+  razorpay: {
+    // Option A: username = key_id, password = key_secret
+    auth: {
+      username: process.env.RAZORPAY_KEY_ID,
+      password: process.env.RAZORPAY_KEY_SECRET,
+    },
+  },
+});
+
+// Create an order
+const { data } = await meridian.provider("razorpay").post("/v1/orders", {
+  body: { amount: 50000, currency: "INR", receipt: "order_rcptid_11" },
+});
+
+// Paginate payments (uses skip/count automatically)
+for await (const page of meridian.provider("razorpay").paginate("/v1/payments", {
+  query: { count: 25 },
+})) {
+  console.log(page.data.items);
+}
 ```
 
 **❌ NEVER use `new Meridian()`** - the constructor is private and will fail.
@@ -169,7 +220,9 @@ await proxy.start();
 
 ## Project Status
 
-**v0.1.0** - Early release. Core functionality is stable and tested. Provider support includes Anthropic, OpenAI, Stripe, and GitHub out of the box. API may evolve based on real-world feedback before v1.0.
+**v0.1.3** — Active development. Core pipeline is stable and tested. Five adapters are fully implemented and production-ready (GitHub, Anthropic, OpenAI, Stripe, Razorpay). Seventeen additional Indian providers are registered and adapters are being built. API surface is settled; additions are additive and non-breaking.
+
+See [ROADMAP.md](ROADMAP.md) for planned providers, SDK capabilities, and version targets.
 
 ## License
 

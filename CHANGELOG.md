@@ -101,6 +101,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 4. **Update TypeScript types:** `ProviderClient` methods now use strict `RequestOptions` instead of `any`
 
+## [0.1.3] - 2026-05-31
+
+### Added
+- **Razorpay adapter** (`src/providers/razorpay/`) — full `ProviderAdapter` implementation for India's largest payment gateway
+  - Basic auth with `key_id:key_secret` (supports `username`/`password` or `apiKey`/`custom.keySecret`)
+  - `X-Idempotency-Key` header support on write operations
+  - Error mapping: 400/422→validation, 401/403→auth, 404→validation, 429→rate_limit, 5xx→provider (retryable)
+  - Offset-based pagination via Razorpay's `items[]`/`count`/`skip` list format
+  - Idempotency config for orders, payments, refunds, transfers, payouts, subscriptions, invoices
+  - 31 contract tests covering all adapter methods
+- Registered 17 additional Indian provider adapters in the built-in registry (Cashfree, PayU, Juspay, MSG91, Exotel, Gupshup, Setu, Decentro, Shiprocket, Delhivery, HyperVerge, Digio, Karza, IDfy, Cleartax, MapMyIndia, Perfios) — implementations pending
+- `ROADMAP.md` — comprehensive future plan covering Indian and international provider coverage, SDK capabilities (webhook verification, streaming, mock adapter, batch operations, India compliance mode, UPI helpers), and version targets through v1.0
+
 ## [Unreleased]
 
 ### Added

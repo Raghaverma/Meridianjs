@@ -95,3 +95,18 @@ export { PerfiosAdapter } from "./providers/perfios/adapter.js";
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";
 export type { ProxyServerOptions } from "./proxy/server.js";
+
+// State storage implementations
+export { MemoryStateStorage, RedisStateStorage, UpstashStateStorage } from "./state/index.js";
+export type { RedisLikeClient, UpstashRedisClient } from "./state/index.js";
+
+// Webhook verification
+export { WebhookVerifier } from "./webhooks/index.js";
+
+// Testing utilities
+export { MockAdapter, Fixtures } from "./testing/index.js";
+export type { MockCall, MockHandler, MockResponse } from "./testing/index.js";
+
+// Routers
+export { PaymentRouter } from "./routers/index.js";
+export type { PaymentRouterOptions } from "./routers/index.js";

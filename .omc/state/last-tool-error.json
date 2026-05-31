@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"npm run build 2>&1\",\"timeout\":60000,\"description\":\"Run TypeScript build to check for errors\"}",
-  "error": "Exit code 2\n\n> meridianjs@0.1.3 build\n> tsc\n\nsrc/providers/idfy/adapter.ts(15,40): error TS2307: Cannot find module './pagination.js' or its corresponding type declarations.",
-  "timestamp": "2026-05-31T16:53:05.667Z",
-  "retry_count": 2
+  "tool_input_preview": "{\"command\":\"npm test -- --run 2>&1\",\"timeout\":120000,\"description\":\"Run tests once (non-watch) for clean result\"}",
+  "error": "Exit code 1\n\n> meridianjs@0.1.3 test\n> vitest --run\n\n\n RUN  v1.6.1 /Users/mac/Desktop/Raghav/Meridianjs\n\n ✓ src/providers/razorpay/adapter.test.ts  (31 tests) 8ms\n ✓ src/providers/github/adapter.test.ts  (23 tests) 8ms\n ✓ src/strategies/rate-limit.test.ts  (8 tests) 66ms\n ✓ src/index.test.ts  (3 tests) 4ms\nstdout | src/index.test.ts > Meridian - Built-in Adapter Auto-Registration > should auto-register GitHub adapter without explicit adapter parameter\n{\"level\":\"warn\",\"type\":\"warning\",\"message\":\"...",
+  "timestamp": "2026-05-31T17:10:18.817Z",
+  "retry_count": 1
 }
