@@ -37,18 +37,36 @@ const SUPPORTED_PROVIDERS = [
   "auth0",
   "hubspot",
   "supabase",
+  "checkout",
+  "cohere",
+  "klarna",
+  "mistral",
+  "mollie",
+  "apollo",
 ] as const;
 
 const PROVIDER_CATEGORIES: Record<string, string[]> = {
-  Payments: ["stripe", "razorpay", "cashfree", "payu", "juspay", "adyen", "braintree", "phonepe"],
+  Payments: [
+    "stripe",
+    "razorpay",
+    "cashfree",
+    "payu",
+    "juspay",
+    "adyen",
+    "braintree",
+    "phonepe",
+    "checkout",
+    "klarna",
+    "mollie",
+  ],
   Comms: ["msg91", "exotel", "gupshup", "twilio", "sendgrid", "mailgun", "vonage"],
   "Banking/UPI": ["setu", "decentro"],
 
   Logistics: ["shiprocket", "delhivery"],
   KYC: ["hyperverge", "digio", "karza", "idfy", "auth0"],
   "Tax/Maps": ["cleartax", "mapmyindia", "perfios"],
-  AI: ["anthropic", "openai", "gemini"],
-  Dev: ["github", "hubspot", "supabase"],
+  AI: ["anthropic", "openai", "gemini", "cohere", "mistral"],
+  Dev: ["github", "hubspot", "supabase", "apollo"],
 };
 
 export interface ProxyServerOptions {
@@ -203,6 +221,37 @@ function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
         clientId: process.env.PHONEPE_MERCHANT_ID ?? "",
         apiKey: process.env.PHONEPE_SALT_KEY ?? "",
         password: process.env.PHONEPE_SALT_INDEX ?? "1",
+      },
+    },
+    checkout: {
+      auth: {
+        apiKey: cred("checkout", "apiKey", "CHECKOUT_API_KEY"),
+      },
+    },
+    cohere: {
+      auth: {
+        apiKey: cred("cohere", "apiKey", "COHERE_API_KEY"),
+      },
+    },
+    klarna: {
+      auth: {
+        username: process.env.KLARNA_USERNAME ?? "",
+        password: process.env.KLARNA_PASSWORD ?? "",
+      },
+    },
+    mistral: {
+      auth: {
+        apiKey: cred("mistral", "apiKey", "MISTRAL_API_KEY"),
+      },
+    },
+    mollie: {
+      auth: {
+        apiKey: cred("mollie", "apiKey", "MOLLIE_API_KEY"),
+      },
+    },
+    apollo: {
+      auth: {
+        apiKey: cred("apollo", "apiKey", "APOLLO_API_KEY"),
       },
     },
   };

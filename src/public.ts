@@ -105,6 +105,12 @@ export { GeminiAdapter } from "./providers/gemini/adapter.js";
 export { Auth0Adapter } from "./providers/auth0/adapter.js";
 export { HubSpotAdapter } from "./providers/hubspot/adapter.js";
 export { SupabaseAdapter } from "./providers/supabase/adapter.js";
+export { CheckoutAdapter } from "./providers/checkout/adapter.js";
+export { CohereAdapter } from "./providers/cohere/adapter.js";
+export { KlarnaAdapter } from "./providers/klarna/adapter.js";
+export { MistralAdapter } from "./providers/mistral/adapter.js";
+export { MollieAdapter } from "./providers/mollie/adapter.js";
+export { ApolloAdapter } from "./providers/apollo/adapter.js";
 
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";

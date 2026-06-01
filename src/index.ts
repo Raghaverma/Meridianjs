@@ -17,10 +17,13 @@ import type { ProviderAdapter } from "./core/types.js";
 import { ConsoleObservability } from "./observability/console.js";
 import { AdyenAdapter } from "./providers/adyen/adapter.js";
 import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
+import { ApolloAdapter } from "./providers/apollo/adapter.js";
 import { Auth0Adapter } from "./providers/auth0/adapter.js";
 import { BraintreeAdapter } from "./providers/braintree/adapter.js";
 import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
+import { CheckoutAdapter } from "./providers/checkout/adapter.js";
 import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
+import { CohereAdapter } from "./providers/cohere/adapter.js";
 import { DecentroAdapter } from "./providers/decentro/adapter.js";
 import { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
 import { DigioAdapter } from "./providers/digio/adapter.js";
@@ -33,8 +36,11 @@ import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
 import { IdfyAdapter } from "./providers/idfy/adapter.js";
 import { JuspayAdapter } from "./providers/juspay/adapter.js";
 import { KarzaAdapter } from "./providers/karza/adapter.js";
+import { KlarnaAdapter } from "./providers/klarna/adapter.js";
 import { MailgunAdapter } from "./providers/mailgun/adapter.js";
 import { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
+import { MistralAdapter } from "./providers/mistral/adapter.js";
+import { MollieAdapter } from "./providers/mollie/adapter.js";
 import { Msg91Adapter } from "./providers/msg91/adapter.js";
 import { OpenAIAdapter } from "./providers/openai/adapter.js";
 import { PayuAdapter } from "./providers/payu/adapter.js";
@@ -88,6 +94,12 @@ const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   supabase: SupabaseAdapter,
   braintree: BraintreeAdapter,
   phonepe: PhonePeAdapter,
+  checkout: CheckoutAdapter,
+  cohere: CohereAdapter,
+  klarna: KlarnaAdapter,
+  mistral: MistralAdapter,
+  mollie: MollieAdapter,
+  apollo: ApolloAdapter,
 };
 
 function getBuiltinAdapter(
@@ -630,6 +642,12 @@ export class Meridian {
   provider(name: "auth0"): ProviderClient | undefined;
   provider(name: "hubspot"): ProviderClient | undefined;
   provider(name: "supabase"): ProviderClient | undefined;
+  provider(name: "checkout"): ProviderClient | undefined;
+  provider(name: "cohere"): ProviderClient | undefined;
+  provider(name: "klarna"): ProviderClient | undefined;
+  provider(name: "mistral"): ProviderClient | undefined;
+  provider(name: "mollie"): ProviderClient | undefined;
+  provider(name: "apollo"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
 
   provider(name: string): ProviderClient | undefined {
