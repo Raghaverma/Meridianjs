@@ -34,13 +34,21 @@ describe("Cohere Adapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("maps 401 to auth", () => {
-      const e = adapter.parseError({ status: 401, headers: new Headers(), body: { message: "invalid api token" } });
+      const e = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { message: "invalid api token" },
+      });
       expect(e.category).toBe("auth");
       expect(e.provider).toBe("cohere");
     });
 
     it("maps 429 to rate_limit", () => {
-      const e = adapter.parseError({ status: 429, headers: new Headers({ "Retry-After": "2" }), body: {} });
+      const e = adapter.parseError({
+        status: 429,
+        headers: new Headers({ "Retry-After": "2" }),
+        body: {},
+      });
       expect(e.category).toBe("rate_limit");
       expect(e.retryable).toBe(true);
     });

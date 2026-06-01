@@ -62,7 +62,14 @@ export class CheckoutAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(raw, "checkout", rateLimitInfo, paginationInfo, [], "1.0.0");
+    return ResponseNormalizer.normalize(
+      raw,
+      "checkout",
+      rateLimitInfo,
+      paginationInfo,
+      [],
+      "1.0.0",
+    );
   }
 
   parseError(raw: unknown): MeridianError {
@@ -126,7 +133,14 @@ export class CheckoutAdapter implements ProviderAdapter {
       return this.createError("validation", false, message || "Not Found", meta, undefined, 404);
     }
     if (status === 422) {
-      return this.createError("validation", false, message || "Unprocessable Entity", meta, undefined, 422);
+      return this.createError(
+        "validation",
+        false,
+        message || "Unprocessable Entity",
+        meta,
+        undefined,
+        422,
+      );
     }
     if (status === 429) {
       const retryAfter = this.extractRetryAfter(headers);
@@ -140,9 +154,23 @@ export class CheckoutAdapter implements ProviderAdapter {
       );
     }
     if (status >= 500) {
-      return this.createError("provider", true, message || `Checkout.com error ${status}`, meta, undefined, status);
+      return this.createError(
+        "provider",
+        true,
+        message || `Checkout.com error ${status}`,
+        meta,
+        undefined,
+        status,
+      );
     }
-    return this.createError("validation", false, message || `Request failed with status ${status}`, meta, undefined, status);
+    return this.createError(
+      "validation",
+      false,
+      message || `Request failed with status ${status}`,
+      meta,
+      undefined,
+      status,
+    );
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
@@ -162,7 +190,8 @@ export class CheckoutAdapter implements ProviderAdapter {
 
   rateLimitPolicy(headers: Headers): RateLimitInfo {
     const limitStr = headers.get("Cko-RateLimit-Limit") ?? headers.get("X-RateLimit-Limit");
-    const remainingStr = headers.get("Cko-RateLimit-Remaining") ?? headers.get("X-RateLimit-Remaining");
+    const remainingStr =
+      headers.get("Cko-RateLimit-Remaining") ?? headers.get("X-RateLimit-Remaining");
     if (limitStr && remainingStr) {
       const limit = Number.parseInt(limitStr, 10);
       const remaining = Number.parseInt(remainingStr, 10);
@@ -214,7 +243,16 @@ export class CheckoutAdapter implements ProviderAdapter {
     retryAfter?: Date,
     status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "checkout", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "checkout",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(

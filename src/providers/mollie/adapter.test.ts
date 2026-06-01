@@ -37,12 +37,20 @@ describe("Mollie Adapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("maps 401 to auth", () => {
-      const e = adapter.parseError({ status: 401, headers: new Headers(), body: { detail: "Unauthorized" } });
+      const e = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { detail: "Unauthorized" },
+      });
       expect(e.category).toBe("auth");
     });
 
     it("maps 429 to rate_limit", () => {
-      const e = adapter.parseError({ status: 429, headers: new Headers({ "Retry-After": "10" }), body: {} });
+      const e = adapter.parseError({
+        status: 429,
+        headers: new Headers({ "Retry-After": "10" }),
+        body: {},
+      });
       expect(e.category).toBe("rate_limit");
       expect(e.retryable).toBe(true);
     });

@@ -46,7 +46,11 @@ describe("Checkout.com Adapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("should map 401 to auth", () => {
-      const error = adapter.parseError({ status: 401, headers: new Headers(), body: { message: "Unauthorized" } });
+      const error = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { message: "Unauthorized" },
+      });
       expect(error.category).toBe("auth");
       expect(error.retryable).toBe(false);
     });
@@ -62,7 +66,11 @@ describe("Checkout.com Adapter - Contract Tests", () => {
     });
 
     it("should map 5xx to provider", () => {
-      const error = adapter.parseError({ status: 500, headers: new Headers(), body: "Server Error" });
+      const error = adapter.parseError({
+        status: 500,
+        headers: new Headers(),
+        body: "Server Error",
+      });
       expect(error.category).toBe("provider");
       expect(error.retryable).toBe(true);
     });

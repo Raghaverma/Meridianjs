@@ -80,7 +80,9 @@ export class KlarnaAdapter implements ProviderAdapter {
         msg.includes("enotfound") ||
         msg.includes("timeout")
       ) {
-        return this.createError("network", true, "Network request failed.", { originalError: raw.message });
+        return this.createError("network", true, "Network request failed.", {
+          originalError: raw.message,
+        });
       }
     }
 
@@ -90,7 +92,9 @@ export class KlarnaAdapter implements ProviderAdapter {
       "status" in raw &&
       typeof (raw as Record<string, unknown>).status === "number"
     ) {
-      return this.parseHttpError(raw as { status: number; headers?: Headers | Record<string, string>; body?: unknown });
+      return this.parseHttpError(
+        raw as { status: number; headers?: Headers | Record<string, string>; body?: unknown },
+      );
     }
 
     return this.createError("provider", false, "An unexpected error occurred.", { raw });
@@ -123,16 +127,44 @@ export class KlarnaAdapter implements ProviderAdapter {
       return this.createError("validation", false, message || "Not Found", meta, undefined, 404);
     }
     if (status === 422) {
-      return this.createError("validation", false, message || "Unprocessable Entity", meta, undefined, 422);
+      return this.createError(
+        "validation",
+        false,
+        message || "Unprocessable Entity",
+        meta,
+        undefined,
+        422,
+      );
     }
     if (status === 429) {
       const retryAfter = this.extractRetryAfter(headers);
-      return this.createError("rate_limit", true, message || "Rate limit exceeded.", { ...meta, retryAfter: retryAfter?.toISOString() }, retryAfter, 429);
+      return this.createError(
+        "rate_limit",
+        true,
+        message || "Rate limit exceeded.",
+        { ...meta, retryAfter: retryAfter?.toISOString() },
+        retryAfter,
+        429,
+      );
     }
     if (status >= 500) {
-      return this.createError("provider", true, message || `Klarna API error ${status}`, meta, undefined, status);
+      return this.createError(
+        "provider",
+        true,
+        message || `Klarna API error ${status}`,
+        meta,
+        undefined,
+        status,
+      );
     }
-    return this.createError("validation", false, message || `Request failed with status ${status}`, meta, undefined, status);
+    return this.createError(
+      "validation",
+      false,
+      message || `Request failed with status ${status}`,
+      meta,
+      undefined,
+      status,
+    );
   }
 
   async authStrategy(config: AuthConfig): Promise<AuthToken> {
@@ -195,7 +227,16 @@ export class KlarnaAdapter implements ProviderAdapter {
     retryAfter?: Date,
     status?: number,
   ): MeridianError {
-    return new MeridianError(message, category, "klarna", retryable, "", metadata, retryAfter, status);
+    return new MeridianError(
+      message,
+      category,
+      "klarna",
+      retryable,
+      "",
+      metadata,
+      retryAfter,
+      status,
+    );
   }
 
   private extractRetryAfter(

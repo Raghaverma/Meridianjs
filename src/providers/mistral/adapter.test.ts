@@ -9,7 +9,10 @@ describe("Mistral Adapter - Contract Tests", () => {
     it("builds a POST request with Bearer auth", () => {
       const input = {
         endpoint: "/chat/completions",
-        options: { method: "POST" as const, body: { model: "mistral-small", messages: [{ role: "user", content: "Hi" }] } },
+        options: {
+          method: "POST" as const,
+          body: { model: "mistral-small", messages: [{ role: "user", content: "Hi" }] },
+        },
         authToken: { token: "mistral-key-abc" },
       };
       const built = adapter.buildRequest(input);
@@ -43,12 +46,20 @@ describe("Mistral Adapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("maps 401 to auth", () => {
-      const e = adapter.parseError({ status: 401, headers: new Headers(), body: { message: "Unauthorized" } });
+      const e = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { message: "Unauthorized" },
+      });
       expect(e.category).toBe("auth");
       expect(e.provider).toBe("mistral");
     });
     it("maps 429 to rate_limit", () => {
-      const e = adapter.parseError({ status: 429, headers: new Headers({ "Retry-After": "3" }), body: {} });
+      const e = adapter.parseError({
+        status: 429,
+        headers: new Headers({ "Retry-After": "3" }),
+        body: {},
+      });
       expect(e.category).toBe("rate_limit");
       expect(e.retryable).toBe(true);
     });

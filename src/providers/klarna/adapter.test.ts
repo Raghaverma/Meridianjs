@@ -9,7 +9,10 @@ describe("Klarna Adapter - Contract Tests", () => {
     it("should build a POST request with Basic auth from username:password compound token", () => {
       const input = {
         endpoint: "/payments/v1/sessions",
-        options: { method: "POST" as const, body: { purchase_country: "SE", purchase_currency: "SEK" } },
+        options: {
+          method: "POST" as const,
+          body: { purchase_country: "SE", purchase_currency: "SEK" },
+        },
         authToken: { token: "user123:pass456" },
       };
       const built = adapter.buildRequest(input);
@@ -34,12 +37,20 @@ describe("Klarna Adapter - Contract Tests", () => {
 
   describe("parseError", () => {
     it("maps 401 to auth", () => {
-      const e = adapter.parseError({ status: 401, headers: new Headers(), body: { message: "Unauthorized" } });
+      const e = adapter.parseError({
+        status: 401,
+        headers: new Headers(),
+        body: { message: "Unauthorized" },
+      });
       expect(e.category).toBe("auth");
     });
 
     it("maps 429 to rate_limit", () => {
-      const e = adapter.parseError({ status: 429, headers: new Headers({ "Retry-After": "5" }), body: {} });
+      const e = adapter.parseError({
+        status: 429,
+        headers: new Headers({ "Retry-After": "5" }),
+        body: {},
+      });
       expect(e.category).toBe("rate_limit");
       expect(e.retryable).toBe(true);
     });
