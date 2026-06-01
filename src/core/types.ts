@@ -438,8 +438,10 @@ export interface MeridianConfig {
   [providerName: string]: unknown;
 }
 
-import packageJson from "../../package.json";
-export const SDK_VERSION = packageJson.version;
+// Hardcoded to avoid a runtime JSON import of package.json, which throws
+// `ERR_IMPORT_ATTRIBUTE_MISSING` for consumers importing this ESM package on
+// Node. Keep in sync with the "version" field in package.json on every release.
+export const SDK_VERSION = "0.2.3";
 
 export interface ProviderVersion {
   [provider: string]: string;

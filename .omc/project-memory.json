@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== rebuild ===\" && npm run build >/tmp/b.log 2>&1 && echo \"build ok\" || tail -10 /tmp/b.log\necho \"=== SDK_VERSION at runtime ===\" && node -e \"import('./dist/public.js').then(m=>console.log('SDK_VERSION via build:', m.SDK_VERSION ?? '(not exported)'))\" 2>/dev/null; node -p \"require('./package.json').version\"\necho \"=== remaining current-version 1.0.0 refs in docs/security/changelog top (excl. historical/future/schemaVersion) ===\"\ngrep -rnE \"v1\\.0\\.0|1\\.0\\.x\" SECURITY.md docs/migrations.md ROADMAP.md CHANGELOG.md | grep -vE \"Q2 2027|2024-01-XX|compare/v1|releases/tag\" || echo \"none ✓\"",
-    "testCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== resolved version ===\" && node -p \"require('./package.json').version\"\necho \"=== any remaining package-version 1.0.0 refs? ===\" && grep -nE '\"version\": \"1\\.0\\.0\"' package.json package-lock.json || echo \"none ✓\"\necho \"=== typecheck ===\" && npm run typecheck >/tmp/tc.log 2>&1 && echo ok || tail -10 /tmp/tc.log\necho \"=== tests (any version-string assertions?) ===\" && node_modules/.bin/vitest run 2>&1 | grep -vE '^\\{\"level\"' | grep -E \"Test Files|Tests \" | tail -2",
+    "buildCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== build ===\" && npm run build >/tmp/b.log 2>&1 && echo \"build ok\" || tail -10 /tmp/b.log\necho \"=== consumer import now works? ===\" \nnode --input-type=module -e \"import('meridianjs').then(m => console.log('import OK | Meridian:', typeof m.Meridian, '| SDK_VERSION:', m.SDK_VERSION ?? '(via core)')).catch(e => console.log('FAILED:', e.code))\" 2>&1 | tail -3\necho \"=== SDK_VERSION value ===\" && node --input-type=module -e \"import('./dist/core/types.js').then(m=>console.log(m.SDK_VERSION))\"\necho \"=== no more package.json import in dist? ===\" && grep -rn 'from \"../../package.json\"\\|from \"../package.json\"' dist/ 2>/dev/null || echo \"none ✓\"",
+    "testCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== typecheck ===\" && npm run typecheck >/tmp/tc.log 2>&1 && echo ok || tail -10 /tmp/tc.log\necho \"=== lint ===\" && npm run lint >/tmp/l.log 2>&1 && echo ok || tail -12 /tmp/l.log\necho \"=== full suite ===\" && node_modules/.bin/vitest run 2>&1 | grep -vE '^\\{\"level\"' | grep -E \"Test Files|Tests \" | tail -2",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -110,8 +110,8 @@
     },
     {
       "path": "src/core/types.ts",
-      "accessCount": 13,
-      "lastAccessed": 1780297009422,
+      "accessCount": 15,
+      "lastAccessed": 1780300292145,
       "type": "file"
     },
     {
@@ -127,6 +127,12 @@
       "type": "file"
     },
     {
+      "path": "package.json",
+      "accessCount": 8,
+      "lastAccessed": 1780300140849,
+      "type": "file"
+    },
+    {
       "path": "src/providers/razorpay/pagination.ts",
       "accessCount": 7,
       "lastAccessed": 1780246261224,
@@ -136,12 +142,6 @@
       "path": "src/providers/razorpay/index.ts",
       "accessCount": 7,
       "lastAccessed": 1780246261429,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 7,
-      "lastAccessed": 1780298909281,
       "type": "file"
     },
     {
