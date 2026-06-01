@@ -174,3 +174,46 @@ const meridian = await Meridian.create({
 // Use it exactly like any built-in provider
 const response = await meridian.provider("my-custom-provider").get("/v1/items");
 ```
+
+---
+
+## Verifying Your Adapter Against the Contract
+
+Adapters are just data sources — the resilience guarantees Meridian makes (error
+normalization, retry semantics, rate-limit parsing, pagination, request shaping)
+must hold identically for every one of them. Every built-in adapter is held to a
+single, provider-agnostic suite, and you can run that **exact same battery**
+against your custom adapter by importing `runProviderContract` from the testing
+entry point:
+
+```typescript
+// my-custom-adapter.contract.test.ts
+import { runProviderContract } from "meridianjs/contract";
+import { MyCustomAdapter } from "./my-custom-adapter.js";
+
+runProviderContract("my-custom-provider", new MyCustomAdapter());
+```
+
+This asserts the 19 universal invariants across all eight contract dimensions:
+
+| # | Dimension | What it checks |
+|:--|:---|:---|
+| 1 | **Request Metadata** | `buildRequest` returns an absolute URL, echoes the method, omits a body on GET |
+| 2 | **Auth Failure** | `authStrategy({})` rejects with an `auth`-category `MeridianError` tagged with your provider name |
+| 3 | **Error Mapping** | `401 → auth`, `429 → rate_limit`, `5xx → provider`; every error resolves to a canonical `MeridianErrorCode` |
+| 4 | **Retry** | `retryable` stays consistent with the canonical code (`isRetryableByCode`) |
+| 5 | **Rate Limit** | `rateLimitPolicy` returns numeric `limit`/`remaining` and a `reset` Date even with no headers |
+| 6 | **Network Failure** | network errors map to `network` + `retryable=true` |
+| 7 | **Timeout** | timeouts are `retryable` |
+| 8 | **Pagination** | `paginationStrategy()` exposes all four methods and inspects a basic response without throwing |
+
+Run the built-in adapters' contract suite anytime with:
+
+```bash
+npm run test:contracts            # all registered adapters
+npm run test:contracts stripe     # focus a single provider
+```
+
+> The contract only asserts provider-agnostic invariants. Provider-specific
+> details (exact auth header format, vendor rate-limit header names, status codes
+> that legitimately differ such as 403/404) belong in your own `adapter.test.ts`.

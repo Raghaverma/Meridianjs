@@ -43,8 +43,7 @@ Returns `true` when the signature is valid, `false` otherwise. Never throws.
 `WebhookVerifier.verify` delegates to the adapter's `verifyWebhook` and throws a clear error if the adapter does not support webhook verification.
 
 ```ts
-import { WebhookVerifier } from "meridian-sdk/webhooks";
-import { RazorpayAdapter } from "meridian-sdk/providers/razorpay";
+import { WebhookVerifier, RazorpayAdapter } from "meridianjs";
 
 const adapter = new RazorpayAdapter();
 
@@ -64,7 +63,7 @@ if (!isValid) {
 ### Directly on the adapter
 
 ```ts
-import { StripeAdapter } from "meridian-sdk/providers/stripe";
+import { StripeAdapter } from "meridianjs";
 
 const adapter = new StripeAdapter();
 

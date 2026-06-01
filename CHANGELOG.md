@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-06-01
+
+### Added
+- **Core stabilization**: Integrated 741 contract tests (19 invariants × 39 adapters) verifying error handling, rate limiting, retries, timeouts, pagination, and request/response normalization across every provider adapter via the shared `runProviderContract` harness.
+- **Contract test suite & CLI runner**: Run tests with `npm run test:contracts` or per-provider via `npm run test:contracts stripe`.
+- **CI pipeline integration**: Added contract validation to the GitHub Actions test runner.
+- **Provider status matrix**: Published a complete compatibility checklist in the README.
+- **Comprehensive developer documentation**: Added 8 core manuals under the `docs/` folder.
+
 ## [2.0.2] - 2025-01-XX
 
 ### Changed
 - **Public API lockdown**: Package now exports from `src/public.ts` as the single public entry point. This restricts consumer access to only documented, stable APIs.
-- **Error contract enhancement**: `MeridianError` now exposes a `code` getter as an alias for `category`. This provides forward compatibility with documented error contracts while maintaining backward compatibility.
+- **Error contract enhancement**: `MeridianError` now exposes a `code` getter returning a frozen public `MeridianErrorCode` (e.g. `AUTH_FAILED`, `RATE_LIMITED`, `UPSTREAM_5XX`), derived from `category` and HTTP status. This provides a stable, documented error contract independent of the internal category.
 
 ### Internal
 - Fixed incomplete code from prior refactoring in error message formatting

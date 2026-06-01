@@ -110,7 +110,7 @@ npm run lint    # Run Biome linting/formatting
 
 ### Basic Implementation
 ```typescript
-import { Meridian } from "meridian-sdk";
+import { Meridian } from "meridianjs";
 
 const meridian = await Meridian.create({
   github: {

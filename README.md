@@ -174,6 +174,10 @@ const results = await meridian.provider("stripe").batch([
 // Results are always in input order; errors are MeridianError, never thrown
 ```
 
+## Support & Contact
+
+If you encounter any issues or have questions, please reach out directly at [raghav.verma.work@gmail.com](mailto:raghav.verma.work@gmail.com).
+
 ---
 
 ## Links

@@ -4,7 +4,7 @@ Future direction for the Meridian SDK — covering Indian and international prov
 
 ---
 
-## Current State (v0.1.3)
+## Current State (v0.2.2)
 
 ### Built-in Adapters
 
@@ -51,7 +51,7 @@ Future direction for the Meridian SDK — covering Indian and international prov
 
 ## Phase 1 — Test Coverage for All Implemented Adapters ✅ COMPLETE
 
-All 17 Indian adapters are fully implemented, TypeScript-clean, and contract-tested (343 tests passing across 25 test files as of v0.1.3). The notes below are preserved for reference when adding new adapters in this category.
+All 17 Indian adapters are fully implemented, TypeScript-clean, and pass the universal provider contract suite alongside every other adapter (1489 tests across 49 test files as of v0.2.2, including 741 contract tests covering all 39 adapters). The notes below are preserved for reference when adding new adapters in this category.
 
 ### Payments (India)
 

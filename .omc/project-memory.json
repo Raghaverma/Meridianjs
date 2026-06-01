@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs; echo \"=== branch + log ===\"; git branch --show-current; git log --oneline -3; echo \"=== files on disk now ===\"; ls src/core/streaming.ts src/providers/twilio/adapter.ts >/dev/null 2>&1 && echo \"feature files present ✓\"; echo \"=== TYPECHECK ===\"; npm run typecheck >/tmp/tc.log 2>&1; echo \"exit=$?\"; echo \"=== BUILD ===\"; npm run build >/tmp/b.log 2>&1; echo \"exit=$?\"; echo \"=== TESTS ===\"; node_modules/.bin/vitest run 2>&1 | grep -E \"(Test Files|Tests )\" | tail -2",
-    "testCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== TYPECHECK ===\" && npm run typecheck >/tmp/tc.log 2>&1; echo \"typecheck exit=$?\"\necho \"=== FULL SUITE ===\" && node_modules/.bin/vitest run 2>&1 | grep -vE '^\\{\"level\"' | grep -E \"Test Files|Tests \" | tail -3\necho \"=== test:contracts (npm script) ===\" && npm run test:contracts --silent 2>&1 | grep -vE '^\\{\"level\"' | grep -E \"Tests |Test Files\" | tail -2",
+    "buildCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== rebuild ===\" && npm run build >/tmp/b.log 2>&1 && echo \"build ok\" || tail -10 /tmp/b.log\necho \"=== SDK_VERSION at runtime ===\" && node -e \"import('./dist/public.js').then(m=>console.log('SDK_VERSION via build:', m.SDK_VERSION ?? '(not exported)'))\" 2>/dev/null; node -p \"require('./package.json').version\"\necho \"=== remaining current-version 1.0.0 refs in docs/security/changelog top (excl. historical/future/schemaVersion) ===\"\ngrep -rnE \"v1\\.0\\.0|1\\.0\\.x\" SECURITY.md docs/migrations.md ROADMAP.md CHANGELOG.md | grep -vE \"Q2 2027|2024-01-XX|compare/v1|releases/tag\" || echo \"none ✓\"",
+    "testCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== resolved version ===\" && node -p \"require('./package.json').version\"\necho \"=== any remaining package-version 1.0.0 refs? ===\" && grep -nE '\"version\": \"1\\.0\\.0\"' package.json package-lock.json || echo \"none ✓\"\necho \"=== typecheck ===\" && npm run typecheck >/tmp/tc.log 2>&1 && echo ok || tail -10 /tmp/tc.log\necho \"=== tests (any version-string assertions?) ===\" && node_modules/.bin/vitest run 2>&1 | grep -vE '^\\{\"level\"' | grep -E \"Test Files|Tests \" | tail -2",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -104,8 +104,8 @@
   "hotPaths": [
     {
       "path": "src/public.ts",
-      "accessCount": 13,
-      "lastAccessed": 1780247353277,
+      "accessCount": 16,
+      "lastAccessed": 1780298629775,
       "type": "file"
     },
     {
@@ -136,6 +136,12 @@
       "path": "src/providers/razorpay/index.ts",
       "accessCount": 7,
       "lastAccessed": 1780246261429,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 7,
+      "lastAccessed": 1780298909281,
       "type": "file"
     },
     {
@@ -196,12 +202,6 @@
       "path": "src/core/normalizer.ts",
       "accessCount": 3,
       "lastAccessed": 1780247288728,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 3,
-      "lastAccessed": 1780297332017,
       "type": "file"
     },
     {
