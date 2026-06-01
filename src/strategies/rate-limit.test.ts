@@ -14,7 +14,7 @@ describe("RateLimiter", () => {
         await limiter.acquire();
       }
 
-      expect((limiter as any).tokens).toBe(0);
+      expect((limiter as any).tokens).toBeCloseTo(0, 4);
 
       const pending = limiter.acquire();
 

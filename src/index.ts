@@ -60,7 +60,7 @@ import { IdempotencyResolver } from "./strategies/idempotency.js";
 import { RateLimiter } from "./strategies/rate-limit.js";
 import { RetryStrategy } from "./strategies/retry.js";
 
-const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
+export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
   anthropic: AnthropicAdapter,
   openai: OpenAIAdapter,

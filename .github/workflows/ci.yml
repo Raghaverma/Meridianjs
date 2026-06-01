@@ -53,6 +53,8 @@ jobs:
         run: npm ci
       - name: Run Tests
         run: npx vitest run
+      - name: Run Provider Contract Tests
+        run: npm run test:contracts
 
   datadog-synthetics:
     needs: [lint-and-format, typecheck-and-build, test]

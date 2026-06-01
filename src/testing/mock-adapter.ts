@@ -98,9 +98,11 @@ export class MockAdapter implements ProviderAdapter {
     return this;
   }
 
+  baseUrl?: string;
+
   buildRequest(input: AdapterInput): BuiltRequest {
     const { endpoint, options, authToken } = input;
-    const base = input.baseUrl ?? "https://mock.meridian.local";
+    const base = input.baseUrl ?? this.baseUrl ?? "https://mock.meridian.local";
     const url = new URL(endpoint, base);
     if (options.query) {
       for (const [k, v] of Object.entries(options.query)) url.searchParams.set(k, String(v));
@@ -114,11 +116,13 @@ export class MockAdapter implements ProviderAdapter {
   }
 
   parseResponse(raw: RawResponse): NormalizedResponse {
+    const paginationStrategy = this.paginationStrategy();
+    const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
     return ResponseNormalizer.normalize(
       raw,
       this.providerName,
       { limit: 1000, remaining: 999, reset: new Date(Date.now() + 60_000) },
-      undefined,
+      paginationInfo,
       [],
       "1.0.0",
     );

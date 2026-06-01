@@ -1,6 +1,6 @@
 {
   "name": "meridianjs",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Meridian - A TypeScript-first SDK that enforces a single stable contract across all third-party API providers",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",
@@ -22,7 +22,9 @@
     "format": "biome format --write .",
     "prepublishOnly": "npm run build",
     "proxy": "node dist/proxy/cli.js",
-    "proxy:build": "npm run build && npm run proxy"
+    "proxy:build": "npm run build && npm run proxy",
+    "example:swap": "npx tsx examples/provider-swap/index.ts",
+    "test:contracts": "node scripts/test-contracts.mjs"
   },
   "bin": {
     "boundary-proxy": "dist/proxy/cli.js"
