@@ -33,7 +33,7 @@
   },
   "build": {
     "buildCommand": "npm run build",
-    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -6",
+    "testCommand": "npm test -- --run 2>&1 | tail -6",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {

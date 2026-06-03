@@ -200,8 +200,9 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: npm audit
-        run: npm audit --audit-level=high
+      - name: npm audit (production dependencies only)
+        # The SDK has zero runtime deps — all devDep vulnerabilities are irrelevant to users.
+        run: npm audit --omit=dev --audit-level=high
       - name: Check for hardcoded secrets
         run: |
           # Fail if any API keys or tokens look hardcoded in src/
