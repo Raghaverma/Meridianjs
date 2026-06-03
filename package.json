@@ -28,7 +28,10 @@
     "proxy": "node dist/proxy/cli.js",
     "proxy:build": "npm run build && npm run proxy",
     "example:swap": "vite-node examples/provider-swap/index.ts",
-    "test:contracts": "node scripts/test-contracts.mjs"
+    "test:contracts": "node scripts/test-contracts.mjs",
+    "test:contracts:all": "node scripts/test-contracts.mjs",
+    "benchmark": "npx tsx benchmarks/pipeline-overhead.ts",
+    "pkg:check": "npx publint && npx are-the-types-wrong . --pack"
   },
   "bin": {
     "boundary-proxy": "dist/proxy/cli.js",

@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -8\",\"timeout\":120000,\"description\":\"Typecheck and run all tests\"}",
-  "error": "Exit code 2\n\n> meridianjs@0.2.3 typecheck\n> tsc --noEmit\n\nsrc/index.ts(68,26): error TS6133: 'TransactionError' is declared but its value is never read.",
-  "timestamp": "2026-06-03T19:55:18.228Z",
+  "tool_input_preview": "{\"command\":\"ls /Users/mac/Desktop/Raghav/Meridianjs/scripts/workflows/ && echo \\\"---\\\" && head -40 /Users/mac/Desktop/Raghav/Meridianjs/scripts/test-contracts.mjs\",\"description\":\"Check existing workfl...",
+  "error": "Exit code 1\nls: /Users/mac/Desktop/Raghav/Meridianjs/scripts/workflows/: No such file or directory",
+  "timestamp": "2026-06-03T20:56:07.509Z",
   "retry_count": 1
 }

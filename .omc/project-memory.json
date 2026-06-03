@@ -33,7 +33,7 @@
   },
   "build": {
     "buildCommand": "npm run build",
-    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -5 && node -e \"const p = require('./package.json'); console.log('version:', p.version)\"",
+    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -6",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -169,6 +169,12 @@
       "type": "file"
     },
     {
+      "path": "package.json",
+      "accessCount": 4,
+      "lastAccessed": 1780520275318,
+      "type": "file"
+    },
+    {
       "path": "src/generator/openapi.ts",
       "accessCount": 3,
       "lastAccessed": 1780516026584,
@@ -202,12 +208,6 @@
       "path": "src/validation/drift-detector.ts",
       "accessCount": 2,
       "lastAccessed": 1780518382322,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 2,
-      "lastAccessed": 1780519290652,
       "type": "file"
     },
     {
