@@ -1,6 +1,6 @@
 {
   "name": "meridianjs",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Meridian - A TypeScript-first SDK that enforces a single stable contract across all third-party API providers",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",

@@ -33,7 +33,7 @@
   },
   "build": {
     "buildCommand": "npm run build",
-    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -8",
+    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -5 && node -e \"const p = require('./package.json'); console.log('version:', p.version)\"",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -152,14 +152,20 @@
     },
     {
       "path": "src/core/types.ts",
-      "accessCount": 7,
-      "lastAccessed": 1780516366471,
+      "accessCount": 8,
+      "lastAccessed": 1780519290967,
       "type": "file"
     },
     {
       "path": "src/public.ts",
       "accessCount": 5,
       "lastAccessed": 1780516512027,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 5,
+      "lastAccessed": 1780519298063,
       "type": "file"
     },
     {
@@ -181,6 +187,12 @@
       "type": "file"
     },
     {
+      "path": "CHANGELOG.md",
+      "accessCount": 3,
+      "lastAccessed": 1780519296625,
+      "type": "file"
+    },
+    {
       "path": "src/schema/monitor.ts",
       "accessCount": 2,
       "lastAccessed": 1780516016957,
@@ -193,15 +205,9 @@
       "type": "file"
     },
     {
-      "path": "README.md",
+      "path": "package.json",
       "accessCount": 2,
-      "lastAccessed": 1780518503002,
-      "type": "file"
-    },
-    {
-      "path": "CHANGELOG.md",
-      "accessCount": 2,
-      "lastAccessed": 1780518603398,
+      "lastAccessed": 1780519290652,
       "type": "file"
     },
     {
@@ -298,12 +304,6 @@
       "path": "src/generator/index.ts",
       "accessCount": 1,
       "lastAccessed": 1780515863288,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 1,
-      "lastAccessed": 1780515988614,
       "type": "file"
     },
     {

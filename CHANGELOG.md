@@ -4,7 +4,7 @@ All notable changes to Meridian are documented here.
 
 ---
 
-## [0.3.0] — Operational Intelligence
+## [0.2.4] — Operational Intelligence
 
 This release transforms Meridian from an API normalisation SDK into an operational layer for third-party integrations. Every feature below works with zero configuration beyond what you already have.
 

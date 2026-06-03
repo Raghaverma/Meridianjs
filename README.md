@@ -2,20 +2,80 @@
 
 # Meridian
 
-**One SDK. Every API. Zero inconsistency.**
+**Integration Reliability SDK**
+
+*One interface. Every provider. Built for production.*
 
 [![npm version](https://img.shields.io/npm/v/meridianjs?color=0070f3&label=npm)](https://www.npmjs.com/package/meridianjs)
 [![npm downloads](https://img.shields.io/npm/dm/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Version](https://img.shields.io/badge/version-0.2.4-blue)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-1568%20passing-brightgreen)](https://vitest.dev)
 [![Adapters](https://img.shields.io/badge/adapters-39-blueviolet)](#provider-status-matrix)
 
-A TypeScript-first SDK that gives every third-party API the same interface — normalized errors, rate limits, pagination, circuit breaking, and automatic failover, regardless of provider.
-
-Zero runtime dependencies. Works in Node.js 18+.
-
 </div>
+
+---
+
+Your application integrates with Stripe, OpenAI, Razorpay, Twilio — and a dozen more.
+
+Each one fails differently. Each one changes silently. Each one has a different error shape, pagination strategy, and rate limit header.
+
+**Meridian sits between your application and every provider.**
+
+It normalizes the differences, absorbs the failures, and makes providers swappable without touching your application code.
+
+```
+Your Application
+       │
+       ▼
+   Meridian
+  ┌────┼─────┐
+  ▼    ▼     ▼
+Stripe OpenAI Razorpay  ···  39 providers
+```
+
+When OpenAI goes down, Meridian routes to Anthropic. When Stripe rate-limits you, Meridian backs off and retries. When a provider silently renames a field, Meridian tells you before it breaks production.
+
+Zero runtime dependencies. Node.js 18+.
+
+---
+
+## The Killer Feature: Providers Become Replaceable
+
+Your application stops naming vendors. Meridian routes, fails over, and recovers — automatically.
+
+```typescript
+import { Meridian } from "meridianjs";
+
+const meridian = await Meridian.create({
+  localUnsafe: true,
+  providers: {
+    openai:    { auth: { apiKey: process.env.OPENAI_API_KEY } },
+    anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY } },
+    gemini:    { auth: { apiKey: process.env.GEMINI_API_KEY } },
+  },
+  services: {
+    // Your app calls "llm". It never touches "openai" or "anthropic".
+    llm: {
+      providers: ["openai", "anthropic", "gemini"],
+      strategy: "failover",
+    },
+  },
+});
+
+// OpenAI outage? Anthropic takes over. No code change. No redeployment.
+const result = await meridian.service("llm")!.post("/v1/chat/completions", {
+  body: { messages: [{ role: "user", content: "Hello" }] },
+});
+
+console.log(result.meta.provider);        // "openai" or "anthropic" — whoever answered
+console.log(result.meta.trace.retries);   // 0, 1, 2 — what it took to get a response
+console.log(result.meta.trace.latency);   // ms end-to-end
+```
+
+This works across payments, messaging, KYC, logistics — any category where multiple providers exist.
 
 ---
 
@@ -27,36 +87,9 @@ npm install meridianjs
 
 ---
 
-## Quick Start
+## What Meridian Owns
 
-```typescript
-import { Meridian } from "meridianjs";
-
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    stripe:   { auth: { apiKey: process.env.STRIPE_SECRET_KEY } },
-    razorpay: { auth: { username: process.env.RAZORPAY_KEY_ID, password: process.env.RAZORPAY_KEY_SECRET } },
-    openai:   { auth: { apiKey: process.env.OPENAI_API_KEY } },
-  },
-});
-
-// Every provider returns the same shape
-const { data, meta } = await meridian.provider("stripe").get("/v1/customers");
-
-console.log(meta.provider);             // "stripe"
-console.log(meta.rateLimit.remaining);  // always normalized
-console.log(meta.pagination?.hasNext);  // always normalized
-console.log(meta.trace.latency);        // ms, always present
-console.log(meta.trace.retries);        // how many retries happened
-console.log(meta.trace.circuitBreaker); // "CLOSED" | "OPEN" | "HALF_OPEN"
-```
-
----
-
-## What Meridian Does
-
-| Feature | Without Meridian | With Meridian |
+| Problem | Without Meridian | With Meridian |
 |---|---|---|
 | Error handling | Different shape per provider | `MeridianError` — always `category`, `retryable`, `retryAfter` |
 | Rate limits | Parse headers manually per provider | `meta.rateLimit` — always normalized |
