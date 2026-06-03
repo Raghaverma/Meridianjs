@@ -55,10 +55,19 @@ import { SupabaseAdapter } from "./providers/supabase/adapter.js";
 import { TwilioAdapter } from "./providers/twilio/adapter.js";
 import { VonageAdapter } from "./providers/vonage/adapter.js";
 
+import { AnalyticsCollector } from "./analytics/collector.js";
+import { PROVIDER_CAPABILITIES } from "./capabilities/registry.js";
+import { CircuitState } from "./core/types.js";
+import { DebugRecorder } from "./debug/recorder.js";
+import { SchemaMonitor } from "./schema/monitor.js";
+import { ServiceClient } from "./services/service-client.js";
 import { ProviderCircuitBreaker } from "./strategies/circuit-breaker.js";
 import { IdempotencyResolver } from "./strategies/idempotency.js";
 import { RateLimiter } from "./strategies/rate-limit.js";
 import { RetryStrategy } from "./strategies/retry.js";
+import { runTransaction } from "./transactions/saga.js";
+import type { TransactionResult, TransactionStep } from "./transactions/saga.js";
+import { FileSystemSchemaStorage } from "./validation/schema-storage.js";
 
 export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
@@ -145,6 +154,10 @@ export class Meridian {
   private adapters: Map<string, ProviderAdapter> = new Map();
   private started = false;
   private adapterCache: Map<string, ProviderAdapter> = new Map();
+  private serviceClients: Map<string, ServiceClient> = new Map();
+  private analyticsCollector = new AnalyticsCollector();
+  private debugRecorder = new DebugRecorder();
+  private _schemaMonitor: SchemaMonitor | null = null;
 
   private constructor(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
     this.validateConfig(config);
@@ -192,6 +205,8 @@ export class Meridian {
     } else {
       this.observability = [new ConsoleObservability()];
     }
+
+    this.observability = [...this.observability, this.analyticsCollector, this.debugRecorder];
   }
 
   static async create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
@@ -372,7 +387,13 @@ export class Meridian {
         indiaMode: this.config.compliance?.indiaMode,
       },
       compliance: this.config.compliance,
+      onRawRequest: (requestId, _endpoint, _method, options) => {
+        if (this.debugRecorder.enabled) {
+          this.debugRecorder.recordRaw(requestId, options);
+        }
+      },
     };
+    if (this.config.policies) pipelineConfig.policies = this.config.policies;
     const pipeline = new RequestPipeline(pipelineConfig);
 
     this.pipelines.set(providerName, pipeline);
@@ -656,6 +677,96 @@ export class Meridian {
     return (this as any)[name] as ProviderClient | undefined;
   }
 
+  service(name: string): ServiceClient | undefined {
+    this.ensureStarted();
+    return this.serviceClients.get(name);
+  }
+
+  analytics(): Record<string, import("./analytics/collector.js").ProviderStats> {
+    this.ensureStarted();
+    return this.analyticsCollector.get();
+  }
+
+  health(): Record<
+    string,
+    {
+      status: "healthy" | "degraded" | "down";
+      successRate: string;
+      avgLatency: number;
+      circuitBreaker: CircuitState;
+    }
+  > {
+    this.ensureStarted();
+    const ah = this.analyticsCollector.getHealth();
+    const result: Record<
+      string,
+      {
+        status: "healthy" | "degraded" | "down";
+        successRate: string;
+        avgLatency: number;
+        circuitBreaker: CircuitState;
+      }
+    > = {};
+
+    for (const [name, cb] of this.circuitBreakers) {
+      const cbStatus = cb.getStatus();
+      const h = ah[name] ?? { status: "healthy" as const, successRate: "100.0%", avgLatency: 0 };
+      let status = h.status;
+      if (cbStatus.state === CircuitState.OPEN) status = "down";
+      else if (cbStatus.state === CircuitState.HALF_OPEN && status === "healthy")
+        status = "degraded";
+      result[name] = { ...h, status, circuitBreaker: cbStatus.state };
+    }
+
+    return result;
+  }
+
+  providers(): Array<{ name: string; capabilities: string[] }> {
+    this.ensureStarted();
+    return [...this.adapters.entries()].map(([name, adapter]) => {
+      const registry = PROVIDER_CAPABILITIES[name] ?? [];
+      const declared = adapter.capabilities?.() ?? [];
+      return { name, capabilities: [...new Set([...registry, ...declared])] };
+    });
+  }
+
+  findProviders(filter: { capability: string }): Array<{ name: string; capabilities: string[] }> {
+    this.ensureStarted();
+    return this.providers().filter((p) => p.capabilities.includes(filter.capability));
+  }
+
+  get debug(): DebugRecorder {
+    return this.debugRecorder;
+  }
+
+  async replay(requestId: string): Promise<NormalizedResponse<unknown>> {
+    this.ensureStarted();
+    const rec = this.debugRecorder.recordings().find((r) => r.requestId === requestId);
+    if (!rec) throw new Error(`No recording found for requestId: ${requestId}`);
+    if (!rec.options) {
+      throw new Error(
+        `Recording "${requestId}" has no captured options. Call meridian.debug.enable() before the request to capture full replay data.`,
+      );
+    }
+    const client = this.provider(rec.provider);
+    if (!client) throw new Error(`Provider "${rec.provider}" is not configured`);
+    const method = rec.method.toLowerCase() as "get" | "post" | "put" | "patch" | "delete";
+    return client[method](rec.endpoint, rec.options);
+  }
+
+  get schema(): SchemaMonitor {
+    if (!this._schemaMonitor) {
+      const storage = this.config.schemaValidation?.storage ?? new FileSystemSchemaStorage();
+      this._schemaMonitor = new SchemaMonitor(storage);
+    }
+    return this._schemaMonitor;
+  }
+
+  async transaction(steps: TransactionStep[]): Promise<TransactionResult> {
+    this.ensureStarted();
+    return runTransaction(steps);
+  }
+
   async registerProvider(
     name: string,
     adapter: ProviderAdapter,
@@ -699,6 +810,26 @@ export class Meridian {
     if (this.config.providers) {
       for (const [providerName, providerConfig] of Object.entries(this.config.providers)) {
         await this.initializeProvider(providerName, providerConfig as ProviderConfig);
+      }
+    }
+
+    if (this.config.services) {
+      for (const [serviceName, rawConfig] of Object.entries(this.config.services)) {
+        const cfg = Array.isArray(rawConfig) ? { providers: rawConfig } : rawConfig;
+
+        for (const name of cfg.providers) {
+          if (!this.pipelines.has(name)) {
+            throw new Error(
+              `Service "${serviceName}" references provider "${name}" which is not configured. Add it to the providers section of the Meridian config.`,
+            );
+          }
+        }
+
+        const clients = cfg.providers.map((name) => this.createProviderClient(name));
+        this.serviceClients.set(
+          serviceName,
+          new ServiceClient(cfg.providers, clients, cfg, () => this.analyticsCollector.get()),
+        );
       }
     }
 

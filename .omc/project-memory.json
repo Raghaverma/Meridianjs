@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1780245609700,
+  "lastScanned": 1780514574173,
   "projectRoot": "/Users/mac/Desktop/Raghav/Meridianjs",
   "techStack": {
     "languages": [
@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== build ===\" && npm run build >/tmp/b.log 2>&1 && echo \"build ok\" || tail -10 /tmp/b.log\necho \"=== consumer import now works? ===\" \nnode --input-type=module -e \"import('meridianjs').then(m => console.log('import OK | Meridian:', typeof m.Meridian, '| SDK_VERSION:', m.SDK_VERSION ?? '(via core)')).catch(e => console.log('FAILED:', e.code))\" 2>&1 | tail -3\necho \"=== SDK_VERSION value ===\" && node --input-type=module -e \"import('./dist/core/types.js').then(m=>console.log(m.SDK_VERSION))\"\necho \"=== no more package.json import in dist? ===\" && grep -rn 'from \"../../package.json\"\\|from \"../package.json\"' dist/ 2>/dev/null || echo \"none ✓\"",
-    "testCommand": "cd /Users/mac/Desktop/Raghav/Meridianjs\necho \"=== typecheck ===\" && npm run typecheck >/tmp/tc.log 2>&1 && echo ok || tail -10 /tmp/tc.log\necho \"=== lint ===\" && npm run lint >/tmp/l.log 2>&1 && echo ok || tail -12 /tmp/l.log\necho \"=== full suite ===\" && node_modules/.bin/vitest run 2>&1 | grep -vE '^\\{\"level\"' | grep -E \"Test Files|Tests \" | tail -2",
+    "buildCommand": "npm run build",
+    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -8",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -45,12 +45,14 @@
       "format": "biome format --write .",
       "prepublishOnly": "npm run build",
       "proxy": "node dist/proxy/cli.js",
-      "proxy:build": "npm run build && npm run proxy"
+      "proxy:build": "npm run build && npm run proxy",
+      "example:swap": "vite-node examples/provider-swap/index.ts",
+      "test:contracts": "node scripts/test-contracts.mjs"
     }
   },
   "conventions": {
     "namingStyle": "camelCase/PascalCase",
-    "importStyle": null,
+    "importStyle": "ES modules",
     "testPattern": null,
     "fileOrganization": null
   },
@@ -58,6 +60,7 @@
     "isMonorepo": false,
     "workspaces": [],
     "mainDirectories": [
+      "docs",
       "examples",
       "scripts",
       "src"
@@ -69,11 +72,37 @@
   },
   "customNotes": [],
   "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 8,
+      "lastAccessed": 1780514574166,
+      "keyFiles": [
+        "index.d.ts",
+        "index.d.ts.map",
+        "index.js",
+        "index.js.map",
+        "public.d.ts"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 9,
+      "lastAccessed": 1780514574167,
+      "keyFiles": [
+        "WEBHOOKS.md",
+        "adapters.md",
+        "batch.md",
+        "circuit-breaker.md",
+        "migrations.md"
+      ]
+    },
     "examples": {
       "path": "examples",
       "purpose": "Example code",
       "fileCount": 1,
-      "lastAccessed": 1780245609691,
+      "lastAccessed": 1780514574168,
       "keyFiles": [
         "basic-usage.ts"
       ]
@@ -81,17 +110,18 @@
     "scripts": {
       "path": "scripts",
       "purpose": "Build/utility scripts",
-      "fileCount": 1,
-      "lastAccessed": 1780245609692,
+      "fileCount": 2,
+      "lastAccessed": 1780514574169,
       "keyFiles": [
-        "strip-comments.cjs"
+        "strip-comments.cjs",
+        "test-contracts.mjs"
       ]
     },
     "src": {
       "path": "src",
       "purpose": "Source code",
       "fileCount": 5,
-      "lastAccessed": 1780245609694,
+      "lastAccessed": 1780514574169,
       "keyFiles": [
         "consumer.test.ts",
         "index.test.ts",
@@ -103,303 +133,267 @@
   },
   "hotPaths": [
     {
-      "path": "src/public.ts",
-      "accessCount": 16,
-      "lastAccessed": 1780298629775,
+      "path": "src/index.ts",
+      "accessCount": 19,
+      "lastAccessed": 1780516527647,
+      "type": "file"
+    },
+    {
+      "path": "src/core/pipeline.ts",
+      "accessCount": 11,
+      "lastAccessed": 1780516390757,
+      "type": "file"
+    },
+    {
+      "path": "src/debug/recorder.ts",
+      "accessCount": 8,
+      "lastAccessed": 1780515929970,
       "type": "file"
     },
     {
       "path": "src/core/types.ts",
-      "accessCount": 15,
-      "lastAccessed": 1780300292145,
-      "type": "file"
-    },
-    {
-      "path": "src/index.ts",
-      "accessCount": 12,
-      "lastAccessed": 1780297032309,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/razorpay/adapter.ts",
-      "accessCount": 9,
-      "lastAccessed": 1780247297969,
-      "type": "file"
-    },
-    {
-      "path": "package.json",
-      "accessCount": 8,
-      "lastAccessed": 1780300140849,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/razorpay/pagination.ts",
       "accessCount": 7,
-      "lastAccessed": 1780246261224,
+      "lastAccessed": 1780516366471,
       "type": "file"
     },
     {
-      "path": "src/providers/razorpay/index.ts",
-      "accessCount": 7,
-      "lastAccessed": 1780246261429,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/cashfree/adapter.ts",
+      "path": "src/public.ts",
       "accessCount": 5,
-      "lastAccessed": 1780250346443,
+      "lastAccessed": 1780516512027,
       "type": "file"
     },
     {
-      "path": "src/providers/shiprocket/adapter.ts",
-      "accessCount": 5,
-      "lastAccessed": 1780250346954,
+      "path": "src/generator/openapi.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780516026584,
       "type": "file"
     },
     {
-      "path": "src/providers/payu/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247304491,
+      "path": "src/generator/cli.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780516054545,
       "type": "file"
     },
     {
-      "path": "src/providers/juspay/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247307918,
+      "path": "src/services/service-client.ts",
+      "accessCount": 3,
+      "lastAccessed": 1780516469279,
       "type": "file"
     },
     {
-      "path": "src/providers/setu/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247311339,
+      "path": "src/schema/monitor.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780516016957,
       "type": "file"
     },
     {
-      "path": "src/providers/msg91/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247317945,
+      "path": "src/validation/drift-detector.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780518382322,
       "type": "file"
     },
     {
-      "path": "src/providers/decentro/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780247320817,
+      "path": "README.md",
+      "accessCount": 2,
+      "lastAccessed": 1780518503002,
+      "type": "file"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "accessCount": 2,
+      "lastAccessed": 1780518603398,
+      "type": "file"
+    },
+    {
+      "path": "src/strategies/circuit-breaker.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780514608813,
+      "type": "file"
+    },
+    {
+      "path": "src/routers/payment-router.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780514609774,
+      "type": "file"
+    },
+    {
+      "path": "src/strategies/retry.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780514643883,
+      "type": "file"
+    },
+    {
+      "path": "src/routers/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780514643996,
+      "type": "file"
+    },
+    {
+      "path": "src/services/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780514882764,
+      "type": "file"
+    },
+    {
+      "path": "src/analytics/collector.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780515284419,
+      "type": "file"
+    },
+    {
+      "path": "src/capabilities/registry.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780515299927,
+      "type": "file"
+    },
+    {
+      "path": "src/analytics/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780515314073,
+      "type": "file"
+    },
+    {
+      "path": "src/capabilities/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780515314992,
+      "type": "file"
+    },
+    {
+      "path": "src/debug/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780515315454,
+      "type": "file"
+    },
+    {
+      "path": "src/validation/schema-storage.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780515564360,
       "type": "file"
     },
     {
       "path": "src/providers/stripe/adapter.ts",
-      "accessCount": 4,
-      "lastAccessed": 1780297018487,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/stripe/pagination.ts",
-      "accessCount": 3,
-      "lastAccessed": 1780246265604,
-      "type": "file"
-    },
-    {
-      "path": "src/core/normalizer.ts",
-      "accessCount": 3,
-      "lastAccessed": 1780247288728,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/stripe/index.ts",
-      "accessCount": 2,
-      "lastAccessed": 1780246009765,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/razorpay/adapter.test.ts",
-      "accessCount": 2,
-      "lastAccessed": 1780246060385,
-      "type": "file"
-    },
-    {
-      "path": "src/core/header-parser.ts",
-      "accessCount": 2,
-      "lastAccessed": 1780246246026,
-      "type": "file"
-    },
-    {
-      "path": "tsconfig.json",
-      "accessCount": 2,
-      "lastAccessed": 1780249441440,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/github/adapter.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780245693856,
+      "lastAccessed": 1780515630548,
       "type": "file"
     },
     {
-      "path": "src/providers/github/adapter.ts",
+      "path": "src/proxy/cli.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246013279,
+      "lastAccessed": 1780515630586,
       "type": "file"
     },
     {
-      "path": "src/providers/github/index.ts",
+      "path": "src/schema/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246013500,
+      "lastAccessed": 1780515804460,
       "type": "file"
     },
     {
-      "path": "src/providers/github/pagination.ts",
+      "path": "src/generator/templates.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246013694,
+      "lastAccessed": 1780515854056,
       "type": "file"
     },
     {
-      "path": "src/providers/anthropic/adapter.ts",
+      "path": "src/generator/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246013964,
+      "lastAccessed": 1780515863288,
       "type": "file"
     },
     {
-      "path": "src/providers/anthropic/index.ts",
+      "path": "package.json",
       "accessCount": 1,
-      "lastAccessed": 1780246014115,
+      "lastAccessed": 1780515988614,
       "type": "file"
     },
     {
-      "path": "src/providers/anthropic/pagination.ts",
+      "path": "src/policies/builtin.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246014392,
+      "lastAccessed": 1780516407871,
       "type": "file"
     },
     {
-      "path": "src/providers/openai/adapter.ts",
+      "path": "src/policies/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246014550,
+      "lastAccessed": 1780516408903,
       "type": "file"
     },
     {
-      "path": "src/providers/openai/index.ts",
+      "path": "src/transactions/saga.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246014819,
+      "lastAccessed": 1780516417894,
       "type": "file"
     },
     {
-      "path": "src/providers/openai/pagination.ts",
+      "path": "src/transactions/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246014883,
+      "lastAccessed": 1780516418699,
       "type": "file"
     },
     {
-      "path": ".biome.json",
+      "path": "examples/basic-usage.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246019211,
+      "lastAccessed": 1780518142724,
       "type": "file"
     },
     {
-      "path": "src/providers/gupshup/adapter.ts",
+      "path": "src/services/service-client.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246256517,
+      "lastAccessed": 1780518217176,
       "type": "file"
     },
     {
-      "path": "src/providers/gupshup/pagination.ts",
+      "path": "src/analytics/collector.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246264071,
+      "lastAccessed": 1780518234479,
       "type": "file"
     },
     {
-      "path": "src/providers/gupshup/index.ts",
+      "path": "src/debug/recorder.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246264786,
+      "lastAccessed": 1780518252591,
       "type": "file"
     },
     {
-      "path": "src/providers/hyperverge/adapter.ts",
+      "path": "src/policies/builtin.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246283602,
+      "lastAccessed": 1780518274865,
       "type": "file"
     },
     {
-      "path": "src/providers/hyperverge/pagination.ts",
+      "path": "src/transactions/saga.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246286956,
+      "lastAccessed": 1780518294486,
       "type": "file"
     },
     {
-      "path": "src/providers/hyperverge/index.ts",
+      "path": "src/schema/monitor.test.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246287454,
+      "lastAccessed": 1780518308019,
       "type": "file"
     },
     {
-      "path": "src/providers/exotel/adapter.ts",
+      "path": "examples/service-failover/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246297270,
+      "lastAccessed": 1780518513766,
       "type": "file"
     },
     {
-      "path": "src/providers/cleartax/adapter.ts",
+      "path": "examples/policy-engine/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246298735,
+      "lastAccessed": 1780518528083,
       "type": "file"
     },
     {
-      "path": "src/providers/cashfree/pagination.ts",
+      "path": "examples/transactions/index.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246305357,
+      "lastAccessed": 1780518545366,
       "type": "file"
     },
     {
-      "path": "src/providers/cleartax/pagination.ts",
+      "path": "benchmarks/pipeline-overhead.ts",
       "accessCount": 1,
-      "lastAccessed": 1780246306406,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/cleartax/index.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246307080,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/payu/pagination.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246312103,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/digio/adapter.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246315977,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/juspay/pagination.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246316927,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/msg91/pagination.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246321865,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/digio/pagination.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246322529,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/digio/index.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246323135,
-      "type": "file"
-    },
-    {
-      "path": "src/providers/exotel/pagination.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780246328714,
+      "lastAccessed": 1780518561649,
       "type": "file"
     }
   ],

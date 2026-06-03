@@ -3,6 +3,13 @@ export interface NormalizedResponse<T = unknown> {
   meta: ResponseMeta;
 }
 
+export interface RequestTrace {
+  retries: number;
+  latency: number;
+  circuitBreaker: CircuitState;
+  rateLimitRemaining: number;
+}
+
 export interface ResponseMeta {
   provider: string;
   requestId: string;
@@ -10,6 +17,7 @@ export interface ResponseMeta {
   pagination?: PaginationInfo;
   warnings: string[];
   schemaVersion: string;
+  trace?: RequestTrace;
 }
 
 export interface RateLimitInfo {
@@ -185,6 +193,7 @@ export interface ResponseContext {
   duration: number;
   timestamp: Date;
   identity?: string | undefined;
+  trace?: RequestTrace;
 }
 
 export interface ErrorContext {
@@ -268,6 +277,9 @@ export interface ProviderAdapter {
 
   /** Optional: parse one raw SSE data payload into a typed chunk. Defaults to JSON.parse. */
   parseStreamChunk?(raw: string): unknown;
+
+  /** Optional: declare provider capabilities (e.g. "chat", "streaming", "payments"). */
+  capabilities?(): string[];
 }
 
 export interface LegacyProviderAdapter {
@@ -399,8 +411,32 @@ export interface ProviderConfig {
   idempotency?: Partial<IdempotencyConfig>;
 }
 
+export interface PolicyContext {
+  provider: string;
+  endpoint: string;
+  method: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+  query?: Record<string, string | number | boolean>;
+}
+
+export type PolicyDecision = { allow: true } | { allow: false; reason: string };
+
+export interface Policy {
+  name: string;
+  evaluate(ctx: PolicyContext): PolicyDecision;
+}
+
+export interface ServiceConfig {
+  providers: string[];
+  strategy?: "failover" | "round-robin" | "lowest-latency" | "cheapest" | "highest-success-rate";
+  failoverOn?: MeridianErrorCategory[];
+  costs?: Record<string, number>;
+}
+
 export interface MeridianConfig {
   providers?: Record<string, ProviderConfig>;
+  services?: Record<string, string[] | ServiceConfig>;
   defaults?: {
     retry?: Partial<RetryConfig>;
     circuitBreaker?: Partial<CircuitBreakerConfig>;
@@ -434,6 +470,8 @@ export interface MeridianConfig {
     auditLog?: boolean | undefined;
     indiaMode?: boolean | undefined;
   };
+
+  policies?: Policy[];
 
   [providerName: string]: unknown;
 }

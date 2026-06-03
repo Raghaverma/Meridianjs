@@ -31,7 +31,8 @@
     "test:contracts": "node scripts/test-contracts.mjs"
   },
   "bin": {
-    "boundary-proxy": "dist/proxy/cli.js"
+    "boundary-proxy": "dist/proxy/cli.js",
+    "meridian": "dist/generator/cli.js"
   },
   "keywords": ["api", "sdk", "normalization", "circuit-breaker", "rate-limiting", "retry"],
   "license": "MIT",

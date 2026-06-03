@@ -10,6 +10,8 @@ import type {
   ErrorContext,
   NormalizedResponse,
   ObservabilityAdapter,
+  Policy,
+  PolicyContext,
   ProviderAdapter,
   RawResponse,
   RequestContext,
@@ -45,6 +47,13 @@ export interface PipelineConfig {
         indiaMode?: boolean | undefined;
       }
     | undefined;
+  onRawRequest?: (
+    requestId: string,
+    endpoint: string,
+    method: string,
+    options: RequestOptions,
+  ) => void;
+  policies?: Policy[];
 }
 
 export class RequestPipeline {
@@ -121,6 +130,29 @@ export class RequestPipeline {
 
     const identity = options.identity;
 
+    this.config.onRawRequest?.(requestId, endpoint, method, options);
+
+    if (this.config.policies?.length) {
+      const ctx: PolicyContext = { provider: this.config.provider, endpoint, method };
+      if (options.body !== undefined) (ctx as { body?: unknown }).body = options.body;
+      if (options.headers !== undefined)
+        (ctx as { headers?: Record<string, string> }).headers = options.headers;
+      if (options.query !== undefined)
+        (ctx as { query?: Record<string, string | number | boolean> }).query = options.query;
+      for (const policy of this.config.policies) {
+        const decision = policy.evaluate(ctx);
+        if (!decision.allow) {
+          throw new MeridianError(
+            `Policy "${policy.name}" blocked request: ${decision.reason}`,
+            "validation",
+            this.config.provider,
+            false,
+            requestId,
+          );
+        }
+      }
+    }
+
     const sanitizerOpts = {
       ...this.config.sanitizerOptions,
       piiRedaction:
@@ -147,8 +179,10 @@ export class RequestPipeline {
 
       await this.config.rateLimiter.acquire();
 
+      let retryCount = 0;
       const response = await this.config.retryStrategy.execute(
         async () => {
+          retryCount++;
           return await this.config.circuitBreaker.execute(async () => {
             try {
               return await this.executeHttpRequest(endpoint, options, await this.getAuthToken());
@@ -187,6 +221,13 @@ export class RequestPipeline {
 
       const duration = Date.now() - startTime;
 
+      normalized.meta.trace = {
+        retries: retryCount - 1,
+        latency: duration,
+        circuitBreaker: this.config.circuitBreaker.getStatus().state,
+        rateLimitRemaining: rateLimitInfo.remaining,
+      };
+
       const responseContext: ResponseContext = {
         provider: this.config.provider,
         endpoint,
@@ -196,6 +237,7 @@ export class RequestPipeline {
         duration,
         timestamp: new Date(),
         identity,
+        trace: normalized.meta.trace,
       };
 
       this.safelyBroadcastObservability((obs) => obs.logResponse(responseContext), "logResponse");

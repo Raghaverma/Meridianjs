@@ -130,3 +130,40 @@ export type { MockCall, MockHandler, MockResponse } from "./testing/index.js";
 // Routers
 export { PaymentRouter } from "./routers/index.js";
 export type { PaymentRouterOptions } from "./routers/index.js";
+
+// Service abstraction (failover / round-robin / lowest-latency routing)
+export { ServiceClient } from "./services/index.js";
+export type { ServiceConfig, RequestTrace } from "./core/types.js";
+
+// Analytics & health
+export { AnalyticsCollector } from "./analytics/index.js";
+export type { ProviderStats, HealthEntry } from "./analytics/index.js";
+
+// Provider capability registry
+export { PROVIDER_CAPABILITIES } from "./capabilities/index.js";
+export type { ProviderInfo } from "./capabilities/index.js";
+
+// Debug recorder
+export { DebugRecorder } from "./debug/index.js";
+export type { RequestRecording } from "./debug/index.js";
+
+// Schema drift monitor
+export { SchemaMonitor } from "./schema/index.js";
+
+// Adapter generator (programmatic API)
+export { generate } from "./generator/index.js";
+export type { GeneratorOptions } from "./generator/index.js";
+
+// Policy engine
+export type { Policy, PolicyContext, PolicyDecision } from "./core/types.js";
+export {
+  blockPII,
+  allowedProviders,
+  blockedProviders,
+  readOnly,
+  customPolicy,
+} from "./policies/index.js";
+
+// Multi-provider transactions
+export { runTransaction, TransactionError } from "./transactions/index.js";
+export type { TransactionStep, TransactionResult } from "./transactions/index.js";

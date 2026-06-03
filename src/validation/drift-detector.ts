@@ -37,14 +37,22 @@ export class DriftDetector {
           const oldField = oldProps[field];
           const newField = newProps[field];
 
-          if (oldField && newField && oldField.type !== newField.type) {
-            drifts.push({
-              type: "TYPE_CHANGED",
-              field,
-              oldValue: oldField.type,
-              newValue: newField.type,
-              severity: "ERROR",
-            });
+          if (oldField && newField) {
+            if (oldField.type !== newField.type) {
+              drifts.push({
+                type: "TYPE_CHANGED",
+                field,
+                oldValue: oldField.type,
+                newValue: newField.type,
+                severity: "ERROR",
+              });
+            } else {
+              // Same type — recurse to detect structural changes within
+              const nested = this.detect(oldField, newField);
+              for (const d of nested) {
+                drifts.push({ ...d, field: `${field}.${d.field}` });
+              }
+            }
           }
         }
       }
