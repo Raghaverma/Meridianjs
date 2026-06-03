@@ -100,7 +100,9 @@ export class ${name}Adapter implements ProviderAdapter {
   }
 
   parseResponse(raw: RawResponse): NormalizedResponse {
-    return new ResponseNormalizer("${ctx.provider}").normalize(raw);
+    const rateLimitInfo = this.rateLimitPolicy(raw.headers);
+    const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, this.paginationStrategy());
+    return ResponseNormalizer.normalize(raw, "${ctx.provider}", rateLimitInfo, paginationInfo);
   }
 
   parseError(raw: unknown): MeridianError {

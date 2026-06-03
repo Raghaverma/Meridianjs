@@ -32,8 +32,8 @@
     "runtime": "Node.js 18.0.0"
   },
   "build": {
-    "buildCommand": "npm run build",
-    "testCommand": "npm test -- --run 2>&1 | tail -6",
+    "buildCommand": "npm run build 2>&1 | tail -3 && node dist/generator/cli.js generate --provider ci-generated --base-url https://api.ci.test --output src/providers/ci-generated 2>&1 && npm run typecheck 2>&1 && npm test -- --run src/providers/ci-generated/adapter.test.ts 2>&1 | tail -8",
+    "testCommand": "rm -rf /Users/mac/Desktop/Raghav/Meridianjs/src/providers/ci-generated && npm test -- --run 2>&1 | tail -5",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -211,6 +211,12 @@
       "type": "file"
     },
     {
+      "path": "src/generator/templates.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780520802393,
+      "type": "file"
+    },
+    {
       "path": "src/strategies/circuit-breaker.ts",
       "accessCount": 1,
       "lastAccessed": 1780514608813,
@@ -292,12 +298,6 @@
       "path": "src/schema/index.ts",
       "accessCount": 1,
       "lastAccessed": 1780515804460,
-      "type": "file"
-    },
-    {
-      "path": "src/generator/templates.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780515854056,
       "type": "file"
     },
     {
@@ -394,6 +394,12 @@
       "path": "benchmarks/pipeline-overhead.ts",
       "accessCount": 1,
       "lastAccessed": 1780518561649,
+      "type": "file"
+    },
+    {
+      "path": "src/core/normalizer.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780520788882,
       "type": "file"
     }
   ],

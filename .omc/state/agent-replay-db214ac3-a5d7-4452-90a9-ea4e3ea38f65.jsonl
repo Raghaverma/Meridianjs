@@ -2,3 +2,4 @@
 {"t":0,"agent":"a491320","agent_type":"unknown","event":"agent_stop","success":true}
 {"t":0,"agent":"a6eb665","agent_type":"unknown","event":"agent_stop","success":true}
 {"t":0,"agent":"system","event":"keyword_detected","keyword":"wiki"}
+{"t":0,"agent":"system","event":"keyword_detected","keyword":"wiki"}
