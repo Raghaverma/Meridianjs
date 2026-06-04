@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ls /Users/mac/Desktop/Raghav/Meridianjs/scripts/workflows/ && echo \\\"---\\\" && head -40 /Users/mac/Desktop/Raghav/Meridianjs/scripts/test-contracts.mjs\",\"description\":\"Check existing workfl...",
-  "error": "Exit code 1\nls: /Users/mac/Desktop/Raghav/Meridianjs/scripts/workflows/: No such file or directory",
-  "timestamp": "2026-06-03T20:56:07.509Z",
-  "retry_count": 1
-}
