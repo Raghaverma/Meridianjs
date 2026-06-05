@@ -140,8 +140,8 @@
     },
     {
       "path": "src/core/pipeline.ts",
-      "accessCount": 13,
-      "lastAccessed": 1780596541415,
+      "accessCount": 14,
+      "lastAccessed": 1780630780380,
       "type": "file"
     },
     {
@@ -182,8 +182,8 @@
     },
     {
       "path": "src/services/service-client.test.ts",
-      "accessCount": 5,
-      "lastAccessed": 1780625438969,
+      "accessCount": 6,
+      "lastAccessed": 1780630781227,
       "type": "file"
     },
     {

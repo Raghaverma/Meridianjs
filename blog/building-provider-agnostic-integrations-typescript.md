@@ -148,12 +148,12 @@ This data is available without a third-party APM agent, without custom middlewar
 │           Meridian Service Layer        │
 │                                         │
 │  ┌─────────────┐   ┌─────────────────┐  │
-│  │  Strategy   │   │  Circuit Breaker │  │
-│  │  (failover/ │   │  (per provider)  │  │
+│  │  Strategy   │   │  Circuit Breaker│  │
+│  │  (failover/ │   │  (per provider) │  │
 │  │  weighted/  │   └─────────────────┘  │
 │  │  latency)   │   ┌─────────────────┐  │
 │  └─────────────┘   │  Analytics/     │  │
-│                    │  Health Tracker  │  │
+│                    │  Health Tracker │  │
 │                    └─────────────────┘  │
 └──────┬──────────────────┬───────────────┘
        │                  │

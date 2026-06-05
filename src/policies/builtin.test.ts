@@ -199,9 +199,7 @@ describe("redact", () => {
 describe("requireFields", () => {
   it("allows when all required fields are present", () => {
     const policy = requireFields(["tenantId", "userId"]);
-    expect(
-      policy.evaluate(ctx({ body: { tenantId: "t1", userId: "u1" } })).allow,
-    ).toBe(true);
+    expect(policy.evaluate(ctx({ body: { tenantId: "t1", userId: "u1" } })).allow).toBe(true);
   });
 
   it("blocks when a required field is missing", () => {

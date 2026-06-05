@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
-import { Meridian, MeridianError, TransactionError } from "meridianjs";
+import { type Meridian, MeridianError, TransactionError } from "meridianjs";
 import { MERIDIAN_TOKEN } from "./payments.module";
 
 type MeridianInstance = Awaited<ReturnType<typeof Meridian.create>>;

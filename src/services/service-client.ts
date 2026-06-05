@@ -27,7 +27,10 @@ export class ServiceClient {
   constructor(
     providerNames: string[],
     providers: ProviderClient[],
-    config: Pick<ServiceConfig, "strategy" | "failoverOn" | "costs" | "weights" | "regions" | "defaultRegion">,
+    config: Pick<
+      ServiceConfig,
+      "strategy" | "failoverOn" | "costs" | "weights" | "regions" | "defaultRegion"
+    >,
     getStats?: () => Record<string, { successRate: string }>,
   ) {
     if (providers.length === 0) {
@@ -285,9 +288,7 @@ export class ServiceClient {
       const preferred = (this.regions[region] ?? [])
         .map((name) => this.providerNames.indexOf(name))
         .filter((i) => i !== -1);
-      const rest = this.providerNames
-        .map((_, i) => i)
-        .filter((i) => !preferred.includes(i));
+      const rest = this.providerNames.map((_, i) => i).filter((i) => !preferred.includes(i));
       return [...preferred, ...rest];
     }
     return this.providers.map((_, i) => i);
