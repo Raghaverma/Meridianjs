@@ -56,6 +56,7 @@ import { TwilioAdapter } from "./providers/twilio/adapter.js";
 import { VonageAdapter } from "./providers/vonage/adapter.js";
 
 import { AnalyticsCollector } from "./analytics/collector.js";
+import type { CostReport } from "./analytics/collector.js";
 import { PROVIDER_CAPABILITIES } from "./capabilities/registry.js";
 import { CircuitState } from "./core/types.js";
 import { DebugRecorder } from "./debug/recorder.js";
@@ -719,6 +720,12 @@ export class Meridian {
     }
 
     return result;
+  }
+
+  cost(currency = "USD"): CostReport {
+    this.ensureStarted();
+    const costs = (this.config.providerCosts as Record<string, number> | undefined) ?? {};
+    return this.analyticsCollector.getCost(costs, currency);
   }
 
   providers(): Array<{ name: string; capabilities: string[] }> {

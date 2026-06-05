@@ -32,6 +32,11 @@ All notable changes to Meridian are documented here.
 - `docs/schema-drift/` — full snapshot→diff→report→alert workflow
 - `docs/transactions/` — saga pattern with multi-step rollback example
 
+**Cost Intelligence**
+- `MeridianConfig.providerCosts` — declare per-request cost for each provider (e.g. `{ openai: 0.03, anthropic: 0.01 }`)
+- `meridian.cost(currency?)` — returns `CostReport` with per-provider request counts, cost-per-request, estimated spend, and a total; resets with `analytics.reset()`
+- `CostReport`, `CostEntry` exported from `meridianjs`
+
 **Examples**
 - `examples/nextjs-openai-failover/` — Next.js 14 App Router LLM endpoint with failover
 - `examples/express-stripe/` — Express server with pagination, idempotency, health endpoint

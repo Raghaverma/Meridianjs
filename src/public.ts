@@ -150,6 +150,7 @@ export type { RequestRecording } from "./debug/index.js";
 // Schema drift monitor
 export { SchemaMonitor } from "./schema/index.js";
 export type { SchemaReport } from "./schema/monitor.js";
+export type { CostReport, CostEntry } from "./analytics/collector.js";
 
 // Adapter generator (programmatic API)
 export { generate } from "./generator/index.js";

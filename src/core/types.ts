@@ -490,6 +490,8 @@ export interface MeridianConfig {
 
   policies?: Policy[];
 
+  providerCosts?: Record<string, number>;
+
   [providerName: string]: unknown;
 }
 

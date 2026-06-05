@@ -113,6 +113,52 @@ describe("AnalyticsCollector", () => {
     });
   });
 
+  describe("getCost", () => {
+    it("returns zero spend for providers with no cost configured", () => {
+      const col = new AnalyticsCollector();
+      col.logResponse(makeResponseCtx("openai", 100));
+      col.logResponse(makeResponseCtx("openai", 120));
+      const report = col.getCost({});
+      expect(report.providers.openai?.costPerRequest).toBe(0);
+      expect(report.providers.openai?.estimatedSpend).toBe(0);
+    });
+
+    it("computes spend correctly for configured providers", () => {
+      const col = new AnalyticsCollector();
+      col.logResponse(makeResponseCtx("openai", 100));
+      col.logResponse(makeResponseCtx("openai", 120));
+      col.logResponse(makeResponseCtx("anthropic", 80));
+      const report = col.getCost({ openai: 0.03, anthropic: 0.01 });
+      expect(report.providers.openai?.requests).toBe(2);
+      expect(report.providers.openai?.estimatedSpend).toBeCloseTo(0.06);
+      expect(report.providers.anthropic?.estimatedSpend).toBeCloseTo(0.01);
+    });
+
+    it("totals requests and spend across all providers", () => {
+      const col = new AnalyticsCollector();
+      col.logResponse(makeResponseCtx("openai", 100));
+      col.logResponse(makeResponseCtx("stripe", 50));
+      const report = col.getCost({ openai: 0.03, stripe: 0.001 });
+      expect(report.total.requests).toBe(2);
+      expect(report.total.estimatedSpend).toBeCloseTo(0.031);
+    });
+
+    it("includes since and currency fields", () => {
+      const col = new AnalyticsCollector();
+      const report = col.getCost({}, "INR");
+      expect(report.currency).toBe("INR");
+      expect(new Date(report.since).getTime()).not.toBeNaN();
+    });
+
+    it("resets since timestamp on reset()", () => {
+      const col = new AnalyticsCollector();
+      const before = new Date(col.getCost({}).since).getTime();
+      col.reset();
+      const after = new Date(col.getCost({}).since).getTime();
+      expect(after).toBeGreaterThanOrEqual(before);
+    });
+  });
+
   it("logRequest and logWarning and recordMetric are no-ops (no crash)", () => {
     const col = new AnalyticsCollector();
     expect(() => {

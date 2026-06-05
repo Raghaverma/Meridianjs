@@ -21,6 +21,22 @@ export interface HealthEntry {
   avgLatency: number;
 }
 
+export interface CostEntry {
+  requests: number;
+  costPerRequest: number;
+  estimatedSpend: number;
+}
+
+export interface CostReport {
+  providers: Record<string, CostEntry>;
+  total: {
+    requests: number;
+    estimatedSpend: number;
+  };
+  since: string;
+  currency: string;
+}
+
 interface Bucket {
   requests: number;
   errors: number;
@@ -29,6 +45,7 @@ interface Bucket {
 
 export class AnalyticsCollector implements ObservabilityAdapter {
   private buckets = new Map<string, Bucket>();
+  private startedAt = new Date().toISOString();
 
   logRequest(_ctx: RequestContext): void {}
 
@@ -92,7 +109,29 @@ export class AnalyticsCollector implements ObservabilityAdapter {
     };
   }
 
+  getCost(costs: Record<string, number>, currency = "USD"): CostReport {
+    const providers: Record<string, CostEntry> = {};
+    let totalRequests = 0;
+    let totalSpend = 0;
+
+    for (const [provider, b] of this.buckets) {
+      const costPerRequest = costs[provider] ?? 0;
+      const estimatedSpend = b.requests * costPerRequest;
+      providers[provider] = { requests: b.requests, costPerRequest, estimatedSpend };
+      totalRequests += b.requests;
+      totalSpend += estimatedSpend;
+    }
+
+    return {
+      providers,
+      total: { requests: totalRequests, estimatedSpend: totalSpend },
+      since: this.startedAt,
+      currency,
+    };
+  }
+
   reset(): void {
     this.buckets.clear();
+    this.startedAt = new Date().toISOString();
   }
 }

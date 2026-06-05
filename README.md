@@ -20,6 +20,24 @@ npm install meridianjs
 
 ---
 
+## Why Meridian Exists
+
+Every integration team rewrites the same things.
+
+Retries. Pagination. Rate limit parsing. Error normalization. Failover logic.
+
+They write it once for Stripe. Then again for Razorpay. Then again for OpenAI. The code is never shared because every provider has a different shape.
+
+Meridian provides a single reliability layer between your application and third-party APIs. Write your integration once. Every provider gets the same retry behavior, the same error format, the same pagination interface, the same circuit breaker, the same trace data.
+
+The two features that make it more than a wrapper:
+
+**Service abstraction** — your application calls `service("payments")`, not `provider("stripe")`. Meridian decides which provider handles the request. Your application is never coupled to a specific vendor.
+
+**Schema drift detection** — providers silently change their API responses. Meridian detects the change before it reaches production.
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -130,6 +148,10 @@ meridian.analytics()
 
 meridian.health()
 // { stripe: { status: "healthy", successRate: "99.7%", circuitBreaker: "CLOSED" } }
+
+meridian.cost()
+// { providers: { openai: { requests: 1243, costPerRequest: 0.03, estimatedSpend: 37.29 } },
+//   total: { requests: 1243, estimatedSpend: 37.29 }, since: "2026-06-05T...", currency: "USD" }
 ```
 
 ---
