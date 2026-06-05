@@ -1,1 +1,10 @@
-export { blockPII, allowedProviders, blockedProviders, readOnly, customPolicy } from "./builtin.js";
+export {
+  blockPII,
+  allowedProviders,
+  blockedProviders,
+  readOnly,
+  customPolicy,
+  redact,
+  requireFields,
+  denyCountries,
+} from "./builtin.js";

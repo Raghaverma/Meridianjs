@@ -4,6 +4,43 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [0.2.5] — Adoption Sprint
+
+### Added
+
+**Service Routing — Weighted & Geo**
+- `strategy: "weighted"` — probabilistic load distribution across providers using a `weights` map (e.g. `{ stripe: 70, razorpay: 30 }`)
+- `strategy: "geo"` — region-aware routing via `MERIDIAN_REGION` env var or `defaultRegion`; `regions` maps region names to ordered provider lists
+- Both strategies select a primary provider via `selectIndex()` and failover through remaining providers on retryable errors
+
+**Policy Engine — Three New Built-ins**
+- `redact(fields, providers?)` — redacts dot-notation field paths (e.g. `"user.ssn"`) from the request body before it reaches the provider; does not block the request
+- `requireFields(fields, providers?)` — blocks requests missing required body fields; returns `MeridianError` with `category: "validation"`
+- `denyCountries(codes, field?)` — blocks requests where `body.country`, `body.country_code`, or `body.countryCode` matches a denied ISO 3166-1 alpha-2 code
+
+**Schema Monitor — Three New Methods**
+- `meridian.schema.diff(provider, endpoint, data)` — returns drift between current data and stored schema baseline
+- `meridian.schema.report(provider)` — returns structured `SchemaReport` with all snapshotted endpoints, field counts, and schemas
+- `meridian.schema.alert(provider, endpoint, data, callback)` — runs drift check and invokes callback with drifts if any are detected; returns the drifts array
+
+**Documentation**
+- `docs/payments/` — Stripe/Razorpay/Cashfree unified interface, failover, analytics
+- `docs/llms/` — OpenAI→Anthropic→Gemini failover, production chat endpoints
+- `docs/communications/` — Twilio→MSG91 SMS fallback, email fallback patterns
+- `docs/failover/` — all 7 routing strategies with runnable examples
+- `docs/policies/` — all policy built-ins with fintech compliance example
+- `docs/schema-drift/` — full snapshot→diff→report→alert workflow
+- `docs/transactions/` — saga pattern with multi-step rollback example
+
+**Examples**
+- `examples/nextjs-openai-failover/` — Next.js 14 App Router LLM endpoint with failover
+- `examples/express-stripe/` — Express server with pagination, idempotency, health endpoint
+- `examples/nestjs-payments/` — NestJS module with DI, weighted routing, saga transaction
+- `examples/fastify-webhooks/` — Fastify webhook verification with raw body parsing
+- `examples/multi-provider-llm/` — Node.js script demonstrating failover, cheapest routing, drift detection, analytics
+
+---
+
 ## [0.2.4] — Operational Intelligence
 
 This release transforms Meridian from an API normalisation SDK into an operational layer for third-party integrations. Every feature below works with zero configuration beyond what you already have.

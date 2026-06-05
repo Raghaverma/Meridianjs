@@ -420,7 +420,14 @@ export interface PolicyContext {
   query?: Record<string, string | number | boolean>;
 }
 
-export type PolicyDecision = { allow: true } | { allow: false; reason: string };
+export type PolicyDecision =
+  | { allow: false; reason: string }
+  | {
+      allow: true;
+      transform?: (
+        ctx: PolicyContext,
+      ) => Partial<Pick<PolicyContext, "body" | "query" | "headers">>;
+    };
 
 export interface Policy {
   name: string;
@@ -429,9 +436,19 @@ export interface Policy {
 
 export interface ServiceConfig {
   providers: string[];
-  strategy?: "failover" | "round-robin" | "lowest-latency" | "cheapest" | "highest-success-rate";
+  strategy?:
+    | "failover"
+    | "round-robin"
+    | "lowest-latency"
+    | "cheapest"
+    | "highest-success-rate"
+    | "weighted"
+    | "geo";
   failoverOn?: MeridianErrorCategory[];
   costs?: Record<string, number>;
+  weights?: Record<string, number>;
+  regions?: Record<string, string[]>;
+  defaultRegion?: string;
 }
 
 export interface MeridianConfig {
@@ -479,7 +496,7 @@ export interface MeridianConfig {
 // Hardcoded to avoid a runtime JSON import of package.json, which throws
 // `ERR_IMPORT_ATTRIBUTE_MISSING` for consumers importing this ESM package on
 // Node. Keep in sync with the "version" field in package.json on every release.
-export const SDK_VERSION = "0.2.4";
+export const SDK_VERSION = "0.2.5";
 
 export interface ProviderVersion {
   [provider: string]: string;

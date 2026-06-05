@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { PolicyContext } from "../core/types.js";
-import { allowedProviders, blockPII, blockedProviders, customPolicy, readOnly } from "./builtin.js";
+import {
+  allowedProviders,
+  blockPII,
+  blockedProviders,
+  customPolicy,
+  denyCountries,
+  readOnly,
+  redact,
+  requireFields,
+} from "./builtin.js";
 
 const ctx = (overrides: Partial<PolicyContext> = {}): PolicyContext => ({
   provider: "openai",
@@ -138,5 +147,121 @@ describe("customPolicy", () => {
   it("uses the provided name", () => {
     const policy = customPolicy("my-policy", () => ({ allow: true }));
     expect(policy.name).toBe("my-policy");
+  });
+});
+
+describe("redact", () => {
+  it("allows requests and returns a transform", () => {
+    const policy = redact(["ssn"]);
+    const result = policy.evaluate(ctx({ body: { name: "Alice", ssn: "123-45-6789" } }));
+    expect(result.allow).toBe(true);
+  });
+
+  it("transform replaces the field with [REDACTED]", () => {
+    const policy = redact(["ssn"]);
+    const body = { name: "Alice", ssn: "123-45-6789" };
+    const result = policy.evaluate(ctx({ body }));
+    if (result.allow && result.transform) {
+      const patch = result.transform(ctx({ body }));
+      expect((patch.body as { ssn: string }).ssn).toBe("[REDACTED]");
+      expect((patch.body as { name: string }).name).toBe("Alice");
+    }
+  });
+
+  it("supports dot-notation for nested fields", () => {
+    const policy = redact(["user.ssn"]);
+    const body = { user: { name: "Bob", ssn: "123-45-6789" } };
+    const result = policy.evaluate(ctx({ body }));
+    if (result.allow && result.transform) {
+      const patch = result.transform(ctx({ body }));
+      const user = (patch.body as { user: { ssn: string; name: string } }).user;
+      expect(user.ssn).toBe("[REDACTED]");
+      expect(user.name).toBe("Bob");
+    }
+  });
+
+  it("only applies to specified providers", () => {
+    const policy = redact(["ssn"], ["openai"]);
+    const body = { ssn: "123-45-6789" };
+    const result = policy.evaluate(ctx({ provider: "stripe", body }));
+    expect(result.allow).toBe(true);
+    if (result.allow) expect(result.transform).toBeUndefined();
+  });
+
+  it("passes through when body is undefined", () => {
+    const policy = redact(["ssn"]);
+    const result = policy.evaluate(ctx());
+    expect(result.allow).toBe(true);
+    if (result.allow) expect(result.transform).toBeUndefined();
+  });
+});
+
+describe("requireFields", () => {
+  it("allows when all required fields are present", () => {
+    const policy = requireFields(["tenantId", "userId"]);
+    expect(
+      policy.evaluate(ctx({ body: { tenantId: "t1", userId: "u1" } })).allow,
+    ).toBe(true);
+  });
+
+  it("blocks when a required field is missing", () => {
+    const policy = requireFields(["tenantId"]);
+    const result = policy.evaluate(ctx({ body: { userId: "u1" } }));
+    expect(result.allow).toBe(false);
+    if (!result.allow) expect(result.reason).toContain("tenantId");
+  });
+
+  it("blocks when body is null", () => {
+    const policy = requireFields(["tenantId"]);
+    const result = policy.evaluate(ctx({ body: null }));
+    expect(result.allow).toBe(false);
+  });
+
+  it("blocks when field is explicitly null", () => {
+    const policy = requireFields(["tenantId"]);
+    const result = policy.evaluate(ctx({ body: { tenantId: null } }));
+    expect(result.allow).toBe(false);
+  });
+
+  it("skips check for non-targeted providers", () => {
+    const policy = requireFields(["tenantId"], ["openai"]);
+    expect(policy.evaluate(ctx({ provider: "stripe", body: {} })).allow).toBe(true);
+  });
+});
+
+describe("denyCountries", () => {
+  it("blocks requests matching denied country code", () => {
+    const policy = denyCountries(["KP", "IR"]);
+    const result = policy.evaluate(ctx({ body: { country: "KP" } }));
+    expect(result.allow).toBe(false);
+    if (!result.allow) expect(result.reason).toContain("KP");
+  });
+
+  it("is case-insensitive", () => {
+    const policy = denyCountries(["KP"]);
+    const result = policy.evaluate(ctx({ body: { country: "kp" } }));
+    expect(result.allow).toBe(false);
+  });
+
+  it("allows non-denied countries", () => {
+    const policy = denyCountries(["KP"]);
+    expect(policy.evaluate(ctx({ body: { country: "IN" } })).allow).toBe(true);
+  });
+
+  it("checks country_code field as well", () => {
+    const policy = denyCountries(["IR"]);
+    const result = policy.evaluate(ctx({ body: { country_code: "IR" } }));
+    expect(result.allow).toBe(false);
+  });
+
+  it("supports custom field name", () => {
+    const policy = denyCountries(["KP"], "shipping_country");
+    const result = policy.evaluate(ctx({ body: { shipping_country: "KP" } }));
+    expect(result.allow).toBe(false);
+  });
+
+  it("allows when body has no country field", () => {
+    const policy = denyCountries(["KP"]);
+    expect(policy.evaluate(ctx({ body: { name: "Alice" } })).allow).toBe(true);
   });
 });

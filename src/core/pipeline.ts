@@ -133,7 +133,7 @@ export class RequestPipeline {
     this.config.onRawRequest?.(requestId, endpoint, method, options);
 
     if (this.config.policies?.length) {
-      const ctx: PolicyContext = { provider: this.config.provider, endpoint, method };
+      let ctx: PolicyContext = { provider: this.config.provider, endpoint, method };
       if (options.body !== undefined) (ctx as { body?: unknown }).body = options.body;
       if (options.headers !== undefined)
         (ctx as { headers?: Record<string, string> }).headers = options.headers;
@@ -149,6 +149,23 @@ export class RequestPipeline {
             false,
             requestId,
           );
+        }
+        if (decision.transform !== undefined) {
+          const patch = decision.transform(ctx);
+          const updated = { ...options };
+          if (patch.body !== undefined) {
+            updated.body = patch.body;
+            ctx = { ...ctx, body: patch.body };
+          }
+          if (patch.query !== undefined) {
+            updated.query = patch.query;
+            ctx = { ...ctx, query: patch.query };
+          }
+          if (patch.headers !== undefined) {
+            updated.headers = patch.headers;
+            ctx = { ...ctx, headers: patch.headers };
+          }
+          options = updated;
         }
       }
     }

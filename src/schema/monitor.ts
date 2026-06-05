@@ -1,6 +1,17 @@
 import type { Schema, SchemaDrift, SchemaMetadata, SchemaStorage } from "../core/types.js";
 import { DriftDetector } from "../validation/drift-detector.js";
 
+export interface SchemaReport {
+  provider: string;
+  endpoints: Array<{
+    endpoint: string;
+    version: string;
+    fieldCount: number;
+    schema: Schema;
+  }>;
+  generatedAt: string;
+}
+
 function inferSchema(value: unknown): Schema {
   if (Array.isArray(value)) {
     return { type: "array", items: value.length > 0 ? inferSchema(value[0]) : { type: "unknown" } };
@@ -44,5 +55,39 @@ export class SchemaMonitor {
 
   async list(provider: string): Promise<SchemaMetadata[]> {
     return this.storage.list(provider);
+  }
+
+  async diff(provider: string, endpoint: string, data: unknown): Promise<SchemaDrift[]> {
+    return this.check(provider, endpoint, data);
+  }
+
+  async report(provider: string): Promise<SchemaReport> {
+    const metadata = await this.storage.list(provider);
+    const endpoints = await Promise.all(
+      metadata.map(async (m) => {
+        const schema = await this.storage.load(provider, m.endpoint);
+        const fieldCount = schema?.type === "object" ? Object.keys(schema.properties ?? {}).length : 1;
+        return {
+          endpoint: m.endpoint,
+          version: m.version,
+          fieldCount,
+          schema: schema ?? { type: "unknown" as const },
+        };
+      }),
+    );
+    return { provider, endpoints, generatedAt: new Date().toISOString() };
+  }
+
+  async alert(
+    provider: string,
+    endpoint: string,
+    data: unknown,
+    callback: (drifts: SchemaDrift[], provider: string, endpoint: string) => void,
+  ): Promise<SchemaDrift[]> {
+    const drifts = await this.check(provider, endpoint, data);
+    if (drifts.length > 0) {
+      callback(drifts, provider, endpoint);
+    }
+    return drifts;
   }
 }

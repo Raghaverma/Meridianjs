@@ -238,4 +238,122 @@ describe("ServiceClient", () => {
       expect(called).toHaveBeenCalledWith(method, "/endpoint");
     });
   });
+
+  describe("weighted strategy", () => {
+    it("routes all traffic to single provider when others have zero weight", async () => {
+      const calls: number[] = [];
+      const clients = [0, 1].map((i) =>
+        makeClient(async () => {
+          calls.push(i);
+          return makeResponse();
+        }),
+      );
+      const svc = new ServiceClient(["a", "b"], clients, {
+        strategy: "weighted",
+        weights: { a: 1, b: 0 },
+      });
+      for (let i = 0; i < 10; i++) await svc.get("/test");
+      expect(calls.every((c) => c === 0)).toBe(true);
+    });
+
+    it("distributes traffic across providers with equal weights", async () => {
+      const calls: number[] = [];
+      const clients = [0, 1].map((i) =>
+        makeClient(async () => {
+          calls.push(i);
+          return makeResponse();
+        }),
+      );
+      const svc = new ServiceClient(["a", "b"], clients, {
+        strategy: "weighted",
+        weights: { a: 50, b: 50 },
+      });
+      for (let i = 0; i < 100; i++) await svc.get("/test");
+      const countA = calls.filter((c) => c === 0).length;
+      const countB = calls.filter((c) => c === 1).length;
+      expect(countA).toBeGreaterThan(20);
+      expect(countB).toBeGreaterThan(20);
+    });
+
+    it("fails over from weighted primary to secondary on error", async () => {
+      const svc = new ServiceClient(
+        ["heavy", "light"],
+        [failClient("network"), successClient({ ok: true })],
+        { strategy: "weighted", weights: { heavy: 100, light: 1 } },
+      );
+      const r = await svc.get("/test");
+      expect((r.data as { ok: boolean }).ok).toBe(true);
+    });
+  });
+
+  describe("geo strategy", () => {
+    it("routes to region-preferred provider when MERIDIAN_REGION is set", async () => {
+      const originalEnv = process.env["MERIDIAN_REGION"];
+      process.env["MERIDIAN_REGION"] = "ap-south-1";
+      const calls: number[] = [];
+      const clients = [0, 1].map((i) =>
+        makeClient(async () => {
+          calls.push(i);
+          return makeResponse();
+        }),
+      );
+      const svc = new ServiceClient(["stripe", "razorpay"], clients, {
+        strategy: "geo",
+        regions: { "ap-south-1": ["razorpay"], "us-east-1": ["stripe"] },
+      });
+      await svc.get("/test");
+      expect(calls[0]).toBe(1); // razorpay is at index 1
+      process.env["MERIDIAN_REGION"] = originalEnv;
+    });
+
+    it("falls back to index 0 when no region configured", async () => {
+      delete process.env["MERIDIAN_REGION"];
+      const calls: number[] = [];
+      const clients = [0, 1].map((i) =>
+        makeClient(async () => {
+          calls.push(i);
+          return makeResponse();
+        }),
+      );
+      const svc = new ServiceClient(["a", "b"], clients, {
+        strategy: "geo",
+        regions: {},
+      });
+      await svc.get("/test");
+      expect(calls[0]).toBe(0);
+    });
+
+    it("uses defaultRegion when MERIDIAN_REGION env not set", async () => {
+      delete process.env["MERIDIAN_REGION"];
+      const calls: number[] = [];
+      const clients = [0, 1].map((i) =>
+        makeClient(async () => {
+          calls.push(i);
+          return makeResponse();
+        }),
+      );
+      const svc = new ServiceClient(["stripe", "razorpay"], clients, {
+        strategy: "geo",
+        regions: { "ap-south-1": ["razorpay"] },
+        defaultRegion: "ap-south-1",
+      });
+      await svc.get("/test");
+      expect(calls[0]).toBe(1); // razorpay
+    });
+
+    it("fails over to non-region provider when region primary fails", async () => {
+      process.env["MERIDIAN_REGION"] = "ap-south-1";
+      const svc = new ServiceClient(
+        ["razorpay", "stripe"],
+        [failClient("network"), successClient({ fallback: true })],
+        {
+          strategy: "geo",
+          regions: { "ap-south-1": ["razorpay"] },
+        },
+      );
+      const r = await svc.get("/test");
+      expect((r.data as { fallback: boolean }).fallback).toBe(true);
+      delete process.env["MERIDIAN_REGION"];
+    });
+  });
 });

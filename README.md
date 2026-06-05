@@ -5,7 +5,8 @@
 **Integration Reliability SDK**
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
-[![tests](https://img.shields.io/badge/tests-1568%20passing-brightgreen)](https://vitest.dev)
+[![version](https://img.shields.io/badge/version-0.2.5-blue)](CHANGELOG.md)
+[![tests](https://img.shields.io/badge/tests-1602%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-39-blueviolet)](#providers)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
@@ -104,7 +105,15 @@ sequenceDiagram
     Meridian-->>App: result (meta.provider = "anthropic")
 ```
 
-**Routing strategies:** `failover` · `round-robin` · `lowest-latency` · `cheapest` · `highest-success-rate`
+**Routing strategies:** `failover` · `round-robin` · `lowest-latency` · `cheapest` · `highest-success-rate` · `weighted` · `geo`
+
+```typescript
+// weighted: 70% Stripe, 30% Razorpay
+payments: { providers: ["stripe", "razorpay"], strategy: "weighted", weights: { stripe: 70, razorpay: 30 } }
+
+// geo: route by region (MERIDIAN_REGION env var)
+payments: { providers: ["razorpay", "stripe"], strategy: "geo", regions: { "ap-south-1": ["razorpay"], "us-east-1": ["stripe"] } }
+```
 
 ---
 
@@ -130,12 +139,15 @@ meridian.health()
 Runs before every request. No network round-trip on block.
 
 ```typescript
-import { blockPII, allowedProviders, readOnly, customPolicy } from "meridianjs";
+import { blockPII, redact, requireFields, denyCountries, allowedProviders, readOnly, customPolicy } from "meridianjs";
 
 policies: [
   blockPII(["openai"]),                    // blocks credit cards, SSNs, emails, Aadhaar, PAN
-  allowedProviders(["openai", "stripe"]),   // whitelist
-  readOnly(["github"]),                     // no writes
+  redact(["user.ssn", "card.number"]),     // redacts fields in-place — request still goes through
+  requireFields(["tenantId"]),             // blocks if required fields missing
+  denyCountries(["KP", "IR"]),            // blocks by ISO 3166-1 country code
+  allowedProviders(["openai", "stripe"]),  // provider whitelist
+  readOnly(["github"]),                    // no writes
   customPolicy("require-tenant", (ctx) =>
     "tenantId" in (ctx.body as object)
       ? { allow: true }
@@ -182,6 +194,13 @@ await meridian.schema.snapshot("stripe", "/v1/customers", response.data);
 
 const drifts = await meridian.schema.check("stripe", "/v1/customers", laterResponse.data);
 // [{ type: "FIELD_REMOVED", field: "customer_name", severity: "ERROR" }]
+
+await meridian.schema.alert("stripe", "/v1/customers", newData, (drifts, provider, endpoint) => {
+  pagerDuty.trigger(`Schema drift on ${provider}${endpoint}`);
+});
+
+const report = await meridian.schema.report("stripe");
+// { provider: "stripe", endpoints: [{ endpoint: "/v1/customers", fieldCount: 12, version: "..." }] }
 ```
 
 ---

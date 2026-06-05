@@ -149,6 +149,7 @@ export type { RequestRecording } from "./debug/index.js";
 
 // Schema drift monitor
 export { SchemaMonitor } from "./schema/index.js";
+export type { SchemaReport } from "./schema/monitor.js";
 
 // Adapter generator (programmatic API)
 export { generate } from "./generator/index.js";
@@ -162,6 +163,9 @@ export {
   blockedProviders,
   readOnly,
   customPolicy,
+  redact,
+  requireFields,
+  denyCountries,
 } from "./policies/index.js";
 
 // Multi-provider transactions

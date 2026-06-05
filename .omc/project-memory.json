@@ -33,7 +33,7 @@
   },
   "build": {
     "buildCommand": "npm run build 2>&1 | tail -3 && node dist/generator/cli.js generate --provider ci-generated --base-url https://api.ci.test --output src/providers/ci-generated 2>&1 && npm run typecheck 2>&1 && npm test -- --run src/providers/ci-generated/adapter.test.ts 2>&1 | tail -8",
-    "testCommand": "rm -rf /Users/mac/Desktop/Raghav/Meridianjs/src/providers/ci-generated && npm test -- --run 2>&1 | tail -5",
+    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -5",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -134,14 +134,32 @@
   "hotPaths": [
     {
       "path": "src/index.ts",
-      "accessCount": 19,
-      "lastAccessed": 1780516527647,
+      "accessCount": 20,
+      "lastAccessed": 1780596741643,
       "type": "file"
     },
     {
       "path": "src/core/pipeline.ts",
+      "accessCount": 13,
+      "lastAccessed": 1780596541415,
+      "type": "file"
+    },
+    {
+      "path": "src/core/types.ts",
+      "accessCount": 13,
+      "lastAccessed": 1780625639517,
+      "type": "file"
+    },
+    {
+      "path": "README.md",
+      "accessCount": 12,
+      "lastAccessed": 1780625646779,
+      "type": "file"
+    },
+    {
+      "path": "src/services/service-client.ts",
       "accessCount": 11,
-      "lastAccessed": 1780516390757,
+      "lastAccessed": 1780630585894,
       "type": "file"
     },
     {
@@ -151,27 +169,45 @@
       "type": "file"
     },
     {
-      "path": "src/core/types.ts",
-      "accessCount": 8,
-      "lastAccessed": 1780519290967,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 7,
-      "lastAccessed": 1780521197811,
-      "type": "file"
-    },
-    {
       "path": "src/public.ts",
+      "accessCount": 8,
+      "lastAccessed": 1780596634290,
+      "type": "file"
+    },
+    {
+      "path": "src/schema/monitor.ts",
+      "accessCount": 7,
+      "lastAccessed": 1780596915490,
+      "type": "file"
+    },
+    {
+      "path": "src/services/service-client.test.ts",
       "accessCount": 5,
-      "lastAccessed": 1780516512027,
+      "lastAccessed": 1780625438969,
+      "type": "file"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "accessCount": 5,
+      "lastAccessed": 1780625591783,
       "type": "file"
     },
     {
       "path": "package.json",
       "accessCount": 4,
       "lastAccessed": 1780520275318,
+      "type": "file"
+    },
+    {
+      "path": "src/policies/builtin.test.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780625380956,
+      "type": "file"
+    },
+    {
+      "path": "src/schema/monitor.test.ts",
+      "accessCount": 4,
+      "lastAccessed": 1780625406741,
       "type": "file"
     },
     {
@@ -187,21 +223,15 @@
       "type": "file"
     },
     {
-      "path": "src/services/service-client.ts",
+      "path": "src/policies/builtin.ts",
       "accessCount": 3,
-      "lastAccessed": 1780516469279,
+      "lastAccessed": 1780596608180,
       "type": "file"
     },
     {
-      "path": "CHANGELOG.md",
+      "path": "docs/communications/index.md",
       "accessCount": 3,
-      "lastAccessed": 1780519296625,
-      "type": "file"
-    },
-    {
-      "path": "src/schema/monitor.ts",
-      "accessCount": 2,
-      "lastAccessed": 1780516016957,
+      "lastAccessed": 1780596874535,
       "type": "file"
     },
     {
@@ -214,6 +244,12 @@
       "path": "src/generator/templates.ts",
       "accessCount": 2,
       "lastAccessed": 1780520802393,
+      "type": "file"
+    },
+    {
+      "path": "src/policies/index.ts",
+      "accessCount": 2,
+      "lastAccessed": 1780596643420,
       "type": "file"
     },
     {
@@ -307,18 +343,6 @@
       "type": "file"
     },
     {
-      "path": "src/policies/builtin.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780516407871,
-      "type": "file"
-    },
-    {
-      "path": "src/policies/index.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780516408903,
-      "type": "file"
-    },
-    {
       "path": "src/transactions/saga.ts",
       "accessCount": 1,
       "lastAccessed": 1780516417894,
@@ -337,12 +361,6 @@
       "type": "file"
     },
     {
-      "path": "src/services/service-client.test.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780518217176,
-      "type": "file"
-    },
-    {
       "path": "src/analytics/collector.test.ts",
       "accessCount": 1,
       "lastAccessed": 1780518234479,
@@ -355,21 +373,9 @@
       "type": "file"
     },
     {
-      "path": "src/policies/builtin.test.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780518274865,
-      "type": "file"
-    },
-    {
       "path": "src/transactions/saga.test.ts",
       "accessCount": 1,
       "lastAccessed": 1780518294486,
-      "type": "file"
-    },
-    {
-      "path": "src/schema/monitor.test.ts",
-      "accessCount": 1,
-      "lastAccessed": 1780518308019,
       "type": "file"
     },
     {
@@ -400,6 +406,30 @@
       "path": "src/core/normalizer.ts",
       "accessCount": 1,
       "lastAccessed": 1780520788882,
+      "type": "file"
+    },
+    {
+      "path": "docs/payments/index.md",
+      "accessCount": 1,
+      "lastAccessed": 1780596722194,
+      "type": "file"
+    },
+    {
+      "path": "docs/llms/index.md",
+      "accessCount": 1,
+      "lastAccessed": 1780596740533,
+      "type": "file"
+    },
+    {
+      "path": "src/webhooks/verifier.ts",
+      "accessCount": 1,
+      "lastAccessed": 1780596742044,
+      "type": "file"
+    },
+    {
+      "path": "examples/nextjs-openai-failover/README.md",
+      "accessCount": 1,
+      "lastAccessed": 1780596764000,
       "type": "file"
     }
   ],
