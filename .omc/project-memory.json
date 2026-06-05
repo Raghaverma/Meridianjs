@@ -33,7 +33,7 @@
   },
   "build": {
     "buildCommand": "npm run build 2>&1 | tail -3 && node dist/generator/cli.js generate --provider ci-generated --base-url https://api.ci.test --output src/providers/ci-generated 2>&1 && npm run typecheck 2>&1 && npm test -- --run src/providers/ci-generated/adapter.test.ts 2>&1 | tail -8",
-    "testCommand": "npm run typecheck 2>&1 && npm test -- --run 2>&1 | tail -5",
+    "testCommand": "npm run lint 2>&1 | tail -4 && npm test -- --run 2>&1 | tail -5",
     "lintCommand": "npm run lint",
     "devCommand": null,
     "scripts": {
@@ -140,8 +140,8 @@
     },
     {
       "path": "src/core/pipeline.ts",
-      "accessCount": 14,
-      "lastAccessed": 1780630780380,
+      "accessCount": 15,
+      "lastAccessed": 1780630814470,
       "type": "file"
     },
     {
@@ -158,8 +158,14 @@
     },
     {
       "path": "src/services/service-client.ts",
-      "accessCount": 11,
-      "lastAccessed": 1780630585894,
+      "accessCount": 12,
+      "lastAccessed": 1780630825822,
+      "type": "file"
+    },
+    {
+      "path": "src/services/service-client.test.ts",
+      "accessCount": 9,
+      "lastAccessed": 1780630867568,
       "type": "file"
     },
     {
@@ -178,12 +184,6 @@
       "path": "src/schema/monitor.ts",
       "accessCount": 7,
       "lastAccessed": 1780596915490,
-      "type": "file"
-    },
-    {
-      "path": "src/services/service-client.test.ts",
-      "accessCount": 6,
-      "lastAccessed": 1780630781227,
       "type": "file"
     },
     {

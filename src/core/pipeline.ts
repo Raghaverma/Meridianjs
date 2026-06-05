@@ -165,7 +165,7 @@ export class RequestPipeline {
             updated.headers = patch.headers;
             ctx = { ...ctx, headers: patch.headers };
           }
-          options = updated;
+          Object.assign(options, updated);
         }
       }
     }

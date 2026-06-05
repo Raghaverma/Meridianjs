@@ -9,4 +9,4 @@ coverage/
 *.tsbuildinfo
 .claude/
 *.tgz
-
+*.omc/

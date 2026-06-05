@@ -288,8 +288,8 @@ describe("ServiceClient", () => {
 
   describe("geo strategy", () => {
     it("routes to region-preferred provider when MERIDIAN_REGION is set", async () => {
-      const originalEnv = process.env["MERIDIAN_REGION"];
-      process.env["MERIDIAN_REGION"] = "ap-south-1";
+      const originalEnv = process.env.MERIDIAN_REGION;
+      process.env.MERIDIAN_REGION = "ap-south-1";
       const calls: number[] = [];
       const clients = [0, 1].map((i) =>
         makeClient(async () => {
@@ -303,11 +303,11 @@ describe("ServiceClient", () => {
       });
       await svc.get("/test");
       expect(calls[0]).toBe(1); // razorpay is at index 1
-      process.env["MERIDIAN_REGION"] = originalEnv;
+      process.env.MERIDIAN_REGION = originalEnv;
     });
 
     it("falls back to index 0 when no region configured", async () => {
-      delete process.env["MERIDIAN_REGION"];
+      Reflect.deleteProperty(process.env, "MERIDIAN_REGION");
       const calls: number[] = [];
       const clients = [0, 1].map((i) =>
         makeClient(async () => {
@@ -324,7 +324,7 @@ describe("ServiceClient", () => {
     });
 
     it("uses defaultRegion when MERIDIAN_REGION env not set", async () => {
-      delete process.env["MERIDIAN_REGION"];
+      Reflect.deleteProperty(process.env, "MERIDIAN_REGION");
       const calls: number[] = [];
       const clients = [0, 1].map((i) =>
         makeClient(async () => {
@@ -342,7 +342,7 @@ describe("ServiceClient", () => {
     });
 
     it("fails over to non-region provider when region primary fails", async () => {
-      process.env["MERIDIAN_REGION"] = "ap-south-1";
+      process.env.MERIDIAN_REGION = "ap-south-1";
       const svc = new ServiceClient(
         ["razorpay", "stripe"],
         [failClient("network"), successClient({ fallback: true })],
@@ -353,7 +353,7 @@ describe("ServiceClient", () => {
       );
       const r = await svc.get("/test");
       expect((r.data as { fallback: boolean }).fallback).toBe(true);
-      delete process.env["MERIDIAN_REGION"];
+      Reflect.deleteProperty(process.env, "MERIDIAN_REGION");
     });
   });
 });

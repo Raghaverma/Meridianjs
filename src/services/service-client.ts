@@ -271,7 +271,7 @@ export class ServiceClient {
   }
 
   private geoIndex(): number {
-    const region = process.env["MERIDIAN_REGION"] ?? this.defaultRegion;
+    const region = process.env.MERIDIAN_REGION ?? this.defaultRegion;
     if (region) {
       const preferred = this.regions[region];
       if (preferred && preferred.length > 0) {
@@ -283,7 +283,7 @@ export class ServiceClient {
   }
 
   private geoFailoverOrder(): number[] {
-    const region = process.env["MERIDIAN_REGION"] ?? this.defaultRegion;
+    const region = process.env.MERIDIAN_REGION ?? this.defaultRegion;
     if (region) {
       const preferred = (this.regions[region] ?? [])
         .map((name) => this.providerNames.indexOf(name))

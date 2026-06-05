@@ -66,7 +66,8 @@ export class SchemaMonitor {
     const endpoints = await Promise.all(
       metadata.map(async (m) => {
         const schema = await this.storage.load(provider, m.endpoint);
-        const fieldCount = schema?.type === "object" ? Object.keys(schema.properties ?? {}).length : 1;
+        const fieldCount =
+          schema?.type === "object" ? Object.keys(schema.properties ?? {}).length : 1;
         return {
           endpoint: m.endpoint,
           version: m.version,
