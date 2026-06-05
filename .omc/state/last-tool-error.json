@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"npm run typecheck 2>&1\",\"description\":\"Run typecheck to see actual error\"}",
-  "error": "Exit code 2\n\n> meridianjs@0.2.5 typecheck\n> tsc --noEmit\n\nsrc/services/service-client.ts(1,1): error TS1435: Unknown keyword or identifier. Did you mean 'import'?\nsrc/services/service-client.ts(1,14): error TS2457: Type alias name cannot be 'type'.\nsrc/services/service-client.ts(1,30): error TS1434: Unexpected keyword or identifier.",
-  "timestamp": "2026-06-05T03:36:17.909Z",
-  "retry_count": 1
-}

@@ -10,3 +10,4 @@ coverage/
 .claude/
 *.tgz
 *.omc/
+.omc/
