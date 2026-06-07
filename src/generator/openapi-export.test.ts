@@ -26,7 +26,11 @@ function report(provider: string): SchemaReport {
         endpoint: "/v1/charges/{id}",
         version: "2026-01-01T00:00:00.000Z",
         fieldCount: 1,
-        schema: { type: "object", properties: { amount: { type: "number" } }, required: ["amount"] },
+        schema: {
+          type: "object",
+          properties: { amount: { type: "number" } },
+          required: ["amount"],
+        },
       },
     ],
   };
@@ -117,7 +121,12 @@ describe("generateOpenApiSpec", () => {
 
   it("handles providers with no observed endpoints", () => {
     const spec = generateOpenApiSpec({
-      providers: [{ name: "empty", report: { provider: "empty", endpoints: [], generatedAt: "2026-01-01T00:00:00.000Z" } }],
+      providers: [
+        {
+          name: "empty",
+          report: { provider: "empty", endpoints: [], generatedAt: "2026-01-01T00:00:00.000Z" },
+        },
+      ],
     });
     expect(spec.tags).toEqual([{ name: "empty" }]);
     expect(Object.keys(spec.paths)).toHaveLength(0);

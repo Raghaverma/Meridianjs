@@ -72,14 +72,7 @@ export class DatadogAdapter implements ProviderAdapter {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
     const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, paginationStrategy);
-    return ResponseNormalizer.normalize(
-      raw,
-      "datadog",
-      rateLimitInfo,
-      paginationInfo,
-      [],
-      "1.0.0",
-    );
+    return ResponseNormalizer.normalize(raw, "datadog", rateLimitInfo, paginationInfo, [], "1.0.0");
   }
 
   parseError(raw: unknown): MeridianError {

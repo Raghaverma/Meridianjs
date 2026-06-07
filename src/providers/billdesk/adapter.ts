@@ -68,7 +68,9 @@ export class BilldeskAdapter implements ProviderAdapter {
       Accept: JOSE_CONTENT_TYPE,
       "User-Agent": `Meridian-SDK/${SDK_VERSION}`,
       "BD-Timestamp": String(Math.floor(Date.now() / 1000)),
-      "BD-Traceid": (options.idempotencyKey ?? randomUUID()).replace(/[^a-zA-Z0-9]/g, "").slice(0, 35),
+      "BD-Traceid": (options.idempotencyKey ?? randomUUID())
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .slice(0, 35),
       ...options.headers,
     };
 
@@ -123,7 +125,10 @@ export class BilldeskAdapter implements ProviderAdapter {
     const effectiveRaw: RawResponse = { ...raw, body };
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
     const paginationStrategy = this.paginationStrategy();
-    const paginationInfo = ResponseNormalizer.extractPaginationInfo(effectiveRaw, paginationStrategy);
+    const paginationInfo = ResponseNormalizer.extractPaginationInfo(
+      effectiveRaw,
+      paginationStrategy,
+    );
     return ResponseNormalizer.normalize(
       effectiveRaw,
       "billdesk",
@@ -181,7 +186,9 @@ export class BilldeskAdapter implements ProviderAdapter {
         body = decoded as BilldeskErrorBody;
       }
     }
-    const errorBody = (typeof body === "object" ? body : undefined) as BilldeskErrorBody | undefined;
+    const errorBody = (typeof body === "object" ? body : undefined) as
+      | BilldeskErrorBody
+      | undefined;
     const errorMessage =
       errorBody?.message ?? errorBody?.transaction_error_desc ?? errorBody?.error_code;
 

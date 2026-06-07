@@ -49,7 +49,9 @@ function canonicalUri(pathname: string): string {
 function canonicalQueryString(url: URL): string {
   const params: Array<[string, string]> = [];
   url.searchParams.forEach((value, key) => params.push([key, value]));
-  params.sort(([ak, av], [bk, bv]) => (ak === bk ? (av < bv ? -1 : av > bv ? 1 : 0) : ak < bk ? -1 : 1));
+  params.sort(([ak, av], [bk, bv]) =>
+    ak === bk ? (av < bv ? -1 : av > bv ? 1 : 0) : ak < bk ? -1 : 1,
+  );
   return params.map(([k, v]) => `${uriEncode(k)}=${uriEncode(v)}`).join("&");
 }
 
@@ -61,7 +63,12 @@ function hmac(key: Buffer | string, data: string): Buffer {
   return createHmac("sha256", key).update(data, "utf-8").digest();
 }
 
-function signingKey(secretAccessKey: string, dateStamp: string, region: string, service: string): Buffer {
+function signingKey(
+  secretAccessKey: string,
+  dateStamp: string,
+  region: string,
+  service: string,
+): Buffer {
   const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
   const kRegion = hmac(kDate, region);
   const kService = hmac(kRegion, service);

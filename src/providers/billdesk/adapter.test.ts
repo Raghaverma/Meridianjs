@@ -37,9 +37,7 @@ describe("BilldeskAdapter - Contract Tests", () => {
       expect(payload).toEqual({ mercid: "merchant1", orderid: "ORD123" });
 
       const expectedSig = base64url(
-        createHmac("sha256", "s3cr3t")
-          .update(`${parts[0]}.${parts[1]}`)
-          .digest(),
+        createHmac("sha256", "s3cr3t").update(`${parts[0]}.${parts[1]}`).digest(),
       );
       expect(parts[2]).toBe(expectedSig);
     });
@@ -99,7 +97,12 @@ describe("BilldeskAdapter - Contract Tests", () => {
       const error = adapter.parseError({
         status: 401,
         headers: new Headers(),
-        body: { status: 401, error_type: "auth_error", error_code: "AUTH001", message: "Bad signature" },
+        body: {
+          status: 401,
+          error_type: "auth_error",
+          error_code: "AUTH001",
+          message: "Bad signature",
+        },
       });
       expect(error.category).toBe("auth");
       expect(error.retryable).toBe(false);
@@ -110,7 +113,12 @@ describe("BilldeskAdapter - Contract Tests", () => {
       const error = adapter.parseError({
         status: 422,
         headers: new Headers(),
-        body: { status: 422, error_type: "api_validation_error", error_code: "AUAVE0011", message: "Invalid mercid" },
+        body: {
+          status: 422,
+          error_type: "api_validation_error",
+          error_code: "AUAVE0011",
+          message: "Invalid mercid",
+        },
       });
       expect(error.category).toBe("validation");
     });
@@ -203,7 +211,9 @@ describe("BilldeskAdapter - Contract Tests", () => {
       const encodedHeader = base64url(JSON.stringify({ alg: "HS256" }));
       const encodedPayload = base64url(JSON.stringify(payload));
       const signingInput = `${encodedHeader}.${encodedPayload}`;
-      const signature = base64url(createHmac("sha256", "real_secret").update(signingInput).digest());
+      const signature = base64url(
+        createHmac("sha256", "real_secret").update(signingInput).digest(),
+      );
       const jws = `${signingInput}.${signature}`;
 
       expect(adapter.verifyWebhook(jws, jws, "wrong_secret")).toBe(false);

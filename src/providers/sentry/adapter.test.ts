@@ -72,15 +72,15 @@ describe("SentryAdapter - Contract Tests", () => {
     });
 
     it("should map 403 to auth category", () => {
-      expect(
-        adapter.parseError({ status: 403, headers: new Headers(), body: {} }).category,
-      ).toBe("auth");
+      expect(adapter.parseError({ status: 403, headers: new Headers(), body: {} }).category).toBe(
+        "auth",
+      );
     });
 
     it("should map 404 to validation category", () => {
-      expect(
-        adapter.parseError({ status: 404, headers: new Headers(), body: {} }).category,
-      ).toBe("validation");
+      expect(adapter.parseError({ status: 404, headers: new Headers(), body: {} }).category).toBe(
+        "validation",
+      );
     });
 
     it("should map 429 to rate_limit category and extract Retry-After", () => {
@@ -200,7 +200,11 @@ describe("SentryAdapter - Contract Tests", () => {
 
     it("should build the next request using the cursor query param", () => {
       const strategy = adapter.paginationStrategy();
-      const next = strategy.buildNextRequest("organizations/acme/issues/", { method: "GET" }, "100:0:0");
+      const next = strategy.buildNextRequest(
+        "organizations/acme/issues/",
+        { method: "GET" },
+        "100:0:0",
+      );
       expect(next.options.query?.cursor).toBe("100:0:0");
     });
   });

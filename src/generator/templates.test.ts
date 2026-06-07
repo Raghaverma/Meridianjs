@@ -1,11 +1,6 @@
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import {
-  generateAdapter,
-  generateIndex,
-  generatePagination,
-  generateTest,
-} from "./templates.js";
+import { generateAdapter, generateIndex, generatePagination, generateTest } from "./templates.js";
 import type { GeneratorContext } from "./templates.js";
 
 function baseCtx(overrides: Partial<GeneratorContext> = {}): GeneratorContext {

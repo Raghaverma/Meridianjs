@@ -145,7 +145,7 @@ describe("ProviderClient.batch", () => {
 
     const requests = Array.from({ length: 6 }, (_, i) => ({
       method: "GET",
-      endpoint: `/slow/30`,
+      endpoint: "/slow/30",
     }));
 
     const results = await client.batch(requests, 2);

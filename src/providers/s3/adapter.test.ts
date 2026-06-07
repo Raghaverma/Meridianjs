@@ -131,7 +131,8 @@ describe("S3Adapter - Contract Tests", () => {
     });
 
     it("should map 503 SlowDown to rate_limit category", () => {
-      const slowDownXml = `<Error><Code>SlowDown</Code><Message>Please reduce your request rate</Message></Error>`;
+      const slowDownXml =
+        "<Error><Code>SlowDown</Code><Message>Please reduce your request rate</Message></Error>";
       const error = adapter.parseError({ status: 503, headers: new Headers(), body: slowDownXml });
       expect(error.category).toBe("rate_limit");
       expect(error.retryable).toBe(true);
@@ -144,9 +145,9 @@ describe("S3Adapter - Contract Tests", () => {
     });
 
     it("should map 400 to validation category", () => {
-      expect(
-        adapter.parseError({ status: 400, headers: new Headers(), body: "" }).category,
-      ).toBe("validation");
+      expect(adapter.parseError({ status: 400, headers: new Headers(), body: "" }).category).toBe(
+        "validation",
+      );
     });
 
     it("should map network errors to network category", () => {
@@ -224,7 +225,10 @@ describe("S3Adapter - Contract Tests", () => {
 
     it("should report no next page when not truncated", () => {
       const strategy = adapter.paginationStrategy();
-      const xml = LIST_OBJECTS_XML.replace("<IsTruncated>true</IsTruncated>", "<IsTruncated>false</IsTruncated>");
+      const xml = LIST_OBJECTS_XML.replace(
+        "<IsTruncated>true</IsTruncated>",
+        "<IsTruncated>false</IsTruncated>",
+      );
       const raw: RawResponse = { status: 200, headers: new Headers(), body: xml };
       expect(strategy.hasNext(raw)).toBe(false);
     });

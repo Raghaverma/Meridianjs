@@ -83,9 +83,11 @@ describe("createUpiDeepLink", () => {
   });
 
   it("throws for a non-finite amount", () => {
-    expect(() => createUpiDeepLink({ vpa: "merchant@upi", amount: Number.NaN })).toThrow(/positive finite/);
-    expect(() => createUpiDeepLink({ vpa: "merchant@upi", amount: Number.POSITIVE_INFINITY })).toThrow(
+    expect(() => createUpiDeepLink({ vpa: "merchant@upi", amount: Number.NaN })).toThrow(
       /positive finite/,
     );
+    expect(() =>
+      createUpiDeepLink({ vpa: "merchant@upi", amount: Number.POSITIVE_INFINITY }),
+    ).toThrow(/positive finite/);
   });
 });

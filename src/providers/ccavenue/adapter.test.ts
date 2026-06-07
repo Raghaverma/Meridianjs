@@ -25,7 +25,10 @@ describe("CcavenueAdapter - Contract Tests", () => {
 
   describe("buildRequest", () => {
     it("should encrypt the body into enc_request and add access_code/request_type/response_type", async () => {
-      const token = await adapter.authStrategy({ apiKey: "AVAP00000000", apiSecret: "workingkey123" });
+      const token = await adapter.authStrategy({
+        apiKey: "AVAP00000000",
+        apiSecret: "workingkey123",
+      });
       const built = adapter.buildRequest({
         endpoint: "/apis/servlet/DoWebTrans",
         options: { method: "GET", body: { command: "orderStatusTracker", order_no: "ORD123" } },
@@ -101,9 +104,9 @@ describe("CcavenueAdapter - Contract Tests", () => {
     });
 
     it("should map 404 to validation category", () => {
-      expect(
-        adapter.parseError({ status: 404, headers: new Headers(), body: {} }).category,
-      ).toBe("validation");
+      expect(adapter.parseError({ status: 404, headers: new Headers(), body: {} }).category).toBe(
+        "validation",
+      );
     });
 
     it("should map 429 to rate_limit category", () => {

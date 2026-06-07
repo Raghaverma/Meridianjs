@@ -51,10 +51,14 @@ export interface UpiDeepLinkOptions {
  */
 export function createUpiDeepLink(options: UpiDeepLinkOptions): string {
   if (!validateVpa(options.vpa)) {
-    throw new Error(`createUpiDeepLink: "${options.vpa}" is not a valid UPI VPA (expected handle@bank format)`);
+    throw new Error(
+      `createUpiDeepLink: "${options.vpa}" is not a valid UPI VPA (expected handle@bank format)`,
+    );
   }
   if (options.amount !== undefined && (!Number.isFinite(options.amount) || options.amount <= 0)) {
-    throw new Error(`createUpiDeepLink: amount must be a positive finite number, received ${options.amount}`);
+    throw new Error(
+      `createUpiDeepLink: amount must be a positive finite number, received ${options.amount}`,
+    );
   }
 
   const params: Array<[string, string]> = [

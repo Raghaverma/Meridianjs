@@ -230,9 +230,7 @@ export class SentryAdapter implements ProviderAdapter {
     return {
       limit: limit ? Number.parseInt(limit, 10) : 40,
       remaining: remaining ? Number.parseInt(remaining, 10) : 40,
-      reset: reset
-        ? new Date(Number.parseInt(reset, 10) * 1000)
-        : new Date(Date.now() + 60_000),
+      reset: reset ? new Date(Number.parseInt(reset, 10) * 1000) : new Date(Date.now() + 60_000),
     };
   }
 
