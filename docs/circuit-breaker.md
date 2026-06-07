@@ -29,6 +29,65 @@ The circuit breaker has three states:
 
 ---
 
+## The two-trigger algorithm
+
+`ProviderCircuitBreaker.shouldOpenCircuit()` has two independent triggers — either is sufficient to open the circuit:
+
+**Trigger 1 — Consecutive failure count**
+
+```typescript
+if (this.failures >= this.config.failureThreshold) return true;
+```
+
+Opens the circuit as soon as `failureThreshold` consecutive failures accumulate, regardless of total request volume. Useful for catching hard outages fast.
+
+**Trigger 2 — Rolling window error rate**
+
+```typescript
+const windowStart = Date.now() - this.config.rollingWindowMs;
+const recentInWindow = this.recentResults.filter(r => r.timestamp >= windowStart);
+if (recentInWindow.length < this.config.volumeThreshold) return false; // not enough data
+const errorRate = failuresInWindow / recentInWindow.length * 100;
+return errorRate >= this.config.errorThresholdPercentage;
+```
+
+Requires at least `volumeThreshold` requests in the window before the percentage check activates. This prevents a single failure on a cold provider from tripping the circuit.
+
+A **success** in the `CLOSED` state resets the consecutive failure counter to zero, but does not remove past failures from the rolling window. A provider that alternates success/failure can still trip via the error-rate trigger.
+
+## HALF_OPEN state machine
+
+When the cooldown expires (`Date.now() >= nextAttempt`), the next call transitions to `HALF_OPEN`. In this state:
+
+- Successes increment `this.successes`. Once `successThreshold` successes accumulate, the circuit closes and `failures` resets.
+- Any failure immediately reopens the circuit and sets a new `nextAttempt`.
+
+Only one provider is in `HALF_OPEN` at a time; the second probe runs only after the first probe returns. This prevents thundering-herd behaviour during recovery.
+
+## Position in the pipeline
+
+The circuit breaker wraps the innermost `fetch()` call, inside the retry loop:
+
+```
+rateLimiter.acquire()
+  └─ retryStrategy.execute(
+       └─ circuitBreaker.execute(
+            └─ fetch(builtRequest.url)
+         )
+     )
+```
+
+This means:
+- A circuit-open error **is counted as a retry attempt** if `maxRetries > 0` and the error is somehow retryable (it is not by default — `CircuitOpenError` has `retryable: false`).
+- The circuit breaker's failure count increases on **every** failed attempt, including retried ones. A retry loop that attempts 3 times on a dead provider will record 3 failures.
+- The service-layer failover sees the final `MeridianError` after all retries have been exhausted. If the circuit is `OPEN`, the error reaches the service layer after the first attempt (no retries), so failover is faster for a tripped circuit than for a slow timeout.
+
+## Fail-fast savings
+
+When the circuit is `OPEN`, `execute()` throws `CircuitOpenError` synchronously before calling `fetch()`. The benchmark shows this takes **< 1 ms** compared to the real upstream round-trip (25–500 ms for real network calls). For a provider that is down for 60 seconds with 1000 req/s of traffic, a closed circuit wastes ~60 000 network calls; an open circuit wastes 5 (the failures that tripped it) plus probe calls during recovery.
+
+---
+
 ## Configuration
 
 You can configure circuit breaker parameters globally or override them per provider.

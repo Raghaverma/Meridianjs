@@ -32,9 +32,12 @@
     "proxy": "node dist/proxy/cli.js",
     "proxy:build": "npm run build && npm run proxy",
     "example:swap": "vite-node examples/provider-swap/index.ts",
+    "example:reliability-lab": "npx vite-node examples/reliability-lab/index.ts",
     "test:contracts": "node scripts/test-contracts.mjs",
     "test:contracts:all": "node scripts/test-contracts.mjs",
-    "benchmark": "npx tsx benchmarks/pipeline-overhead.ts",
+    "benchmark": "MERIDIAN_BENCH_SUITE=1 npx vite-node benchmarks/index.ts",
+    "benchmark:reliability": "npx vite-node benchmarks/reliability.ts",
+    "benchmark:overhead": "npx vite-node benchmarks/pipeline-overhead.ts",
     "pkg:check": "npx publint && npx @arethetypeswrong/cli . --pack"
   },
   "bin": {

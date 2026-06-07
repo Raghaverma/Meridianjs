@@ -26,6 +26,7 @@ npm install meridianjs
 ## Contents
 
 - [Why Meridian Exists](#why-meridian-exists)
+- [Benchmarks](#benchmarks)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
 - [What Meridian Does](#what-meridian-does)
@@ -55,6 +56,28 @@ The two features that make it more than a wrapper:
 **Service abstraction** — your application calls `service("payments")`, not `provider("stripe")`. Meridian decides which provider handles the request. Your application is never coupled to a specific vendor.
 
 **Schema drift detection** — providers silently change their API responses. Meridian detects the change before it reaches production.
+
+---
+
+## Benchmarks
+
+Measured in-process against deterministic `MockAdapter`s (no network). "Raw SDK" = a single provider, no retry, no failover, no circuit breaker.
+
+| Scenario | Raw SDK | Meridian |
+|---|---|---|
+| OpenAI outage | ❌ Fail | ✅ Success |
+| Stripe 429 | ❌ Fail | ✅ Success |
+| Network timeout | ❌ Fail | ✅ Success |
+| Added latency | 0 ms | +0.14 ms |
+
+| Metric | Raw SDK | Meridian |
+|---|---|---|
+| Latency / call | 0.01 ms | 0.15 ms (+0.14 ms) |
+| Transient-failure recovery | ~60% | ~99.5% |
+| Recovers from dead primary | no | yes (100%) |
+| Wasted calls during outage | every call hits dead upstream | fail-fast in < 1 ms after 5 failures |
+
+Reproduce: `npm run benchmark` → writes [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md).
 
 ---
 
