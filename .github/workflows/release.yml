@@ -173,7 +173,7 @@ jobs:
           # Write to file to preserve newlines
           echo "$NOTES" > release-notes.txt
       - name: Create GitHub Release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
