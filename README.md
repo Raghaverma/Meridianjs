@@ -5,18 +5,38 @@
 **Integration Reliability SDK**
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
-[![version](https://img.shields.io/badge/version-0.2.5-blue)](CHANGELOG.md)
-[![tests](https://img.shields.io/badge/tests-1602%20passing-brightgreen)](https://vitest.dev)
-[![adapters](https://img.shields.io/badge/adapters-39-blueviolet)](#providers)
+[![version](https://img.shields.io/badge/version-0.2.7-blue)](CHANGELOG.md)
+[![tests](https://img.shields.io/badge/tests-1858%20passing-brightgreen)](https://vitest.dev)
+[![adapters](https://img.shields.io/badge/adapters-44-blueviolet)](#providers)
+[![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
-One interface for 39 APIs. Automatic failover. Built-in observability. Zero runtime dependencies.
+One interface for 44 APIs. Automatic failover. Built-in observability. Zero runtime dependencies.
 
 </div>
 
 ```bash
 npm install meridianjs
 ```
+
+> Requires **Node.js ≥ 18**. TypeScript-first, ships its own types, ESM-only.
+
+---
+
+## Contents
+
+- [Why Meridian Exists](#why-meridian-exists)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [What Meridian Does](#what-meridian-does)
+- [Provider Failover](#provider-failover)
+- [Observability](#observability)
+- [Policy Engine](#policy-engine)
+- [Transactions](#transactions)
+- [Schema Drift Detection](#schema-drift-detection)
+- [More Features](#more-features)
+- [Providers](#providers)
+- [Contributing](#contributing)
 
 ---
 
@@ -50,7 +70,7 @@ graph TD
     RT --> S[Stripe]
     RT --> O[OpenAI]
     RT --> R[Razorpay]
-    RT --> More[···36 more]
+    RT --> More[···41 more]
 ```
 
 ---
@@ -253,23 +273,31 @@ await meridian.provider("stripe")!.batch([{ method: "GET", endpoint: "/v1/custom
 
 // Webhook verification
 new StripeAdapter().verifyWebhook(req.rawBody, req.headers["stripe-signature"], secret);
+
+// UPI helpers (NPCI spec — no network call)
+import { validateVpa, createUpiDeepLink } from "meridianjs/upi";
+validateVpa("merchant@oksbi");                              // true
+createUpiDeepLink({ vpa: "merchant@oksbi", amount: 1000 }); // "upi://pay?pa=..."
 ```
+
+**Subpath exports:** `meridianjs` (core) · `meridianjs/contract` (test harness) · `meridianjs/upi` (UPI helpers)
 
 ---
 
 ## Providers
 
-39 adapters, each passing 19 contract invariants. `npm run test:contracts stripe`
+**44 adapters**, each passing the same 19 contract invariants (836 contract tests in total). Verify any one with `npm run test:contracts stripe`.
 
-| Category | Providers |
-|---|---|
-| **Payments** | Stripe · Razorpay · Cashfree · PayU · Juspay · Braintree · Adyen · Klarna · Mollie · PhonePe · Checkout.com |
-| **AI / LLM** | OpenAI · Anthropic · Gemini · Cohere · Mistral |
-| **Communications** | Twilio · SendGrid · Mailgun · Vonage · MSG91 · Exotel · Gupshup |
-| **KYC / Identity** | HyperVerge · Digio · Karza · IDfy · Setu · Decentro · Perfios |
-| **Tools & Infra** | GitHub · HubSpot · Supabase · Auth0 · Apollo |
-| **Logistics** | Shiprocket · Delhivery |
-| **Other** | MapMyIndia · Cleartax |
+| Category | Count | Providers |
+|---|---|---|
+| **Payments** | 13 | Stripe · Razorpay · Cashfree · PayU · Juspay · Braintree · Adyen · Klarna · Mollie · PhonePe · Checkout.com · BillDesk · CCAvenue |
+| **AI / LLM** | 5 | OpenAI · Anthropic · Gemini · Cohere · Mistral |
+| **Communications** | 7 | Twilio · SendGrid · Mailgun · Vonage · MSG91 · Exotel · Gupshup |
+| **KYC / Identity** | 7 | HyperVerge · Digio · Karza · IDfy · Setu · Decentro · Perfios |
+| **Tools & Infra** | 6 | GitHub · HubSpot · Supabase · Auth0 · Apollo · S3 |
+| **Observability** | 2 | Sentry · Datadog |
+| **Logistics** | 2 | Shiprocket · Delhivery |
+| **Other** | 2 | MapMyIndia · Cleartax |
 
 ---
 
