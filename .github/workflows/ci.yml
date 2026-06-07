@@ -10,11 +10,36 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# ─── Level 1: Fast gate ───────────────────────────────────────────────────────
+# Least privilege by default — no job needs write access to the repo.
+permissions:
+  contents: read
+
 jobs:
+# ─── Discover providers ───────────────────────────────────────────────────────
+# Derives the contract-test matrix from the BUILTIN_ADAPTER_CLASSES registry so
+# it can never drift: register an adapter and it is contract-tested automatically.
+  discover:
+    name: Discover Providers
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      providers: ${{ steps.list.outputs.providers }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: list
+        name: Build provider matrix from registry
+        run: |
+          echo "providers=$(node scripts/list-providers.mjs)" >> "$GITHUB_OUTPUT"
+          echo "Discovered $(node scripts/list-providers.mjs --pretty | wc -l) providers"
+
+# ─── Level 1: Fast gate ───────────────────────────────────────────────────────
   validate:
     name: Typecheck & Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,12 +48,14 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm run lint
+      # `biome ci` is the strict, write-free CI mode: lint + format + import order.
+      - run: npm run lint:ci
 
 # ─── Level 1: Unit tests across Node versions ────────────────────────────────
   unit-tests:
     name: Unit Tests — Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -43,10 +70,33 @@ jobs:
       # Covers routing, policy, transaction, analytics, debug, schema tests
       - run: npm test -- --run --reporter=verbose
 
+# ─── Level 1: Coverage gate ──────────────────────────────────────────────────
+# Thresholds live in vitest.config.ts and act as a no-regression ratchet.
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
 # ─── Level 1: Build ──────────────────────────────────────────────────────────
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [validate]
     steps:
       - uses: actions/checkout@v4
@@ -62,61 +112,16 @@ jobs:
           path: dist/
           retention-days: 1
 
-# ─── Level 2 & 3: Adapter contract tests — all 39 providers in parallel ──────
+# ─── Level 2 & 3: Adapter contract tests — every registered provider in parallel
   contract-tests:
     name: Contract — ${{ matrix.provider }}
     runs-on: ubuntu-latest
-    needs: [validate]
+    timeout-minutes: 10
+    needs: [validate, discover]
     strategy:
       fail-fast: false
       matrix:
-        provider:
-          # Payments
-          - stripe
-          - razorpay
-          - cashfree
-          - payu
-          - juspay
-          - braintree
-          - adyen
-          - klarna
-          - mollie
-          - phonepe
-          - checkout
-          # AI / LLM
-          - openai
-          - anthropic
-          - gemini
-          - cohere
-          - mistral
-          # Communications
-          - twilio
-          - sendgrid
-          - mailgun
-          - vonage
-          - msg91
-          - exotel
-          - gupshup
-          # KYC / Identity
-          - hyperverge
-          - digio
-          - karza
-          - idfy
-          - setu
-          - decentro
-          - perfios
-          # Developer / CRM / Auth
-          - github
-          - hubspot
-          - supabase
-          - auth0
-          # Logistics
-          - shiprocket
-          - delhivery
-          # Other
-          - mapmyindia
-          - cleartax
-          - apollo
+        provider: ${{ fromJSON(needs.discover.outputs.providers) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -131,6 +136,7 @@ jobs:
   generator-verify:
     name: Generator — Scaffold & Compile
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [build]
     steps:
       - uses: actions/checkout@v4
@@ -161,6 +167,7 @@ jobs:
   benchmarks:
     name: Benchmarks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [build]
     steps:
       - uses: actions/checkout@v4
@@ -193,6 +200,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -218,6 +226,7 @@ jobs:
   package-quality:
     name: Package Quality Gates
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [build]
     steps:
       - uses: actions/checkout@v4
@@ -238,15 +247,16 @@ jobs:
       - name: Verify package exports are importable
         run: node -e "import('./dist/public.js').then(m => { const keys = Object.keys(m); console.log(keys.length + ' exports found'); if (keys.length < 20) { console.error('Too few exports — build may be broken'); process.exit(1); } })"
       - name: publint — validate package.json exports
-        run: npx publint
+        run: npx publint --strict
       - name: are-the-types-wrong — validate TypeScript types
-        run: npx are-the-types-wrong . --pack || echo "Type warnings noted (non-blocking)"
+        run: npx @arethetypeswrong/cli . --pack
 
 # ─── Datadog synthetic tests (optional — runs if DD secrets configured) ───────
   datadog-synthetics:
     name: Datadog Synthetics
     needs: [unit-tests, contract-tests, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Check for Datadog credentials
@@ -268,3 +278,30 @@ jobs:
           api_key: ${{ secrets.DD_API_KEY }}
           app_key: ${{ secrets.DD_APP_KEY }}
           test_search_query: tag:e2e-tests
+
+# ─── Required status gate ─────────────────────────────────────────────────────
+# Single check to require in branch protection. Fails if ANY required job failed
+# or was cancelled, so new jobs are covered without editing branch protection.
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - discover
+      - validate
+      - unit-tests
+      - coverage
+      - build
+      - contract-tests
+      - generator-verify
+      - benchmarks
+      - security
+      - package-quality
+    steps:
+      - name: Fail if any required job did not succeed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          echo "::error::One or more required CI jobs failed or were cancelled."
+          exit 1
+      - run: echo "All required CI jobs passed."
