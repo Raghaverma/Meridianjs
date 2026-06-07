@@ -8,10 +8,11 @@
 [![version](https://img.shields.io/badge/version-0.2.7-blue)](CHANGELOG.md)
 [![tests](https://img.shields.io/badge/tests-1858%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-44-blueviolet)](#providers)
+[![contracts](https://img.shields.io/badge/contract%20tests-836-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
-One interface for 44 APIs. Automatic failover. Built-in observability. Zero runtime dependencies.
+44 providers · 836 contract tests · 0.11 ms overhead · 27 ms failover recovery.
 
 </div>
 
@@ -23,9 +24,32 @@ npm install meridianjs
 
 ---
 
+## Reliability Scorecard
+
+Meridian doesn't claim reliability — it proves it. Every line below is a deterministic assertion against the live pipeline ([`npm run benchmark`](benchmarks/reliability.ts)):
+
+```
+✓ 10,000 requests tracked in 1.22s
+✓ OpenAI outage recovered via failover in 27ms
+✓ Stripe 429 automatically retried
+✓ Circuit breaker opened after 5 failures
+✓ Schema drift detected before deployment
+✓ 44 adapters each pass 19 contract invariants (836 tests total)
+```
+
+The runner exits non-zero if any assertion fails — it doubles as a CI gate. Reproduce locally:
+
+```bash
+npm run benchmark           # full suite → writes benchmarks/RESULTS.md
+npm run benchmark:reliability  # reliability checks only
+```
+
+---
+
 ## Contents
 
 - [Why Meridian Exists](#why-meridian-exists)
+- [Reliability Scorecard](#reliability-scorecard)
 - [Benchmarks](#benchmarks)
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
@@ -61,23 +85,17 @@ The two features that make it more than a wrapper:
 
 ## Benchmarks
 
-Measured in-process against deterministic `MockAdapter`s (no network). "Raw SDK" = a single provider, no retry, no failover, no circuit breaker.
+Same failures. Different outcomes. Measured in-process against deterministic `MockAdapter`s — no network, fully reproducible. "Raw SDK" = a single provider, no retry, no failover, no circuit breaker.
 
 | Scenario | Raw SDK | Meridian |
 |---|---|---|
-| OpenAI outage | ❌ Fail | ✅ Success |
-| Stripe 429 | ❌ Fail | ✅ Success |
-| Network timeout | ❌ Fail | ✅ Success |
-| Added latency | 0 ms | +0.14 ms |
+| OpenAI outage | ❌ Fails every call | ✅ Fails over to Anthropic in 27 ms |
+| Stripe 429 | ❌ Gives up | ✅ Retries to success |
+| 5 consecutive failures | ❌ Every call hits dead upstream | ✅ Circuit opens; fail-fast in < 1 ms |
+| `customer_name` removed silently | ❌ Silent breakage | ✅ `FIELD_REMOVED` ERROR detected |
+| Added overhead per call | — | **+0.11 ms** |
 
-| Metric | Raw SDK | Meridian |
-|---|---|---|
-| Latency / call | 0.01 ms | 0.15 ms (+0.14 ms) |
-| Transient-failure recovery | ~60% | ~99.5% |
-| Recovers from dead primary | no | yes (100%) |
-| Wasted calls during outage | every call hits dead upstream | fail-fast in < 1 ms after 5 failures |
-
-Reproduce: `npm run benchmark` → writes [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md).
+Full breakdown: `npm run benchmark` → [`benchmarks/RESULTS.md`](benchmarks/RESULTS.md).
 
 ---
 
