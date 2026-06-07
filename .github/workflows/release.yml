@@ -18,7 +18,7 @@ jobs:
     outputs:
       providers: ${{ steps.list.outputs.providers }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -34,7 +34,7 @@ jobs:
       matrix:
         node: [18, 20, 22]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -54,7 +54,7 @@ jobs:
       matrix:
         provider: ${{ fromJSON(needs.discover.outputs.providers) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Tag must equal package.json version
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 10
     needs: [contract-tests, verify-version]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 10
     needs: [build]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -130,7 +130,7 @@ jobs:
       contents: read
       id-token: write   # npm provenance
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -155,7 +155,7 @@ jobs:
     permissions:
       contents: write   # create GitHub release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Extract version from tag
