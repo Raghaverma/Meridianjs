@@ -33,6 +33,7 @@ import { DigioAdapter } from "./providers/digio/adapter.js";
 import { ExotelAdapter } from "./providers/exotel/adapter.js";
 import { GeminiAdapter } from "./providers/gemini/adapter.js";
 import { GitHubAdapter } from "./providers/github/adapter.js";
+import { GoogleMapsAdapter } from "./providers/googlemaps/adapter.js";
 import { GupshupAdapter } from "./providers/gupshup/adapter.js";
 import { HubSpotAdapter } from "./providers/hubspot/adapter.js";
 import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
@@ -77,6 +78,7 @@ import { FileSystemSchemaStorage } from "./validation/schema-storage.js";
 
 export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
+  googlemaps: GoogleMapsAdapter,
   billdesk: BilldeskAdapter,
   ccavenue: CcavenueAdapter,
   datadog: DatadogAdapter,

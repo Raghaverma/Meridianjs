@@ -7,12 +7,12 @@
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.2.7-blue)](CHANGELOG.md)
 [![tests](https://img.shields.io/badge/tests-1858%20passing-brightgreen)](https://vitest.dev)
-[![adapters](https://img.shields.io/badge/adapters-44-blueviolet)](#providers)
-[![contracts](https://img.shields.io/badge/contract%20tests-836-brightgreen)](#providers)
+[![adapters](https://img.shields.io/badge/adapters-45-blueviolet)](#providers)
+[![contracts](https://img.shields.io/badge/contract%20tests-855-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
-44 providers · 836 contract tests · 0.11 ms overhead · 27 ms failover recovery.
+45 providers · 855 contract tests · 0.11 ms overhead · 27 ms failover recovery.
 
 </div>
 
@@ -34,7 +34,7 @@ Meridian doesn't claim reliability — it proves it. Every line below is a deter
 ✓ Stripe 429 automatically retried
 ✓ Circuit breaker opened after 5 failures
 ✓ Schema drift detected before deployment
-✓ 44 adapters each pass 19 contract invariants (836 tests total)
+✓ 45 adapters each pass 19 contract invariants (855 tests total)
 ```
 
 The runner exits non-zero if any assertion fails — it doubles as a CI gate. Reproduce locally:
@@ -327,7 +327,7 @@ createUpiDeepLink({ vpa: "merchant@oksbi", amount: 1000 }); // "upi://pay?pa=...
 
 ## Providers
 
-**44 adapters**, each passing the same 19 contract invariants (836 contract tests in total). Verify any one with `npm run test:contracts stripe`.
+**45 adapters**, each passing the same 19 contract invariants (855 contract tests in total). Verify any one with `npm run test:contracts stripe`.
 
 | Category | Count | Providers |
 |---|---|---|
@@ -336,9 +336,10 @@ createUpiDeepLink({ vpa: "merchant@oksbi", amount: 1000 }); // "upi://pay?pa=...
 | **Communications** | 7 | Twilio · SendGrid · Mailgun · Vonage · MSG91 · Exotel · Gupshup |
 | **KYC / Identity** | 7 | HyperVerge · Digio · Karza · IDfy · Setu · Decentro · Perfios |
 | **Tools & Infra** | 6 | GitHub · HubSpot · Supabase · Auth0 · Apollo · S3 |
+| **Mapping** | 2 | Google Maps · MapMyIndia |
 | **Observability** | 2 | Sentry · Datadog |
 | **Logistics** | 2 | Shiprocket · Delhivery |
-| **Other** | 2 | MapMyIndia · Cleartax |
+| **Other** | 1 | Cleartax |
 
 ---
 
