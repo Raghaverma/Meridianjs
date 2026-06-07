@@ -113,6 +113,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [full-test-suite]
     continue-on-error: true
+    env:
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -121,9 +124,7 @@ jobs:
           cache: npm
       - run: npm ci && npm run build
       - name: Check Stripe schema drift
-        if: ${{ secrets.STRIPE_SECRET_KEY != '' }}
-        env:
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        if: env.STRIPE_SECRET_KEY != ''
         run: |
           node -e "
           import('./dist/public.js').then(async ({ Meridian }) => {
@@ -141,9 +142,7 @@ jobs:
           });
           "
       - name: Check GitHub schema drift
-        if: ${{ secrets.GH_TOKEN != '' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: env.GITHUB_TOKEN != ''
         run: |
           node -e "
           import('./dist/public.js').then(async ({ Meridian }) => {

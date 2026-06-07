@@ -17,6 +17,8 @@ export const PROVIDER_CAPABILITIES: Record<string, string[]> = {
 
   // Payment
   stripe: ["payments", "subscriptions", "refunds", "invoices", "customers", "payouts"],
+  billdesk: ["payments", "mandates", "refunds", "upi", "bill-payments"],
+  ccavenue: ["payments", "refunds", "order-tracking", "subscriptions"],
   razorpay: ["payments", "subscriptions", "refunds", "payouts", "invoices", "upi"],
   cashfree: ["payments", "subscriptions", "refunds", "payouts", "upi"],
   payu: ["payments", "refunds", "subscriptions", "emi"],
@@ -65,8 +67,15 @@ export const PROVIDER_CAPABILITIES: Record<string, string[]> = {
   // Database / Backend
   supabase: ["database", "realtime", "storage", "auth", "edge-functions"],
 
+  // Observability / Monitoring
+  sentry: ["error-tracking", "performance-monitoring", "issues", "alerts", "releases"],
+  datadog: ["metrics", "logs", "monitors", "apm", "events", "dashboards"],
+
   // GraphQL
   apollo: ["graphql", "data-graph", "federation", "schema-registry"],
+
+  // Object Storage
+  s3: ["object-storage", "buckets", "presigned-urls", "multipart-upload"],
 };
 
 export interface ProviderInfo {

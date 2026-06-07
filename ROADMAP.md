@@ -314,9 +314,9 @@ const mock = new MockAdapter("razorpay")
   .onGet("/v1/payments/:id").reply(200, { status: "captured" });
 ```
 
-### Batch Operations
+### Batch Operations ✅ DONE
 
-Multiple Indian APIs (Razorpay, Setu, Decentro) support bulk requests. A `batch()` method that fans out with rate-limit awareness:
+Multiple Indian APIs (Razorpay, Setu, Decentro) support bulk requests. `batch()` fans out concurrently (with a configurable concurrency limit, default 10) through the same pipeline as every other client method — so retries, rate limiting, and circuit breaking all apply per-request. Failures are captured as `MeridianError` per item rather than rejecting the whole batch, enabling partial success. See [docs/batch.md](docs/batch.md).
 
 ```typescript
 // Proposed API
@@ -341,21 +341,46 @@ const meridian = await Meridian.create({
 });
 ```
 
-### UPI Flow Helpers
+### UPI Flow Helpers ✅ DONE
 
-UPI is a uniquely Indian primitive. High-level helpers for common UPI patterns on top of raw adapters:
+UPI is a uniquely Indian primitive. `createUpiDeepLink` and `validateVpa` provide
+provider-agnostic helpers for the two most common UPI patterns — building
+`upi://pay` deep links per NPCI's spec, and validating VPA (`handle@psp`) format:
 
 ```typescript
-// Proposed API (built on top of Setu/Decentro adapters)
 import { createUpiDeepLink, validateVpa } from "meridianjs/upi";
+// or: import { createUpiDeepLink, validateVpa } from "meridianjs";
 
 const link = createUpiDeepLink({ vpa: "merchant@upi", amount: 1000, note: "Order #123" });
-const isValid = await validateVpa("user@oksbi", meridian);
+const isValid = validateVpa("user@oksbi");
 ```
 
-### OpenAPI Spec Generation
+`validateVpa` performs syntactic format validation; live VPA resolution requires
+a provider call (e.g. through the Setu or Decentro adapters).
 
-Auto-generate OpenAPI specs from configured providers and their used endpoints. Useful for internal documentation and API gateway configuration.
+### OpenAPI Spec Generation ✅ DONE
+
+`generateOpenApiSpec` builds an OpenAPI 3.0 document from configured providers
+and the endpoints Meridian has actually observed traffic for — sourced from
+`SchemaMonitor` reports (`meridian.schema.report(provider)`), which infer JSON
+schemas from real response payloads. Useful for internal documentation and API
+gateway configuration:
+
+```typescript
+import { generateOpenApiSpec } from "meridianjs";
+
+const spec = generateOpenApiSpec({
+  title: "My Internal API",
+  providers: [
+    { name: "stripe", baseUrl: "https://api.stripe.com", report: await meridian.schema.report("stripe") },
+    { name: "github", baseUrl: "https://api.github.com", report: await meridian.schema.report("github") },
+  ],
+});
+```
+
+Each provider's endpoints are namespaced under `/{provider}/...`; since schema
+snapshots record response shapes (not HTTP methods), every endpoint defaults to
+`GET` — pass `methods` per provider to override specific paths.
 
 ### GraphQL Support
 
@@ -398,7 +423,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 | **v0.2.0** | Q3 2026 | ✅ Contract tests for AI adapters (Anthropic/OpenAI/Stripe) + Twilio; ✅ `verifyWebhook` consistent across all payment/comms adapters + documented |
 | **v0.3.0** | Q3 2026 | Phase 2 Indian providers (BillDesk, Signzy, Bureau.id, Freshworks); Twilio ✅ delivered early |
 | **v0.4.0** | Q4 2026 | ✅ Streaming support (OpenAI/Anthropic), ✅ Mock adapter for testing — both delivered early |
-| **v0.5.0** | Q4 2026 | Batch operations, ✅ India Compliance Mode (DPDPA) delivered early, UPI helpers |
+| **v0.5.0** | Q4 2026 | ✅ Batch operations and India Compliance Mode (DPDPA) delivered early, UPI helpers |
 | **v0.6.0** | Q1 2027 | International expansion (Adyen, Cohere, Auth0, Gemini, HubSpot, Supabase); Twilio + SendGrid + Mailgun + Vonage + Adyen + Gemini + Auth0 + HubSpot + Supabase ✅ delivered early |
 
 | **v1.0.0** | Q2 2027 | Stable API contract, full international provider set, ecosystem packages |

@@ -4,6 +4,14 @@ import { parseOpenAPI } from "./openapi.js";
 import { generateAdapter, generateIndex, generatePagination, generateTest } from "./templates.js";
 import type { GeneratorContext } from "./templates.js";
 
+export { generateOpenApiSpec } from "./openapi-export.js";
+export type {
+  GenerateOpenApiSpecOptions,
+  HttpMethod,
+  OpenApiDocument,
+  ProviderSpecSource,
+} from "./openapi-export.js";
+
 export interface GeneratorOptions {
   provider: string;
   openapi?: string;
@@ -54,7 +62,7 @@ export async function generate(opts: GeneratorOptions): Promise<void> {
     "",
     "Next steps:",
     `  1. Add "${provider}" to BUILTIN_ADAPTER_CLASSES in src/index.ts`,
-    "  2. Fill in the TODO comments in adapter.ts and pagination.ts",
+    "  2. Verify the error/rate-limit/pagination field names noted in adapter.ts and pagination.ts against the provider's docs",
     `  3. npm test -- --reporter=verbose src/providers/${provider}/adapter.test.ts`,
   ];
 

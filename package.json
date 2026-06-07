@@ -13,6 +13,10 @@
     "./contract": {
       "types": "./dist/testing/contract.d.ts",
       "import": "./dist/testing/contract.js"
+    },
+    "./upi": {
+      "types": "./dist/upi/index.d.ts",
+      "import": "./dist/upi/index.js"
     }
   },
   "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE.md"],

@@ -19,8 +19,11 @@ import { AdyenAdapter } from "./providers/adyen/adapter.js";
 import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
 import { ApolloAdapter } from "./providers/apollo/adapter.js";
 import { Auth0Adapter } from "./providers/auth0/adapter.js";
+import { BilldeskAdapter } from "./providers/billdesk/adapter.js";
 import { BraintreeAdapter } from "./providers/braintree/adapter.js";
 import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
+import { CcavenueAdapter } from "./providers/ccavenue/adapter.js";
+import { DatadogAdapter } from "./providers/datadog/adapter.js";
 import { CheckoutAdapter } from "./providers/checkout/adapter.js";
 import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
 import { CohereAdapter } from "./providers/cohere/adapter.js";
@@ -47,7 +50,9 @@ import { PayuAdapter } from "./providers/payu/adapter.js";
 import { PerfiosAdapter } from "./providers/perfios/adapter.js";
 import { PhonePeAdapter } from "./providers/phonepe/adapter.js";
 import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
+import { S3Adapter } from "./providers/s3/adapter.js";
 import { SendgridAdapter } from "./providers/sendgrid/adapter.js";
+import { SentryAdapter } from "./providers/sentry/adapter.js";
 import { SetuAdapter } from "./providers/setu/adapter.js";
 import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
 import { StripeAdapter } from "./providers/stripe/adapter.js";
@@ -72,6 +77,9 @@ import { FileSystemSchemaStorage } from "./validation/schema-storage.js";
 
 export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
+  billdesk: BilldeskAdapter,
+  ccavenue: CcavenueAdapter,
+  datadog: DatadogAdapter,
   anthropic: AnthropicAdapter,
   openai: OpenAIAdapter,
   stripe: StripeAdapter,
@@ -95,6 +103,7 @@ export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> 
   perfios: PerfiosAdapter,
   twilio: TwilioAdapter,
   sendgrid: SendgridAdapter,
+  sentry: SentryAdapter,
   mailgun: MailgunAdapter,
   vonage: VonageAdapter,
   adyen: AdyenAdapter,
@@ -110,6 +119,7 @@ export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> 
   mistral: MistralAdapter,
   mollie: MollieAdapter,
   apollo: ApolloAdapter,
+  s3: S3Adapter,
 };
 
 function getBuiltinAdapter(
@@ -635,6 +645,9 @@ export class Meridian {
   provider(name: "openai"): ProviderClient | undefined;
   provider(name: "stripe"): ProviderClient | undefined;
   provider(name: "github"): ProviderClient | undefined;
+  provider(name: "billdesk"): ProviderClient | undefined;
+  provider(name: "ccavenue"): ProviderClient | undefined;
+  provider(name: "datadog"): ProviderClient | undefined;
   provider(name: "razorpay"): ProviderClient | undefined;
   provider(name: "cashfree"): ProviderClient | undefined;
   provider(name: "payu"): ProviderClient | undefined;
@@ -655,6 +668,7 @@ export class Meridian {
   provider(name: "perfios"): ProviderClient | undefined;
   provider(name: "twilio"): ProviderClient | undefined;
   provider(name: "sendgrid"): ProviderClient | undefined;
+  provider(name: "sentry"): ProviderClient | undefined;
   provider(name: "mailgun"): ProviderClient | undefined;
   provider(name: "vonage"): ProviderClient | undefined;
   provider(name: "adyen"): ProviderClient | undefined;
@@ -670,6 +684,7 @@ export class Meridian {
   provider(name: "mistral"): ProviderClient | undefined;
   provider(name: "mollie"): ProviderClient | undefined;
   provider(name: "apollo"): ProviderClient | undefined;
+  provider(name: "s3"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
 
   provider(name: string): ProviderClient | undefined {

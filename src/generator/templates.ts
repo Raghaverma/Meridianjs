@@ -62,6 +62,35 @@ import type {
 import { MeridianError, SDK_VERSION } from "../../core/types.js";
 import { ${name}PaginationStrategy } from "./pagination.js";
 ${endpointComments(ctx)}
+/**
+ * Looks for an error message under the field names most APIs use
+ * (\`message\`, \`error\`, \`error.message\`, \`error_description\`, \`detail\`,
+ * \`errors[0]\`/\`errors[0].message\`). Verify against ${ctx.provider}'s actual
+ * error envelope and adjust if it uses a different shape.
+ */
+function extractErrorMessage(body: unknown): string | null {
+  if (typeof body !== "object" || body === null) return null;
+  const b = body as Record<string, unknown>;
+
+  if (typeof b.message === "string") return b.message;
+  if (typeof b.error === "string") return b.error;
+  if (typeof b.error === "object" && b.error !== null) {
+    const inner = (b.error as Record<string, unknown>).message;
+    if (typeof inner === "string") return inner;
+  }
+  if (typeof b.error_description === "string") return b.error_description;
+  if (typeof b.detail === "string") return b.detail;
+  if (Array.isArray(b.errors) && b.errors.length > 0) {
+    const [first] = b.errors as unknown[];
+    if (typeof first === "string") return first;
+    if (typeof first === "object" && first !== null) {
+      const inner = (first as Record<string, unknown>).message;
+      if (typeof inner === "string") return inner;
+    }
+  }
+  return null;
+}
+
 export class ${name}Adapter implements ProviderAdapter {
   private baseUrl: string;
 
@@ -110,11 +139,7 @@ export class ${name}Adapter implements ProviderAdapter {
       const status = (raw as { status: number }).status;
       const body = (raw as { body?: unknown }).body;
 
-      // TODO: extract provider-specific error message from body
-      const message =
-        typeof body === "object" && body !== null && "message" in body
-          ? String((body as { message: unknown }).message)
-          : \`HTTP \${status}\`;
+      const message = extractErrorMessage(body) ?? \`HTTP \${status}\`;
 
       if (status === 401 || status === 403) {
         return new MeridianError(message, "auth", "${ctx.provider}", false, "", {}, undefined, status);
@@ -140,14 +165,31 @@ ${authStrategyBody(ctx)}
   }
 
   rateLimitPolicy(headers: Headers): RateLimitInfo {
-    // TODO: verify ${ctx.provider} rate-limit header names
-    const reset = Number(headers.get("x-ratelimit-reset") ?? headers.get("x-rate-limit-reset") ?? 0);
+    // Checks the header-naming conventions most providers use — X-RateLimit-*,
+    // X-Rate-Limit-*, the RFC-draft RateLimit-*, and Retry-After as a fallback
+    // for the reset time. Verify against ${ctx.provider}'s actual headers.
+    const limit =
+      headers.get("x-ratelimit-limit") ??
+      headers.get("x-rate-limit-limit") ??
+      headers.get("ratelimit-limit");
+    const remaining =
+      headers.get("x-ratelimit-remaining") ??
+      headers.get("x-rate-limit-remaining") ??
+      headers.get("ratelimit-remaining");
+    const reset = Number(
+      headers.get("x-ratelimit-reset") ??
+        headers.get("x-rate-limit-reset") ??
+        headers.get("ratelimit-reset") ??
+        headers.get("retry-after") ??
+        0,
+    );
+
     return {
-      limit: Number(headers.get("x-ratelimit-limit") ?? headers.get("x-rate-limit-limit") ?? 100),
-      remaining: Number(
-        headers.get("x-ratelimit-remaining") ?? headers.get("x-rate-limit-remaining") ?? 100,
+      limit: Number(limit ?? 100),
+      remaining: Number(remaining ?? 100),
+      reset: new Date(
+        reset > 1_000_000_000 ? reset * 1000 : Date.now() + (reset > 0 ? reset * 1000 : 60_000),
       ),
-      reset: new Date(reset > 1_000_000_000 ? reset * 1000 : Date.now() + 60_000),
     };
   }
 
@@ -171,14 +213,39 @@ export function generatePagination(ctx: GeneratorContext): string {
 
 export class ${name}PaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
-    // TODO: update with actual ${ctx.provider} pagination field names
-    const body = response.body as Record<string, unknown>;
-    return (body.next_cursor as string) ?? (body.cursor as string) ?? (body.next as string) ?? null;
+    // Checks the cursor field conventions most providers use — top-level
+    // (next_cursor / cursor / next / next_page), nested under meta/pagination,
+    // and Relay-style page_info.end_cursor. Verify against ${ctx.provider}'s
+    // actual pagination shape and adjust the field names accordingly.
+    const body = (response.body ?? {}) as Record<string, unknown>;
+
+    const direct = body.next_cursor ?? body.cursor ?? body.next ?? body.next_page;
+    if (typeof direct === "string") return direct;
+
+    const meta = body.meta as Record<string, unknown> | undefined;
+    const metaCursor = meta?.next_cursor ?? meta?.cursor;
+    if (typeof metaCursor === "string") return metaCursor;
+
+    const pagination = body.pagination as Record<string, unknown> | undefined;
+    const paginationCursor = pagination?.next_cursor ?? pagination?.cursor;
+    if (typeof paginationCursor === "string") return paginationCursor;
+
+    const pageInfo = body.page_info as Record<string, unknown> | undefined;
+    if (pageInfo?.has_next_page === true && typeof pageInfo.end_cursor === "string") {
+      return pageInfo.end_cursor;
+    }
+
+    return null;
   }
 
   extractTotal(response: RawResponse): number | null {
-    const body = response.body as Record<string, unknown>;
-    return typeof body.total === "number" ? body.total : null;
+    const body = (response.body ?? {}) as Record<string, unknown>;
+    if (typeof body.total === "number") return body.total;
+
+    const meta = body.meta as Record<string, unknown> | undefined;
+    if (typeof meta?.total === "number") return meta.total;
+
+    return null;
   }
 
   hasNext(response: RawResponse): boolean {
@@ -190,7 +257,9 @@ export class ${name}PaginationStrategy implements PaginationStrategy {
     options: RequestOptions,
     cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    // TODO: update with the actual ${ctx.provider} cursor param name
+    // "cursor" is the most common query-param name for cursor-based pagination
+    // (Stripe, Slack, GitHub GraphQL, ...); verify against ${ctx.provider}'s
+    // actual docs and rename if it expects e.g. "page[cursor]" or "after".
     return {
       endpoint,
       options: { ...options, query: { ...options.query, cursor } },

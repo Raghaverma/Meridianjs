@@ -76,6 +76,9 @@ export { AnthropicAdapter } from "./providers/anthropic/adapter.js";
 export { OpenAIAdapter } from "./providers/openai/adapter.js";
 export { StripeAdapter } from "./providers/stripe/adapter.js";
 export { GitHubAdapter } from "./providers/github/adapter.js";
+export { BilldeskAdapter } from "./providers/billdesk/adapter.js";
+export { CcavenueAdapter, ccavenueDecrypt, ccavenueEncrypt } from "./providers/ccavenue/adapter.js";
+export { DatadogAdapter } from "./providers/datadog/adapter.js";
 export { RazorpayAdapter } from "./providers/razorpay/adapter.js";
 export { CashfreeAdapter } from "./providers/cashfree/adapter.js";
 export { PayuAdapter } from "./providers/payu/adapter.js";
@@ -96,6 +99,7 @@ export { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
 export { PerfiosAdapter } from "./providers/perfios/adapter.js";
 export { TwilioAdapter } from "./providers/twilio/adapter.js";
 export { SendgridAdapter } from "./providers/sendgrid/adapter.js";
+export { SentryAdapter } from "./providers/sentry/adapter.js";
 export { MailgunAdapter } from "./providers/mailgun/adapter.js";
 export { VonageAdapter } from "./providers/vonage/adapter.js";
 export { AdyenAdapter } from "./providers/adyen/adapter.js";
@@ -111,6 +115,9 @@ export { KlarnaAdapter } from "./providers/klarna/adapter.js";
 export { MistralAdapter } from "./providers/mistral/adapter.js";
 export { MollieAdapter } from "./providers/mollie/adapter.js";
 export { ApolloAdapter } from "./providers/apollo/adapter.js";
+export { S3Adapter } from "./providers/s3/adapter.js";
+export { signSigV4 } from "./providers/s3/sigv4.js";
+export type { SigV4Credentials } from "./providers/s3/sigv4.js";
 
 // Claw / agent proxy integration
 export { BoundaryProxyServer } from "./proxy/server.js";
@@ -153,8 +160,14 @@ export type { SchemaReport } from "./schema/monitor.js";
 export type { CostReport, CostEntry } from "./analytics/collector.js";
 
 // Adapter generator (programmatic API)
-export { generate } from "./generator/index.js";
+export { generate, generateOpenApiSpec } from "./generator/index.js";
 export type { GeneratorOptions } from "./generator/index.js";
+export type {
+  GenerateOpenApiSpecOptions,
+  HttpMethod,
+  OpenApiDocument,
+  ProviderSpecSource,
+} from "./generator/index.js";
 
 // Policy engine
 export type { Policy, PolicyContext, PolicyDecision } from "./core/types.js";
@@ -172,3 +185,7 @@ export {
 // Multi-provider transactions
 export { runTransaction, TransactionError } from "./transactions/index.js";
 export type { TransactionStep, TransactionResult } from "./transactions/index.js";
+
+// UPI flow helpers
+export { createUpiDeepLink, validateVpa } from "./upi/index.js";
+export type { UpiDeepLinkOptions } from "./upi/index.js";
