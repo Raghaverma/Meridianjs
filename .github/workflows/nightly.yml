@@ -77,7 +77,7 @@ jobs:
       - name: Run benchmarks
         run: npm run benchmark 2>&1 | tee nightly-benchmark.txt
       - name: Upload benchmark baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-benchmark-${{ github.run_id }}
           path: nightly-benchmark.txt
