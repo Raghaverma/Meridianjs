@@ -158,7 +158,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Open issue on failure
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const date = new Date().toISOString().split('T')[0];
