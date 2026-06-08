@@ -3,7 +3,7 @@
 ## Setup
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/your-username/Meridian.git`
+2. Clone your fork: `git clone https://github.com/Raghaverma/meridianjs.git`
 3. Install dependencies: `npm install`
 4. Build the project: `npm run build`
 5. Run tests: `npm test`
