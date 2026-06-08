@@ -18,12 +18,12 @@ In modern application development, integrating multiple third-party APIs (e.g., 
 
 Meridian uses a pipeline-based architecture to process requests.
 
-### 1. `Meridian` Client ([src/index.ts](file:///Users/raghavverma/Desktop/Meridian/src/index.ts))
+### 1. `Meridian` Client ([src/index.ts](src/index.ts))
 The main entry point. It manages provider configurations, initializes adapters, and maintains global state (like circuit breaker status).
 - **Initialization**: Must use `Meridian.create(config)`. Direct instantiation is prohibited to ensure async setup (like auth token discovery) completes.
 - **Provider Proxy**: Dynamically exposes provider clients (e.g., `meridian.github`).
 
-### 2. `RequestPipeline` ([src/core/pipeline.ts](file:///Users/raghavverma/Desktop/Meridian/src/core/pipeline.ts))
+### 2. `RequestPipeline` ([src/core/pipeline.ts](src/core/pipeline.ts))
 The execution engine for every request. It wraps the provider call in a series of layers:
 1. **Sanitization**: Redacts secrets from headers and body.
 2. **Idempotency**: Manages idempotency keys for unsafe operations (POST/PUT).
@@ -32,9 +32,9 @@ The execution engine for every request. It wraps the provider call in a series o
 5. **Retry Strategy**: Handles transient failures with exponential backoff.
 6. **Execution**: Uses the `ProviderAdapter` to build and send the final request.
 7. **Normalization**: Converts the raw response into a `NormalizedResponse`.
-- **Validation**: Includes `DriftDetector` ([src/validation/drift-detector.ts](file:///Users/raghavverma/Desktop/Meridian/src/validation/drift-detector.ts)) to catch breaking upstream API changes.
+- **Validation**: Includes `DriftDetector` ([src/validation/drift-detector.ts](src/validation/drift-detector.ts)) to catch breaking upstream API changes.
 
-### 3. `ProviderAdapter` ([src/core/types.ts](file:///Users/raghavverma/Desktop/Meridian/src/core/types.ts))
+### 3. `ProviderAdapter` ([src/core/types.ts](src/core/types.ts))
 The "contract" that bridge specific APIs to the Meridian pipeline. Every adapter must implement:
 - `buildRequest`: Converts generic options to provider-specific URL/headers/body.
 - `parseResponse`: Maps provider JSON/headers to `NormalizedResponse`.
