@@ -1,16 +1,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseOpenAPI } from "./openapi.js";
-import { generateAdapter, generateIndex, generatePagination, generateTest } from "./templates.js";
 import type { GeneratorContext } from "./templates.js";
+import { generateAdapter, generateIndex, generatePagination, generateTest } from "./templates.js";
 
-export { generateOpenApiSpec } from "./openapi-export.js";
 export type {
   GenerateOpenApiSpecOptions,
   HttpMethod,
   OpenApiDocument,
   ProviderSpecSource,
 } from "./openapi-export.js";
+export { generateOpenApiSpec } from "./openapi-export.js";
 
 export interface GeneratorOptions {
   provider: string;

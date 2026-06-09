@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../core/types.js";
 import { SupabaseAdapter } from "./adapter.js";
-import { SupabasePaginationStrategy } from "./pagination.js";
 
 describe("Supabase Adapter - Contract Tests", () => {
   const adapter = new SupabaseAdapter("https://project.supabase.co/rest/v1");

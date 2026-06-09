@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { MeridianError } from "../core/types.js";
 import { Fixtures } from "./fixtures.js";
-import { MockAdapter } from "./mock-adapter.js";
 import type { MockCall, MockHandler, MockResponse } from "./mock-adapter.js";
+import { MockAdapter } from "./mock-adapter.js";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

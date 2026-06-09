@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { MeridianError, isRetryableByCode } from "../core/types.js";
 import type {
   AuthConfig,
   MeridianErrorCode,
@@ -7,6 +6,7 @@ import type {
   ProviderAdapter,
   RawResponse,
 } from "../core/types.js";
+import { isRetryableByCode, MeridianError } from "../core/types.js";
 
 /**
  * The frozen set of public error codes. Every error a provider adapter

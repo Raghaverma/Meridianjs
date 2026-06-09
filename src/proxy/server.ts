@@ -1,5 +1,5 @@
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
-import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { MeridianConfig, ProviderConfig, RequestOptions } from "../core/types.js";
 import { Meridian } from "../index.js";
 

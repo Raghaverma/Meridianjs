@@ -4,9 +4,9 @@ import type {
   MeridianErrorCategory,
   NormalizedResponse,
   RequestOptions,
+  ServiceConfig,
 } from "../core/types.js";
 import { MeridianError } from "../core/types.js";
-import type { ServiceConfig } from "../core/types.js";
 import type { ProviderClient } from "../index.js";
 
 type RoutableMethod = "get" | "post" | "put" | "patch" | "delete";

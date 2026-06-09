@@ -16,7 +16,7 @@ class MockObservability implements ObservabilityAdapter {
   logError(context: any) {
     this.errors.push(context);
   }
-  logWarning(message: string, metadata?: Record<string, unknown>) {}
+  logWarning(_message: string, _metadata?: Record<string, unknown>) {}
   recordMetric(metric: Metric) {
     this.metrics.push(metric);
   }
@@ -24,7 +24,7 @@ class MockObservability implements ObservabilityAdapter {
 
 class TestAdapter {
   provider = "test";
-  async authStrategy(config: any) {
+  async authStrategy(_config: any) {
     return { token: "tok" };
   }
   buildRequest(input: any) {
@@ -50,13 +50,13 @@ class TestAdapter {
       },
     };
   }
-  parseError(raw: any) {
+  parseError(_raw: any) {
     return new MeridianError("Provider error", "provider" as const, "test", false, "", {
       secret: "should-not-be-logged",
       inner: { apiKey: "topsecret" },
     });
   }
-  rateLimitPolicy(headers: Headers) {
+  rateLimitPolicy(_headers: Headers) {
     return { limit: 100, remaining: 99, reset: new Date() };
   }
   paginationStrategy() {

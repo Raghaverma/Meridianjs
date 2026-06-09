@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Meridian } from "../index.js";
-import { type StreamChunk, parseSSEStream } from "./streaming.js";
+import { parseSSEStream, type StreamChunk } from "./streaming.js";
 
 /** Build a ReadableStream that emits the given string fragments as UTF-8 bytes. */
 function streamFromFragments(fragments: string[]): ReadableStream<Uint8Array> {

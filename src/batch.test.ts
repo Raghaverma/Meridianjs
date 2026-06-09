@@ -143,7 +143,7 @@ describe("ProviderClient.batch", () => {
   it("respects the concurrency limit, never running more than N requests at once", async () => {
     const client = await makeClient();
 
-    const requests = Array.from({ length: 6 }, (_, i) => ({
+    const requests = Array.from({ length: 6 }, (_, _i) => ({
       method: "GET",
       endpoint: "/slow/30",
     }));

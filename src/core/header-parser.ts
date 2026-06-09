@@ -79,7 +79,7 @@ function splitLinkHeader(header: string): string[] {
 
 function parseSingleLink(link: string): LinkHeader | null {
   const urlMatch = link.match(/^<([^>]+)>/);
-  if (!urlMatch || !urlMatch[1]) {
+  if (!urlMatch?.[1]) {
     return null;
   }
 

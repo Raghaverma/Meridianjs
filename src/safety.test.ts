@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   type ErrorContext,
   type MeridianConfig,
@@ -242,7 +242,7 @@ describe("Safety Guarantees", () => {
         const metricStr = JSON.stringify(metric);
         expect(metricStr).not.toContain("secret-token-12345");
 
-        for (const [key, value] of Object.entries(metric.tags)) {
+        for (const [_key, value] of Object.entries(metric.tags)) {
           expect(String(value)).not.toContain("secret-token-12345");
         }
       }
@@ -380,11 +380,11 @@ describe("Safety Guarantees", () => {
         text: async () => JSON.stringify({ items: [] }),
       });
 
-      let callCount = 0;
+      let _callCount = 0;
       const adapter = {
         buildRequest: () => ({ url: "test", method: "GET", headers: {} }),
-        parseResponse: (raw: any) => {
-          callCount++;
+        parseResponse: (_raw: any) => {
+          _callCount++;
 
           return {
             data: { items: [] },
@@ -450,12 +450,12 @@ describe("Safety Guarantees", () => {
         text: async () => JSON.stringify({ items: [] }),
       });
 
-      let requestCount = 0;
+      let _requestCount = 0;
       let paginationCallCount = 0;
       const adapter = {
         buildRequest: () => ({ url: "test", method: "GET", headers: {} }),
         parseResponse: (raw: any) => {
-          requestCount++;
+          _requestCount++;
 
           const isValidation = raw.status === 200 && raw.body?.test === "data";
           if (!isValidation) {
@@ -508,7 +508,7 @@ describe("Safety Guarantees", () => {
       const paginator = (meridian as any).test.paginate("/test");
 
       let pagesYielded = 0;
-      for await (const page of paginator) {
+      for await (const _page of paginator) {
         pagesYielded++;
       }
       expect(pagesYielded).toBe(3);

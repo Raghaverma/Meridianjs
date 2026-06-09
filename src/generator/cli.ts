@@ -18,8 +18,8 @@
  *   npx meridian generate --provider acme --openapi ./acme-openapi.json
  */
 
-import { generate } from "./index.js";
 import type { GeneratorOptions } from "./index.js";
+import { generate } from "./index.js";
 
 function parseArgs(argv: string[]): Record<string, string> {
   const out: Record<string, string> = {};

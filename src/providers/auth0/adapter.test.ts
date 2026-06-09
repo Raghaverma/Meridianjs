@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../core/types.js";
 import { Auth0Adapter } from "./adapter.js";
-import { Auth0PaginationStrategy } from "./pagination.js";
 
 describe("Auth0 Adapter - Contract Tests", () => {
   const adapter = new Auth0Adapter("https://tenant.auth0.com/api/v2");

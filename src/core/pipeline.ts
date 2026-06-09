@@ -7,6 +7,8 @@ import { sanitizeMeridianError } from "./error-sanitizer.js";
 import { sanitizeMetric, sanitizeObject } from "./observability-sanitizer.js";
 import { sanitizeRequestOptions } from "./request-sanitizer.js";
 import type {
+  AuthConfig,
+  AuthToken,
   ErrorContext,
   NormalizedResponse,
   ObservabilityAdapter,
@@ -19,8 +21,6 @@ import type {
   ResponseContext,
 } from "./types.js";
 import { MeridianError } from "./types.js";
-
-import type { AuthConfig, AuthToken } from "./types.js";
 
 export interface PipelineConfig {
   provider: string;

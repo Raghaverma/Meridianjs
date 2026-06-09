@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { PolicyContext } from "../core/types.js";
 import {
   allowedProviders,
-  blockPII,
   blockedProviders,
+  blockPII,
   customPolicy,
   denyCountries,
   readOnly,
