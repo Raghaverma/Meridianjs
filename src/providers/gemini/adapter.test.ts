@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../core/types.js";
 import { GeminiAdapter } from "./adapter.js";
-import { GeminiPaginationStrategy } from "./pagination.js";
 
 describe("Gemini Adapter - Contract Tests", () => {
   const adapter = new GeminiAdapter("https://generativelanguage.googleapis.com");

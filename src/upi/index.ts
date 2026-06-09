@@ -10,7 +10,7 @@
 
 // `<handle>@<psp-handle>`: handle allows letters, digits, and . _ - ;
 // the PSP handle must start with a letter and may contain letters, digits, . -
-const VPA_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z][a-zA-Z0-9.\-]{1,64}$/;
+const VPA_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,64}$/;
 
 /**
  * Validates a UPI Virtual Payment Address against NPCI's `handle@pspHandle`

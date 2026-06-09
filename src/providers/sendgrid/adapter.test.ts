@@ -1,8 +1,7 @@
 import { generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, MeridianError, RawResponse } from "../../core/types.js";
+import type { AuthConfig, RawResponse } from "../../core/types.js";
 import { SendgridAdapter } from "./adapter.js";
-import { SendgridPaginationStrategy } from "./pagination.js";
 
 describe("SendGrid Adapter - Contract Tests", () => {
   const adapter = new SendgridAdapter("https://api.sendgrid.com");

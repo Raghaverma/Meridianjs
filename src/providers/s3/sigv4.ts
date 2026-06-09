@@ -48,7 +48,9 @@ function canonicalUri(pathname: string): string {
 
 function canonicalQueryString(url: URL): string {
   const params: Array<[string, string]> = [];
-  url.searchParams.forEach((value, key) => params.push([key, value]));
+  url.searchParams.forEach((value, key) => {
+    params.push([key, value]);
+  });
   params.sort(([ak, av], [bk, bv]) =>
     ak === bk ? (av < bv ? -1 : av > bv ? 1 : 0) : ak < bk ? -1 : 1,
   );

@@ -1,7 +1,7 @@
 export type {
-  ObservabilityAdapter,
+  ErrorContext,
   Metric,
+  ObservabilityAdapter,
   RequestContext,
   ResponseContext,
-  ErrorContext,
 } from "../core/types.js";

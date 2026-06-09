@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, NormalizedResponse, RawResponse } from "../../core/types.js";
+import type { AuthConfig, RawResponse } from "../../core/types.js";
 import { ApolloAdapter } from "./adapter.js";
 
 describe("Apollo Adapter - Contract Tests", () => {

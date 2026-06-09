@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../core/types.js";
 import { HubSpotAdapter } from "./adapter.js";
-import { HubSpotPaginationStrategy } from "./pagination.js";
 
 describe("HubSpot Adapter - Contract Tests", () => {
   const adapter = new HubSpotAdapter("https://api.hubapi.com");

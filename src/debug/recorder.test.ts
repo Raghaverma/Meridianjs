@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CircuitState } from "../core/types.js";
 import type { ErrorContext, RequestContext, ResponseContext } from "../core/types.js";
-import { MeridianError } from "../core/types.js";
+import { CircuitState, MeridianError } from "../core/types.js";
 import { DebugRecorder } from "./recorder.js";
 
 const reqCtx = (requestId: string, provider = "stripe"): RequestContext => ({

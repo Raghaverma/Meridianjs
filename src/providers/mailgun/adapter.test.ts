@@ -2,7 +2,6 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { AuthConfig, RawResponse } from "../../core/types.js";
 import { MailgunAdapter } from "./adapter.js";
-import { MailgunPaginationStrategy } from "./pagination.js";
 
 describe("Mailgun Adapter - Contract Tests", () => {
   const adapter = new MailgunAdapter("https://api.mailgun.net");

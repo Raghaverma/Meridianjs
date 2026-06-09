@@ -2,7 +2,6 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { AuthConfig, RawResponse } from "../../core/types.js";
 import { AdyenAdapter } from "./adapter.js";
-import { AdyenPaginationStrategy } from "./pagination.js";
 
 describe("Adyen Adapter - Contract Tests", () => {
   const adapter = new AdyenAdapter("https://checkout-test.adyen.com/v70");
