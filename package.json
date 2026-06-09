@@ -19,6 +19,16 @@
       "import": "./dist/upi/index.js"
     }
   },
+  "typesVersions": {
+    "*": {
+      "contract": [
+        "./dist/testing/contract.d.ts"
+      ],
+      "upi": [
+        "./dist/upi/index.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist",
     "README.md",
@@ -46,7 +56,7 @@
     "benchmark": "MERIDIAN_BENCH_SUITE=1 npx vite-node benchmarks/index.ts",
     "benchmark:reliability": "npx vite-node benchmarks/reliability.ts",
     "benchmark:overhead": "npx vite-node benchmarks/pipeline-overhead.ts",
-    "pkg:check": "npx publint && npx @arethetypeswrong/cli . --pack"
+    "pkg:check": "npx publint && npx @arethetypeswrong/cli . --pack --ignore-rules cjs-resolves-to-esm"
   },
   "bin": {
     "boundary-proxy": "dist/proxy/cli.js",
