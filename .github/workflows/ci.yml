@@ -273,7 +273,7 @@ jobs:
           fi
       - name: Run Datadog Synthetic tests
         if: steps.dd_creds.outputs.enabled == 'true'
-        uses: DataDog/synthetics-ci-github-action@87b505388a22005bb8013481e3f73a367b9a53eb
+        uses: DataDog/synthetics-ci-github-action@c84a23515bda46d8a060f77a6ad88644377f90be
         with:
           api_key: ${{ secrets.DD_API_KEY }}
           app_key: ${{ secrets.DD_APP_KEY }}
