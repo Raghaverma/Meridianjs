@@ -2,7 +2,9 @@
 
 # Meridian
 
-**Integration Reliability SDK**
+**API Reliability Layer**
+
+Build once. Survive provider failures.
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.2.10-blue)](CHANGELOG.md)
@@ -21,6 +23,14 @@ npm install meridianjs
 ```
 
 > Requires **Node.js ≥ 20**. TypeScript-first, ships its own types, ESM-only.
+
+<div align="center">
+
+<img src="assets/meridian-architecture.svg" alt="Meridian sits between your application and every external API, applying policies, circuit breaking, rate limiting, retries, and normalization before requests reach Stripe, OpenAI, Razorpay, Anthropic, and 41 more providers." width="920">
+
+</div>
+
+One layer between your app and every provider. The same retries, error format, failover, and traces — no matter which API is behind it.
 
 ---
 

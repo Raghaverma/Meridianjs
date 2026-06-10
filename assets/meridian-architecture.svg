@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 520" width="1200" height="520" font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" role="img" aria-label="Meridian sits between your application and every external API, applying policies, circuit breaking, rate limiting, retries, and normalization.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A0F1F"/>
+      <stop offset="50%" stop-color="#0C1326"/>
+      <stop offset="100%" stop-color="#090D1A"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#22D3EE"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#13203A"/>
+      <stop offset="100%" stop-color="#0D1830"/>
+    </linearGradient>
+    <linearGradient id="node" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#101B33"/>
+      <stop offset="100%" stop-color="#0B1426"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#22D3EE" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="34" height="34" patternUnits="userSpaceOnUse">
+      <path d="M34 0H0V34" fill="none" stroke="#13203A" stroke-width="1"/>
+    </pattern>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="3.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="7" stdDeviation="11" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- backdrop -->
+  <rect x="0" y="0" width="1200" height="520" rx="26" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="520" rx="26" fill="url(#grid)" opacity="0.5"/>
+  <rect x="1" y="1" width="1198" height="518" rx="25" fill="none" stroke="#1B2A47" stroke-width="1.5"/>
+  <ellipse cx="600" cy="280" rx="430" ry="260" fill="url(#halo)"/>
+
+  <!-- eyebrow -->
+  <text x="600" y="60" text-anchor="middle" fill="#7FC3FF" font-size="13" font-weight="700" letter-spacing="4">ONE LAYER BETWEEN YOUR APP AND EVERY PROVIDER</text>
+
+  <!-- ============ connectors (drawn first, under nodes) ============ -->
+  <!-- app -> meridian -->
+  <line x1="254" y1="280" x2="380" y2="280" stroke="url(#accent)" stroke-width="2.5" filter="url(#glow)" opacity="0.9"/>
+  <!-- meridian -> provider bus -->
+  <path d="M820 280 L862 280" fill="none" stroke="url(#accent)" stroke-width="2.5" filter="url(#glow)" opacity="0.9"/>
+  <path d="M862 176 L862 384" fill="none" stroke="#2C7BE5" stroke-width="2" opacity="0.55"/>
+  <path d="M862 176 L900 176 M862 228 L900 228 M862 280 L900 280 M862 332 L900 332 M862 384 L900 384" fill="none" stroke="#2C7BE5" stroke-width="2" opacity="0.55"/>
+
+  <!-- motion paths for flowing data (invisible) -->
+  <path id="p0" d="M254 280 L380 280" fill="none"/>
+  <path id="p1" d="M820 280 L862 280 L862 176 L900 176" fill="none"/>
+  <path id="p2" d="M820 280 L862 280 L862 228 L900 228" fill="none"/>
+  <path id="p3" d="M820 280 L862 280 L862 384 L900 384" fill="none"/>
+
+  <!-- flowing dots: app -> meridian -->
+  <circle r="4" fill="#7DD3FC" filter="url(#glow)">
+    <animateMotion dur="1.6s" repeatCount="indefinite"><mpath xlink:href="#p0"/></animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="4" fill="#22D3EE" filter="url(#glow)">
+    <animateMotion dur="1.6s" begin="0.8s" repeatCount="indefinite"><mpath xlink:href="#p0"/></animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.6s" begin="0.8s" repeatCount="indefinite"/>
+  </circle>
+  <!-- flowing dots: meridian -> providers (fan-out) -->
+  <circle r="4" fill="#34D399" filter="url(#glow)">
+    <animateMotion dur="1.7s" begin="0.2s" repeatCount="indefinite"><mpath xlink:href="#p1"/></animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.7s" begin="0.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="4" fill="#60A5FA" filter="url(#glow)">
+    <animateMotion dur="1.7s" begin="0.9s" repeatCount="indefinite"><mpath xlink:href="#p2"/></animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.7s" begin="0.9s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="4" fill="#22D3EE" filter="url(#glow)">
+    <animateMotion dur="1.7s" begin="1.4s" repeatCount="indefinite"><mpath xlink:href="#p3"/></animateMotion>
+    <animate attributeName="opacity" values="0;1;1;0" dur="1.7s" begin="1.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ============ App node ============ -->
+  <g filter="url(#shadow)">
+    <rect x="64" y="220" width="190" height="120" rx="18" fill="url(#node)" stroke="#243352" stroke-width="1.5"/>
+  </g>
+  <text x="159" y="252" text-anchor="middle" fill="#6E8BB8" font-size="11" font-weight="700" letter-spacing="2">YOUR APP</text>
+  <text x="159" y="282" text-anchor="middle" fill="#E8EEF9" font-size="21" font-weight="700">Application</text>
+  <rect x="84" y="296" width="150" height="28" rx="8" fill="#0A1120" stroke="#243352" stroke-width="1"/>
+  <text x="159" y="315" text-anchor="middle" fill="#7DD3FC" font-size="11.5" font-family="'SF Mono','Fira Code',Consolas,monospace">.service('payments')</text>
+
+  <!-- ============ Meridian panel ============ -->
+  <g filter="url(#shadow)">
+    <rect x="380" y="130" width="440" height="300" rx="22" fill="url(#panel)" stroke="url(#accent)" stroke-width="1.5"/>
+  </g>
+  <rect x="380" y="130" width="440" height="300" rx="22" fill="none" stroke="#3B82F6" stroke-width="2" opacity="0.0">
+    <animate attributeName="opacity" values="0;0.45;0" dur="3.4s" repeatCount="indefinite"/>
+  </rect>
+  <text x="600" y="170" text-anchor="middle" fill="#FFFFFF" font-size="25" font-weight="800" letter-spacing="0.5">Meridian</text>
+  <text x="600" y="192" text-anchor="middle" fill="#7FC3FF" font-size="11" font-weight="700" letter-spacing="3">API RELIABILITY LAYER</text>
+  <line x1="404" y1="206" x2="796" y2="206" stroke="#243352" stroke-width="1"/>
+
+  <!-- pipeline pills -->
+  <g>
+    <!-- pill 1 -->
+    <rect x="404" y="216" width="392" height="34" rx="9" fill="#0E1A30" stroke="#26375A" stroke-width="1"/>
+    <circle cx="424" cy="233" r="4" fill="#A78BFA"/>
+    <text x="440" y="237" fill="#DCE6F7" font-size="13" font-weight="600">Policy Engine</text>
+    <text x="784" y="237" text-anchor="end" fill="#6E8BB8" font-size="11">blockPII · denyCountries</text>
+    <!-- pill 2 -->
+    <rect x="404" y="256" width="392" height="34" rx="9" fill="#0E1A30" stroke="#26375A" stroke-width="1"/>
+    <circle cx="424" cy="273" r="4" fill="#F472B6"/>
+    <text x="440" y="277" fill="#DCE6F7" font-size="13" font-weight="600">Circuit Breaker</text>
+    <text x="784" y="277" text-anchor="end" fill="#6E8BB8" font-size="11">auto · per-provider</text>
+    <!-- pill 3 -->
+    <rect x="404" y="296" width="392" height="34" rx="9" fill="#0E1A30" stroke="#26375A" stroke-width="1"/>
+    <circle cx="424" cy="313" r="4" fill="#22D3EE"/>
+    <text x="440" y="317" fill="#DCE6F7" font-size="13" font-weight="600">Rate Limiter</text>
+    <text x="784" y="317" text-anchor="end" fill="#6E8BB8" font-size="11">normalized headers</text>
+    <!-- pill 4 -->
+    <rect x="404" y="336" width="392" height="34" rx="9" fill="#0E1A30" stroke="#26375A" stroke-width="1"/>
+    <circle cx="424" cy="353" r="4" fill="#FBBF24"/>
+    <text x="440" y="357" fill="#DCE6F7" font-size="13" font-weight="600">Retry + Backoff</text>
+    <text x="784" y="357" text-anchor="end" fill="#6E8BB8" font-size="11">idempotency-safe</text>
+    <!-- pill 5 -->
+    <rect x="404" y="376" width="392" height="34" rx="9" fill="#0E1A30" stroke="#26375A" stroke-width="1"/>
+    <circle cx="424" cy="393" r="4" fill="#34D399"/>
+    <text x="440" y="397" fill="#DCE6F7" font-size="13" font-weight="600">Normalize + Schema Drift</text>
+    <text x="784" y="397" text-anchor="end" fill="#6E8BB8" font-size="11">one error shape</text>
+  </g>
+
+  <!-- ============ Providers ============ -->
+  <text x="1018" y="150" text-anchor="middle" fill="#6E8BB8" font-size="11" font-weight="700" letter-spacing="2">PROVIDERS</text>
+  <g font-size="14" font-weight="600">
+    <!-- Stripe -->
+    <rect x="900" y="155" width="236" height="42" rx="11" fill="url(#node)" stroke="#243352" stroke-width="1.5"/>
+    <circle cx="1116" cy="176" r="4" fill="#34D399"/>
+    <text x="924" y="181" fill="#E8EEF9">Stripe</text>
+    <!-- OpenAI -->
+    <rect x="900" y="207" width="236" height="42" rx="11" fill="url(#node)" stroke="#243352" stroke-width="1.5"/>
+    <circle cx="1116" cy="228" r="4" fill="#34D399"/>
+    <text x="924" y="233" fill="#E8EEF9">OpenAI</text>
+    <!-- Razorpay -->
+    <rect x="900" y="259" width="236" height="42" rx="11" fill="url(#node)" stroke="#243352" stroke-width="1.5"/>
+    <circle cx="1116" cy="280" r="4" fill="#34D399"/>
+    <text x="924" y="285" fill="#E8EEF9">Razorpay</text>
+    <!-- Anthropic -->
+    <rect x="900" y="311" width="236" height="42" rx="11" fill="url(#node)" stroke="#243352" stroke-width="1.5"/>
+    <circle cx="1116" cy="332" r="4" fill="#34D399"/>
+    <text x="924" y="337" fill="#E8EEF9">Anthropic</text>
+    <!-- more -->
+    <rect x="900" y="363" width="236" height="42" rx="11" fill="#0A1120" stroke="#2C3E63" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="1018" y="389" text-anchor="middle" fill="#8AA3CC" font-weight="700">+ 41 more providers</text>
+  </g>
+
+  <!-- ============ bottom stat strip ============ -->
+  <line x1="64" y1="462" x2="1136" y2="462" stroke="#1B2A47" stroke-width="1"/>
+  <g font-size="13" font-weight="600">
+    <text x="120" y="492" text-anchor="middle" fill="#E8EEF9">0.11 ms<tspan fill="#6E8BB8" font-weight="500">  overhead</tspan></text>
+    <text x="330" y="492" text-anchor="middle" fill="#E8EEF9">27 ms<tspan fill="#6E8BB8" font-weight="500">  failover</tspan></text>
+    <text x="540" y="492" text-anchor="middle" fill="#E8EEF9">45<tspan fill="#6E8BB8" font-weight="500">  providers</tspan></text>
+    <text x="770" y="492" text-anchor="middle" fill="#E8EEF9">855<tspan fill="#6E8BB8" font-weight="500">  contract tests</tspan></text>
+    <text x="1010" y="492" text-anchor="middle" fill="#E8EEF9">0<tspan fill="#6E8BB8" font-weight="500">  runtime deps</tspan></text>
+  </g>
+  <g fill="#2C7BE5">
+    <circle cx="223" cy="488" r="1.6"/>
+    <circle cx="437" cy="488" r="1.6"/>
+    <circle cx="650" cy="488" r="1.6"/>
+    <circle cx="893" cy="488" r="1.6"/>
+  </g>
+</svg>
