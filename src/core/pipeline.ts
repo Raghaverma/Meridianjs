@@ -339,7 +339,14 @@ export class RequestPipeline {
       };
 
       try {
-        const sanitizedError = { ...meridianError } as any;
+        // `message` and `name` are non-enumerable on Error instances, so a
+        // plain spread silently drops them — every observability adapter
+        // would otherwise see `error.message === undefined`.
+        const sanitizedError = {
+          ...meridianError,
+          message: meridianError.message,
+          name: meridianError.name,
+        } as any;
         if (sanitizedError.metadata) {
           sanitizedError.metadata = sanitizeObject(
             sanitizedError.metadata,

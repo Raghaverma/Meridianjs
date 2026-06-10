@@ -48,7 +48,9 @@ npm run benchmark:reliability  # reliability checks only
 
 ## Contents
 
+- [What is Meridian?](docs/what-is-meridian.md) — full positioning doc: what it is, isn't, and why
 - [Why Meridian Exists](#why-meridian-exists)
+- [How Meridian Compares](#how-meridian-compares)
 - [Reliability Scorecard](#reliability-scorecard)
 - [Benchmarks](#benchmarks)
 - [Architecture](#architecture)
@@ -80,6 +82,21 @@ The two features that make it more than a wrapper:
 **Service abstraction** — your application calls `service("payments")`, not `provider("stripe")`. Meridian decides which provider handles the request. Your application is never coupled to a specific vendor.
 
 **Schema drift detection** — providers silently change their API responses. Meridian detects the change before it reaches production.
+
+---
+
+## How Meridian Compares
+
+| | Raw SDKs | LangChain | OpenRouter | API Gateways | **Meridian** |
+|---|---|---|---|---|---|
+| Unified error format | ❌ | ❌ | Partial (LLM only) | ❌ | ✅ |
+| Automatic retries & circuit breakers | ❌ | ❌ | Partial (LLM only) | Partial (inbound only) | ✅ |
+| Multi-provider failover | ❌ | Partial (manual chains) | ✅ (LLM only) | ❌ | ✅ (any provider) |
+| Schema drift detection | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Beyond LLMs (payments, KYC, comms, logistics) | — | ❌ | ❌ | — | ✅ |
+| Runs in-process (no extra network hop) | ✅ | ✅ | ❌ (hosted proxy) | ❌ (separate infra) | ✅ |
+
+Full breakdowns: [Meridian vs. Raw SDKs](docs/comparisons/raw-sdks.md) · [vs. LangChain](docs/comparisons/langchain.md) · [vs. OpenRouter](docs/comparisons/openrouter.md) · [vs. API Gateways](docs/comparisons/api-gateways.md)
 
 ---
 

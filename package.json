@@ -56,6 +56,10 @@
     "benchmark": "MERIDIAN_BENCH_SUITE=1 npx vite-node benchmarks/index.ts",
     "benchmark:reliability": "npx vite-node benchmarks/reliability.ts",
     "benchmark:overhead": "npx vite-node benchmarks/pipeline-overhead.ts",
+    "demo:failover": "npx vite-node demos/failover.ts",
+    "demo:circuit-breaker": "npx vite-node demos/circuit-breaker.ts",
+    "demo:schema-drift": "npx vite-node demos/schema-drift.ts",
+    "demo:service-routing": "npx vite-node demos/service-routing.ts",
     "pkg:check": "npx publint && npx @arethetypeswrong/cli . --pack --ignore-rules cjs-resolves-to-esm"
   },
   "bin": {
