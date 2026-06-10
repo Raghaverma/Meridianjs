@@ -4,6 +4,20 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [0.2.10]
+
+### Fixed
+
+- **Observability** — `error.message` and `error.name` were silently dropped from the `error` object passed to `ObservabilityAdapter.logError()` (Console, OTel, Prometheus adapters). `Error` properties are non-enumerable, so a plain object spread in the pipeline's error handler discarded them, leaving every logged error with `message: undefined`. Both fields are now preserved.
+
+### Added
+
+- `docs/comparisons/` — Meridian vs. Raw SDKs, LangChain, OpenRouter, and API Gateways, plus an overview index
+- `docs/what-is-meridian.md` — category-definition doc (reliability layer vs. wrapper / gateway / iPaaS)
+- `npm run demo:failover`, `demo:circuit-breaker`, `demo:schema-drift`, `demo:service-routing` — narrative demo scripts showing each failure mode end-to-end
+
+---
+
 ## [0.2.5] — Adoption Sprint
 
 ### Added

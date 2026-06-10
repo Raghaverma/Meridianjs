@@ -5,7 +5,7 @@
 **Integration Reliability SDK**
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
-[![version](https://img.shields.io/badge/version-0.2.8-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.2.10-blue)](CHANGELOG.md)
 [![tests](https://img.shields.io/badge/tests-1911%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-45-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-855-brightgreen)](#providers)
