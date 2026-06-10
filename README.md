@@ -6,7 +6,7 @@
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.2.10-blue)](CHANGELOG.md)
-[![tests](https://img.shields.io/badge/tests-1911%20passing-brightgreen)](https://vitest.dev)
+[![tests](https://img.shields.io/badge/tests-1962%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-45-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-855-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
@@ -20,7 +20,7 @@
 npm install meridianjs
 ```
 
-> Requires **Node.js ≥ 18**. TypeScript-first, ships its own types, ESM-only.
+> Requires **Node.js ≥ 20**. TypeScript-first, ships its own types, ESM-only.
 
 ---
 
@@ -62,6 +62,7 @@ npm run benchmark:reliability  # reliability checks only
 - [Transactions](#transactions)
 - [Schema Drift Detection](#schema-drift-detection)
 - [More Features](#more-features)
+- [Security](#security)
 - [Providers](#providers)
 - [Contributing](#contributing)
 
@@ -341,6 +342,21 @@ createUpiDeepLink({ vpa: "merchant@oksbi", amount: 1000 }); // "upi://pay?pa=...
 ```
 
 **Subpath exports:** `meridianjs` (core) · `meridianjs/contract` (test harness) · `meridianjs/upi` (UPI helpers)
+
+---
+
+## Security
+
+Meridian holds credentials and routes sensitive payloads for every provider, so the protections are built into the pipeline — not bolted on.
+
+- **Endpoint host-override protection** — every endpoint is validated as a relative path before a request is built. Absolute or protocol-relative endpoints (`https://evil.com`, `//evil.com`, and their encoded/backslash variants) are rejected, so an untrusted endpoint string can never redirect an authenticated request — and its API key — to an unintended host. Pre-validate untrusted input with `isSafeEndpoint()`.
+- **Credential & PII redaction** — request options, observability metrics, and error payloads are sanitized. `authorization` / `token` / `cookie` keys are always redacted; opt-in PII redaction covers email, phone, card, and SSN, plus Aadhaar, PAN, VPA, and bank account in India mode (DPDPA).
+- **Policy engine** — `blockPII`, `redact`, `denyCountries`, `allowedProviders`, and `readOnly` run before every request, with no network round-trip on block (see [Policy Engine](#policy-engine)).
+- **Webhook verification** — timing-safe HMAC signature checks for provider webhooks.
+- **Boundary Proxy hardening** — the local proxy supports a required shared secret (`MERIDIAN_PROXY_TOKEN`), refuses to bind to a non-loopback host while unauthenticated, forwards only allowlisted headers (never client `Authorization` / `Cookie`), caps request body size, and redacts credentials and PII from recordings before they touch disk.
+- **Supply chain** — zero runtime dependencies, npm provenance on publish, SHA-pinned GitHub Actions, and `npm audit` + OSV scanning in CI.
+
+Found a vulnerability? See [SECURITY.md](SECURITY.md) for private reporting.
 
 ---
 
