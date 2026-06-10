@@ -180,3 +180,33 @@ describe("India compliance mode", () => {
     expect(json).not.toContain("a@b.com");
   });
 });
+
+describe("sanitizeRequestOptions — ReDoS resistance", () => {
+  // Regression: the EMAIL pattern previously used an unbounded `+` before "@",
+  // which backtracks quadratically. A ~200KB run of email-class characters with
+  // no "@" took tens of seconds to redact. Bounded quantifiers keep it linear.
+  const adversarialInputs: Array<[string, string]> = [
+    ["digits-and-hyphens (no @)", "1234-".repeat(40000)],
+    ["local-part with no TLD", `a@${"a".repeat(100000)}`],
+    ["long alpha run", "x".repeat(300000)],
+  ];
+
+  for (const [label, input] of adversarialInputs) {
+    it(`redacts ${label} within the time budget`, () => {
+      const start = Date.now();
+      sanitizeRequestOptions({ body: input }, { piiRedaction: true });
+      const elapsed = Date.now() - start;
+      // Generous bound for CI variance; the vulnerable pattern took >20_000ms.
+      expect(elapsed).toBeLessThan(1000);
+    });
+  }
+
+  it("still redacts genuine emails after bounding the pattern", () => {
+    const result = sanitizeRequestOptions(
+      { body: "reach me at First.Last+tag@sub.example-domain.co.uk" },
+      { piiRedaction: true },
+    );
+    expect(result.body).not.toContain("First.Last+tag@sub.example-domain.co.uk");
+    expect(result.body).toContain("[PII-REDACTED]");
+  });
+});

@@ -12,6 +12,9 @@ export { AnalyticsCollector } from "./analytics/index.js";
 export type { ProviderInfo } from "./capabilities/index.js";
 // Provider capability registry
 export { PROVIDER_CAPABILITIES } from "./capabilities/index.js";
+// Endpoint safety guard (host-override / SSRF protection) — exposed so callers
+// can pre-validate untrusted endpoint strings before issuing a request.
+export { assertSafeEndpoint, isSafeEndpoint } from "./core/endpoint-validator.js";
 // Streaming (SSE) support
 export type { StreamChunk } from "./core/streaming.js";
 // Core types - consumer contracts

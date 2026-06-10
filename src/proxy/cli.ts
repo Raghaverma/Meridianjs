@@ -11,6 +11,11 @@
  *   node dist/proxy/cli.js [port]
  *   BOUNDARY_PROXY_PORT=4242 node dist/proxy/cli.js
  *
+ * Server configuration (environment variables):
+ *   BOUNDARY_PROXY_PORT — port to listen on (default 4242)
+ *   BOUNDARY_PROXY_HOST — host to bind (default 127.0.0.1)
+ *   MERIDIAN_PROXY_TOKEN — shared secret required on every request
+ *
  * Environment variables for provider credentials:
  *   GITHUB_TOKEN        — GitHub personal access token
  *   ANTHROPIC_API_KEY   — Anthropic API key
@@ -35,7 +40,13 @@ if (Number.isNaN(port) || port < 1 || port > 65535) {
   process.exit(1);
 }
 
-const server = new BoundaryProxyServer({ port });
+const serverOpts: ConstructorParameters<typeof BoundaryProxyServer>[0] = { port };
+const host = process.env.BOUNDARY_PROXY_HOST;
+if (host) serverOpts.host = host;
+const authToken = process.env.MERIDIAN_PROXY_TOKEN;
+if (authToken) serverOpts.authToken = authToken;
+
+const server = new BoundaryProxyServer(serverOpts);
 
 server.start().catch((err: unknown) => {
   console.error("[Boundary Proxy] Failed to start:", err);

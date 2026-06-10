@@ -11,14 +11,26 @@ We provide security updates for the following versions:
 
 ## Reporting a Vulnerability
 
-Report security vulnerabilities privately to the project maintainers. Do not open public issues for security vulnerabilities.
+Report security vulnerabilities privately. **Do not open public issues, pull requests, or discussions for security vulnerabilities.**
 
-### Process
+### How to report
 
-1. Email security concerns to the project's security contact (see repository contact information)
-2. Include a detailed description of the vulnerability
-3. Provide steps to reproduce if applicable
-4. Include potential impact assessment
+Preferred — GitHub private vulnerability reporting:
+
+1. Go to the [Security tab](https://github.com/Raghaverma/meridianjs/security) of the repository.
+2. Click **"Report a vulnerability"** to open a private advisory ([direct link](https://github.com/Raghaverma/meridianjs/security/advisories/new)).
+3. This channel stays private between you and the maintainers until a fix is published.
+
+Alternative — email:
+
+- Email the maintainer at **rvraghav09@gmail.com** with the subject line `SECURITY: meridianjs`.
+
+### What to include
+
+1. A detailed description of the vulnerability.
+2. Steps to reproduce (a minimal proof-of-concept is ideal).
+3. The affected version(s) and configuration.
+4. A potential impact assessment.
 
 ### Response Timeline
 
@@ -59,6 +71,22 @@ When using Meridian:
 - Monitor circuit breaker and rate limit metrics
 - Review schema drift warnings for unexpected API changes
 - Keep the SDK updated to latest patch version
+- Treat request endpoints as relative paths. Absolute and protocol-relative
+  endpoints are rejected to prevent redirecting authenticated requests to an
+  unintended host; use `isSafeEndpoint()` to pre-validate any endpoint built
+  from untrusted input.
+
+### Boundary Proxy
+
+- Keep the proxy bound to a loopback host (`127.0.0.1`, the default). Binding to
+  a non-loopback host without an `authToken` is refused; override only with
+  `allowUnauthenticatedRemote: true` and a firewall in front.
+- Set `authToken` (or `MERIDIAN_PROXY_TOKEN`) so callers must present a shared
+  secret. Client-supplied `Authorization`/`Cookie` headers are never forwarded
+  upstream — the proxy injects provider credentials itself.
+- Request/response recordings are **sensitive**. Credentials are always redacted
+  before they are written; PII patterns are redacted by default (`recordRedaction`).
+  Store and share recording files with the same care as the underlying data.
 
 ## Known Limitations
 

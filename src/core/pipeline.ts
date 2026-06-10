@@ -3,6 +3,7 @@ import type { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
 import type { IdempotencyResolver } from "../strategies/idempotency.js";
 import type { RateLimiter } from "../strategies/rate-limit.js";
 import type { RetryStrategy } from "../strategies/retry.js";
+import { assertSafeEndpoint } from "./endpoint-validator.js";
 import { sanitizeMeridianError } from "./error-sanitizer.js";
 import { sanitizeMetric, sanitizeObject } from "./observability-sanitizer.js";
 import { sanitizeRequestOptions } from "./request-sanitizer.js";
@@ -117,6 +118,11 @@ export class RequestPipeline {
     const requestId = randomUUID();
     const method = options.method ?? "GET";
     const startTime = Date.now();
+
+    // Reject absolute/protocol-relative endpoints before any adapter resolves
+    // them — otherwise `new URL(endpoint, baseUrl)` could redirect this
+    // authenticated request (and its credentials) to an unintended host.
+    assertSafeEndpoint(endpoint, this.config.provider, requestId);
 
     if (this.config.autoGenerateIdempotencyKeys && !options.idempotencyKey) {
       options.idempotencyKey = randomUUID();

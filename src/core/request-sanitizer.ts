@@ -7,7 +7,11 @@ export interface SanitizerOptions {
 }
 
 const PII_PATTERNS = {
-  EMAIL: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
+  // Quantifiers are bounded to RFC 5321 limits (local part ≤ 64, domain ≤ 255,
+  // TLD ≤ 24). Unbounded `+` here caused quadratic backtracking (a multi-second
+  // hang) on long runs of email-class characters with no "@" — a ReDoS in the
+  // redaction path, which processes untrusted request/response bodies.
+  EMAIL: /[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,255}\.[a-zA-Z]{2,24}/g,
   PHONE: /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g,
   SSN: /\b\d{3}-\d{2}-\d{4}\b/g,
   CREDIT_CARD: /\b(?:\d[ -]*?){13,16}\b/g,
@@ -120,6 +124,16 @@ export function sanitizeRequestOptions(
   }
 
   return sanitized;
+}
+
+/**
+ * Deeply redact PII patterns (email, phone, SSN, card; plus Aadhaar/PAN/VPA/bank
+ * in India mode) from an arbitrary value — strings, arrays, and nested objects.
+ * Used when persisting payloads (e.g. proxy recordings) so that PII never reaches
+ * disk in plaintext.
+ */
+export function redactPii(value: unknown, opts?: { indiaMode?: boolean }): unknown {
+  return sanitizeValue(value, opts?.indiaMode === true);
 }
 
 function sanitizeValue(val: unknown, indiaMode: boolean): unknown {

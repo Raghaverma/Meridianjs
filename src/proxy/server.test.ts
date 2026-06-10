@@ -215,4 +215,176 @@ describe("BoundaryProxyServer", () => {
       });
     }
   });
+
+  describe("7. Recording redaction (sanitizeForRecord)", () => {
+    it("always redacts credential-bearing keys, even with PII redaction off", () => {
+      const s = new BoundaryProxyServer({ recordRedaction: false });
+      const out = (s as any).sanitizeForRecord({
+        token: "ghp_secret",
+        api_key: "sk-live-123",
+        authorization: "Bearer abc",
+        nested: { apiKey: "sk-nested" },
+        keep: "ok",
+      }) as Record<string, any>;
+      expect(out.token).toBe("[REDACTED]");
+      expect(out.api_key).toBe("[REDACTED]");
+      expect(out.authorization).toBe("[REDACTED]");
+      expect(out.nested.apiKey).toBe("[REDACTED]");
+      expect(out.keep).toBe("ok");
+    });
+
+    it("redacts PII patterns by default", () => {
+      const s = new BoundaryProxyServer();
+      const out = (s as any).sanitizeForRecord({
+        email: "user@example.com",
+        note: "call me at 415-555-1234",
+      }) as Record<string, string>;
+      expect(out.email).not.toContain("user@example.com");
+      expect(out.email).toContain("[PII-REDACTED]");
+      expect(out.note).not.toContain("415-555-1234");
+    });
+
+    it("redacts India-specific PII when recordRedaction is 'india'", () => {
+      const s = new BoundaryProxyServer({ recordRedaction: "india" });
+      const out = (s as any).sanitizeForRecord({
+        pan: "ABCDE1234F",
+        aadhaar: "1234 5678 9012",
+      }) as Record<string, string>;
+      expect(out.pan).toContain("[PAN-REDACTED]");
+      expect(out.aadhaar).toContain("[AADHAAR-REDACTED]");
+    });
+
+    it("leaves PII intact when recordRedaction is false (credentials still redacted)", () => {
+      const s = new BoundaryProxyServer({ recordRedaction: false });
+      const out = (s as any).sanitizeForRecord({
+        email: "user@example.com",
+        token: "secret",
+      }) as Record<string, string>;
+      expect(out.email).toBe("user@example.com");
+      expect(out.token).toBe("[REDACTED]");
+    });
+  });
+
+  describe("8. Authentication", () => {
+    const AUTH_PORT = PORT + 100;
+    let authServer: BoundaryProxyServer;
+
+    beforeAll(async () => {
+      mockUpstream();
+      authServer = new BoundaryProxyServer({
+        port: AUTH_PORT,
+        providers: TEST_CREDENTIALS,
+        authToken: "s3cr3t",
+      });
+      await authServer.start();
+    });
+
+    it("rejects requests without a token", async () => {
+      mockUpstream();
+      const res = await proxyRequest(AUTH_PORT, "/github/repos/octocat/Hello-World");
+      expect(res.status).toBe(401);
+    });
+
+    it("rejects requests with the wrong token", async () => {
+      mockUpstream();
+      const res = await proxyRequest(AUTH_PORT, "/github/repos/octocat/Hello-World", {
+        headers: { authorization: "Bearer wrong" },
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("accepts a correct Bearer token", async () => {
+      mockUpstream();
+      const res = await proxyRequest(AUTH_PORT, "/github/repos/octocat/Hello-World", {
+        headers: { authorization: "Bearer s3cr3t" },
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("accepts a correct X-Proxy-Token header", async () => {
+      mockUpstream();
+      const res = await proxyRequest(AUTH_PORT, "/github/repos/octocat/Hello-World", {
+        headers: { "x-proxy-token": "s3cr3t" },
+      });
+      expect(res.status).toBe(200);
+    });
+
+    it("leaves /_health open and reports authRequired", async () => {
+      const res = await proxyRequest(AUTH_PORT, "/_health");
+      expect(res.status).toBe(200);
+      expect((res.body as any).authRequired).toBe(true);
+    });
+  });
+
+  describe("9. Non-loopback bind guard", () => {
+    it("refuses to start on a non-loopback host without auth", async () => {
+      const s = new BoundaryProxyServer({ host: "0.0.0.0", port: PORT + 200 });
+      await expect(s.start()).rejects.toThrow(/non-loopback/i);
+    });
+
+    it("allows a non-loopback bind when an authToken is set", () => {
+      const s = new BoundaryProxyServer({
+        host: "0.0.0.0",
+        port: PORT + 201,
+        authToken: "tok",
+      });
+      // Constructor + config validation should accept this combination.
+      expect((s as any).authToken).toBe("tok");
+    });
+  });
+
+  describe("11. Request body size cap", () => {
+    const CAP_PORT = PORT + 300;
+    let capServer: BoundaryProxyServer;
+
+    beforeAll(async () => {
+      mockUpstream();
+      capServer = new BoundaryProxyServer({
+        port: CAP_PORT,
+        providers: TEST_CREDENTIALS,
+        maxBodyBytes: 100,
+      });
+      await capServer.start();
+    });
+
+    it("rejects an oversized request body with 413", async () => {
+      mockUpstream();
+      const res = await proxyRequest(CAP_PORT, "/github/user/repos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ data: "x".repeat(500) }),
+      });
+      expect(res.status).toBe(413);
+    });
+
+    it("accepts a body under the cap", async () => {
+      mockUpstream(200, { ok: true });
+      const res = await proxyRequest(CAP_PORT, "/github/user/repos", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ a: 1 }),
+      });
+      expect(res.status).toBe(200);
+    });
+  });
+
+  describe("10. Header allowlisting", () => {
+    it("does not forward client authorization/cookie headers upstream", async () => {
+      mockUpstream(200, { ok: true });
+      await proxyRequest(PORT, "/github/repos/octocat/Hello-World", {
+        headers: {
+          authorization: "Bearer client-leak",
+          cookie: "session=abc",
+          "content-type": "application/json",
+        },
+      });
+      const mockFetch = (globalThis as any).fetch as ReturnType<typeof vi.fn>;
+      const init = mockFetch.mock.calls.at(-1)?.[1] as RequestInit | undefined;
+      const sent = new Headers(init?.headers as HeadersInit);
+      // The upstream Authorization must be the GitHub credential the proxy
+      // injected, never the client's "client-leak" value.
+      expect(sent.get("authorization") ?? "").not.toContain("client-leak");
+      expect(sent.has("cookie")).toBe(false);
+    });
+  });
 });

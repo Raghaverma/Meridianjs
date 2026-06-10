@@ -2,6 +2,7 @@ import type { CostReport } from "./analytics/collector.js";
 import { AnalyticsCollector } from "./analytics/collector.js";
 import { PROVIDER_CAPABILITIES } from "./capabilities/registry.js";
 import { assertValidAdapter } from "./core/adapter-validator.js";
+import { assertSafeEndpoint } from "./core/endpoint-validator.js";
 import { sanitizeObject } from "./core/observability-sanitizer.js";
 import { type PipelineConfig, RequestPipeline } from "./core/pipeline.js";
 import { parseSSEStream, type StreamChunk } from "./core/streaming.js";
@@ -488,6 +489,10 @@ export class Meridian {
       options: RequestOptions = {},
     ): AsyncGenerator<StreamChunk<T>> {
       meridian.ensureStarted();
+
+      // The streaming path builds the request directly (bypassing the pipeline),
+      // so apply the same endpoint guard here to prevent host-override.
+      assertSafeEndpoint(endpoint, providerName);
 
       const currentAdapter = meridian.adapters.get(providerName);
       if (!currentAdapter) {
