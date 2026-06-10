@@ -98,6 +98,8 @@ The two features that make it more than a wrapper:
 
 Full breakdowns: [Meridian vs. Raw SDKs](docs/comparisons/raw-sdks.md) · [vs. LangChain](docs/comparisons/langchain.md) · [vs. OpenRouter](docs/comparisons/openrouter.md) · [vs. API Gateways](docs/comparisons/api-gateways.md)
 
+Already convinced? Jump straight to the [migration guides](docs/migrations/index.md): [from the OpenAI SDK](docs/migrations/from-openai-sdk.md) · [from the Stripe SDK](docs/migrations/from-stripe-sdk.md) · [from OpenRouter](docs/migrations/from-openrouter.md) · [from LangChain](docs/migrations/from-langchain.md)
+
 ---
 
 ## Benchmarks

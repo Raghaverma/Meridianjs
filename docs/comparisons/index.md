@@ -40,3 +40,7 @@ For the full positioning breakdown — what Meridian is, what it deliberately is
 | Vendor-agnostic application code | ❌ | ❌ | Partial | — | ✅ |
 
 If you only read one comparison, read [Raw SDKs](raw-sdks.md) — it's the default most teams are coming from.
+
+## Ready to switch?
+
+Once you've picked a comparison, the [migration guides](../migrations/index.md) walk through the actual code changes: [from the OpenAI SDK](../migrations/from-openai-sdk.md), [from the Stripe SDK](../migrations/from-stripe-sdk.md), [from OpenRouter](../migrations/from-openrouter.md), and [from LangChain](../migrations/from-langchain.md).

@@ -1,6 +1,8 @@
-# Migration Guide (v0.x to v0.2.3)
+# Upgrade Guide (v0.x to v0.2.3)
 
 Meridian v0.2.3 introduces structural improvements to request execution safety, distributed coordination, and the custom adapter interface. This guide details the steps to upgrade your application.
+
+> Looking to move *to* Meridian from another SDK or framework (OpenAI SDK, Stripe SDK, OpenRouter, LangChain)? See the [migration guides](migrations/index.md) instead.
 
 ---
 
