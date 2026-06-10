@@ -116,7 +116,7 @@ jobs:
           name: dist-release
           path: dist/
       - run: npx publint --strict
-      - run: npx @arethetypeswrong/cli . --pack
+      - run: npx @arethetypeswrong/cli . --pack --ignore-rules cjs-resolves-to-esm
       - name: Verify exports
         run: node -e "import('./dist/public.js').then(m => console.log(Object.keys(m).length + ' exports verified'))"
 

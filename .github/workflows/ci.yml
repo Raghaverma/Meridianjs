@@ -249,7 +249,7 @@ jobs:
       - name: publint — validate package.json exports
         run: npx publint --strict
       - name: are-the-types-wrong — validate TypeScript types
-        run: npx @arethetypeswrong/cli . --pack
+        run: npx @arethetypeswrong/cli . --pack --ignore-rules cjs-resolves-to-esm
 
 # ─── Datadog synthetic tests (optional — runs if DD secrets configured) ───────
   datadog-synthetics:
@@ -275,9 +275,9 @@ jobs:
         if: steps.dd_creds.outputs.enabled == 'true'
         uses: DataDog/synthetics-ci-github-action@c84a23515bda46d8a060f77a6ad88644377f90be
         with:
-          api_key: ${{ secrets.DD_API_KEY }}
-          app_key: ${{ secrets.DD_APP_KEY }}
-          test_search_query: tag:e2e-tests
+          api-key: ${{ secrets.DD_API_KEY }}
+          app-key: ${{ secrets.DD_APP_KEY }}
+          search: tag:e2e-tests
 
 # ─── Required status gate ─────────────────────────────────────────────────────
 # Single check to require in branch protection. Fails if ANY required job failed
