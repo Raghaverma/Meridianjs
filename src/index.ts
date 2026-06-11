@@ -41,6 +41,7 @@ import { GitHubAdapter } from "./providers/github/adapter.js";
 import { GoogleMapsAdapter } from "./providers/googlemaps/adapter.js";
 import { GupshupAdapter } from "./providers/gupshup/adapter.js";
 import { HubSpotAdapter } from "./providers/hubspot/adapter.js";
+import { HunterAdapter } from "./providers/hunter/adapter.js";
 import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
 import { IdfyAdapter } from "./providers/idfy/adapter.js";
 import { JuspayAdapter } from "./providers/juspay/adapter.js";
@@ -120,6 +121,7 @@ export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> 
   mistral: MistralAdapter,
   mollie: MollieAdapter,
   apollo: ApolloAdapter,
+  hunter: HunterAdapter,
   s3: S3Adapter,
 };
 
@@ -689,6 +691,7 @@ export class Meridian {
   provider(name: "mistral"): ProviderClient | undefined;
   provider(name: "mollie"): ProviderClient | undefined;
   provider(name: "apollo"): ProviderClient | undefined;
+  provider(name: "hunter"): ProviderClient | undefined;
   provider(name: "s3"): ProviderClient | undefined;
   provider(name: string): ProviderClient | undefined;
 

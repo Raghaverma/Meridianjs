@@ -14,7 +14,7 @@ Build once. Survive provider failures.
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
-45 providers · 855 contract tests · 0.11 ms overhead · 27 ms failover recovery.
+46 providers · 874 contract tests · 0.11 ms overhead · 27 ms failover recovery.
 
 </div>
 
@@ -372,7 +372,7 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md) for private reporting.
 
 ## Providers
 
-**45 adapters**, each passing the same 19 contract invariants (855 contract tests in total). Verify any one with `npm run test:contracts stripe`.
+**46 adapters**, each passing the same 19 contract invariants (874 contract tests in total). Verify any one with `npm run test:contracts stripe`.
 
 | Category | Count | Providers |
 |---|---|---|
@@ -380,7 +380,7 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md) for private reporting.
 | **AI / LLM** | 5 | OpenAI · Anthropic · Gemini · Cohere · Mistral |
 | **Communications** | 7 | Twilio · SendGrid · Mailgun · Vonage · MSG91 · Exotel · Gupshup |
 | **KYC / Identity** | 7 | HyperVerge · Digio · Karza · IDfy · Setu · Decentro · Perfios |
-| **Tools & Infra** | 6 | GitHub · HubSpot · Supabase · Auth0 · Apollo · S3 |
+| **Tools & Infra** | 7 | GitHub · HubSpot · Supabase · Auth0 · Apollo · Hunter · S3 |
 | **Mapping** | 2 | Google Maps · MapMyIndia |
 | **Observability** | 2 | Sentry · Datadog |
 | **Logistics** | 2 | Shiprocket · Delhivery |

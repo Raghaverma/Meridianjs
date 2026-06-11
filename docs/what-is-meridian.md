@@ -7,7 +7,7 @@ Application
     ↓
 Meridian
     ↓
-OpenAI · Anthropic · Stripe · Razorpay · Twilio · ...45 providers
+OpenAI · Anthropic · Stripe · Razorpay · Twilio · ...46 providers
 ```
 
 Every call your code makes to an external API — an LLM completion, a payment charge, an SMS send — passes through Meridian first. Meridian normalizes the request and response, retries transient failures, breaks the circuit on a dead provider, fails over to a backup, watches for the provider silently changing its API shape, and records a trace of what happened. Your application code stays the same regardless of which provider is behind it, or whether that provider is healthy right now.

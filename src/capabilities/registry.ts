@@ -60,6 +60,7 @@ export const PROVIDER_CAPABILITIES: Record<string, string[]> = {
   // Developer Tools / CRM
   github: ["repos", "pull-requests", "issues", "webhooks", "actions", "packages"],
   hubspot: ["crm", "contacts", "deals", "marketing", "email", "automation"],
+  hunter: ["email-finder", "email-verification", "domain-search", "lead-enrichment"],
 
   // Auth
   auth0: ["authentication", "authorization", "mfa", "sso", "user-management"],
