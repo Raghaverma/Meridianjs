@@ -216,7 +216,7 @@ jobs:
         # prod-only npm audit above is the hard gate; OSV adds coverage for
         # advisories npm may not carry and surfaces dev-tree findings for review.
         continue-on-error: true
-        uses: google/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+        uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         with:
           scan-args: |-
             --lockfile=package-lock.json
