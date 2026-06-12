@@ -138,9 +138,9 @@ export { StripeAdapter } from "./providers/stripe/adapter.js";
 export { SupabaseAdapter } from "./providers/supabase/adapter.js";
 export { TwilioAdapter } from "./providers/twilio/adapter.js";
 export { VonageAdapter } from "./providers/vonage/adapter.js";
-export type { ProxyServerOptions } from "./proxy/server.js";
-// Claw / agent proxy integration
-export { BoundaryProxyServer } from "./proxy/server.js";
+export type { GrpcProxyServerOptions, ProxyServerOptions } from "./proxy/index.js";
+// gRPC boundary proxy — language-agnostic access to the Meridian pipeline
+export { BoundaryGrpcServer } from "./proxy/index.js";
 export type { PaymentRouterOptions } from "./routers/index.js";
 // Routers
 export { PaymentRouter } from "./routers/index.js";

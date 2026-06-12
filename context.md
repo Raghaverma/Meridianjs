@@ -43,6 +43,23 @@ The "contract" that bridge specific APIs to the Meridian pipeline. Every adapter
 - `rateLimitPolicy`: Extracts rate limit info from headers.
 - `paginationStrategy`: Defines how to traverse paginated endpoints.
 
+### 4. Language-neutral contract ([proto/meridian.proto](proto/meridian.proto))
+The contract is also expressed as a gRPC IDL so it is not TypeScript-only. The
+`meridian.v1.Meridian` service (`Call`, `Paginate`, `Health`) carries
+`RequestOptions`, `NormalizedResponse`, `ResponseMeta`, and the `MeridianError`
+model over the wire. Arbitrary JSON payloads (body/data/metadata) are carried as
+JSON-encoded strings to keep the conversion identical across languages.
+
+- **gRPC Boundary Proxy** ([src/proxy/grpc-server.ts](src/proxy/grpc-server.ts)):
+  replaces the previous HTTP proxy. It serves the proto backed by the TS engine,
+  reusing `buildMeridianConfig`, the header allowlist, recording/replay, and
+  constant-time auth (metadata `authorization`/`x-proxy-token`). `@grpc/grpc-js`
+  and `@grpc/proto-loader` are **optional peer dependencies**, loaded lazily in
+  `start()` so the SDK core stays dependency-free.
+- **Native Python engine** ([clients/python](clients/python)): a from-scratch port
+  of the pipeline and reference adapters (github/openai/anthropic/stripe) that also
+  serves and consumes the same proto, so either engine returns identical shapes.
+
 ---
 
 ## 🛡️ Safety & Resilience

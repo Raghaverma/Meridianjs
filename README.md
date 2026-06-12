@@ -355,6 +355,39 @@ createUpiDeepLink({ vpa: "merchant@oksbi", amount: 1000 }); // "upi://pay?pa=...
 
 ---
 
+## Polyglot: one contract, any language
+
+Meridian's contract is no longer TypeScript-only. It is defined as a language-neutral
+gRPC IDL in [`proto/meridian.proto`](proto/meridian.proto) — `RequestOptions`,
+`NormalizedResponse`, `ResponseMeta`, and the `MeridianError` model expressed as a
+wire format. Any gRPC-capable language can drive the pipeline.
+
+- **gRPC Boundary Proxy (TypeScript engine).** `npx boundary-proxy` starts a gRPC server
+  implementing `meridian.v1.Meridian`. Call it from Go, Python, Rust, or `grpcurl`:
+
+  ```bash
+  grpcurl -plaintext -d '{"provider":"github","method":"GET",
+    "endpoint":"/repos/octocat/Hello-World"}' \
+    127.0.0.1:4242 meridian.v1.Meridian/Call
+  ```
+
+- **Native Python engine.** [`clients/python`](clients/python) is a from-scratch Python
+  port of the pipeline (retry, circuit breaking, rate limiting, sanitization,
+  normalization) with reference adapters for GitHub, OpenAI, Anthropic, and Stripe. It
+  runs standalone *and* speaks the same proto — it can serve the contract or consume
+  either engine:
+
+  ```python
+  from meridian import Meridian
+  meridian = await Meridian.create({"providers": {"github": {"auth": {"token": "ghp_..."}}}})
+  res = await meridian.github.get("/repos/octocat/Hello-World")
+  ```
+
+Because both engines implement the same `.proto`, identical calls return identical
+normalized shapes regardless of language. See [`clients/python/README.md`](clients/python/README.md).
+
+---
+
 ## Security
 
 Meridian holds credentials and routes sensitive payloads for every provider, so the protections are built into the pipeline — not bolted on.
@@ -363,8 +396,8 @@ Meridian holds credentials and routes sensitive payloads for every provider, so 
 - **Credential & PII redaction** — request options, observability metrics, and error payloads are sanitized. `authorization` / `token` / `cookie` keys are always redacted; opt-in PII redaction covers email, phone, card, and SSN, plus Aadhaar, PAN, VPA, and bank account in India mode (DPDPA).
 - **Policy engine** — `blockPII`, `redact`, `denyCountries`, `allowedProviders`, and `readOnly` run before every request, with no network round-trip on block (see [Policy Engine](#policy-engine)).
 - **Webhook verification** — timing-safe HMAC signature checks for provider webhooks.
-- **Boundary Proxy hardening** — the local proxy supports a required shared secret (`MERIDIAN_PROXY_TOKEN`), refuses to bind to a non-loopback host while unauthenticated, forwards only allowlisted headers (never client `Authorization` / `Cookie`), caps request body size, and redacts credentials and PII from recordings before they touch disk.
-- **Supply chain** — zero runtime dependencies, npm provenance on publish, SHA-pinned GitHub Actions, and `npm audit` + OSV scanning in CI.
+- **Boundary Proxy hardening** — the local **gRPC** proxy supports a required shared secret (`MERIDIAN_PROXY_TOKEN`, presented as call metadata), refuses to bind to a non-loopback host while unauthenticated, forwards only allowlisted headers (never client `Authorization` / `Cookie`), caps message size, and redacts credentials and PII from recordings before they touch disk.
+- **Supply chain** — zero **required** runtime dependencies (the gRPC proxy pulls in `@grpc/grpc-js` + `@grpc/proto-loader` only as optional peer deps), npm provenance on publish, SHA-pinned GitHub Actions, and `npm audit` + OSV scanning in CI.
 
 Found a vulnerability? See [SECURITY.md](SECURITY.md) for private reporting.
 
