@@ -1,0 +1,13 @@
+# Generated gRPC stubs (regenerate with `make proto`)
+meridian/proto/meridian_pb2.py
+meridian/proto/meridian_pb2_grpc.py
+meridian/proto/*.pyi
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/

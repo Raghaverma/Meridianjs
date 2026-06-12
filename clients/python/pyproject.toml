@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meridian"
+version = "0.2.11"
+description = "Meridian — native Python port of the single stable contract for third-party APIs, with a gRPC bridge to the TypeScript engine."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "httpx>=0.27",
+    "grpcio>=1.60",
+    "protobuf>=4.25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "grpcio-tools>=1.60",
+]
+
+[project.scripts]
+meridian-proxy = "meridian.grpc_server:main"
+
+[tool.setuptools.packages.find]
+include = ["meridian*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

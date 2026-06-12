@@ -15,7 +15,8 @@
       "!**/.omx",
       "!**/coverage",
       "!**/examples",
-      "!**/blog"
+      "!**/blog",
+      "!clients/python"
     ]
   },
   "formatter": {

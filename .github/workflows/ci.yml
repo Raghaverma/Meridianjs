@@ -209,7 +209,8 @@ jobs:
           cache: npm
       - run: npm ci
       - name: npm audit (production dependencies only)
-        # The SDK has zero runtime deps — all devDep vulnerabilities are irrelevant to users.
+        # The SDK core has zero required runtime deps (the gRPC proxy's @grpc/* are
+        # optional peer deps) — devDep vulnerabilities are irrelevant to users.
         run: npm audit --omit=dev --audit-level=high
       - name: OSV-Scanner (advisory — broader vuln database, dev + prod)
         # Cross-checks the lockfile against the OSV database. Non-blocking: the
@@ -260,6 +261,26 @@ jobs:
       - name: are-the-types-wrong — validate TypeScript types
         run: npx @arethetypeswrong/cli . --pack --ignore-rules cjs-resolves-to-esm
 
+# ─── Python engine: generate stubs from the shared proto, then test ──────────
+  python-tests:
+    name: Python — Stubs & Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install Python package
+        working-directory: clients/python
+        run: pip install -e .[dev]
+      - name: Generate gRPC stubs from proto/meridian.proto
+        working-directory: clients/python
+        run: make proto
+      - name: Run pytest
+        working-directory: clients/python
+        run: pytest -q
+
 # ─── Datadog synthetic tests (optional — runs if DD secrets configured) ───────
   datadog-synthetics:
     name: Datadog Synthetics
@@ -307,6 +328,7 @@ jobs:
       - benchmarks
       - security
       - package-quality
+      - python-tests
     steps:
       - name: Fail if any required job did not succeed
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}

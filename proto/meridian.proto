@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+// Meridian's single stable contract, expressed as a language-neutral IDL.
+//
+// This file is the source of truth that every language binding implements:
+// the TypeScript engine serves it (src/proxy/grpc-server.ts) and the Python
+// engine both serves and consumes it (clients/python/meridian). Keeping the
+// contract here — rather than only in TypeScript types — is what makes
+// Meridian polyglot.
+//
+// Arbitrary JSON payloads (request body, normalized response data, error
+// metadata) are carried as JSON-encoded strings rather than
+// google.protobuf.Struct. This keeps the wire format trivial and the
+// conversions explicit and byte-identical across languages, at the cost of a
+// JSON encode/decode on each side.
+package meridian.v1;
+
+service Meridian {
+  // Execute a single normalized request (.get/.post/.put/.patch/.delete).
+  rpc Call(CallRequest) returns (CallResponse);
+
+  // Traverse a paginated endpoint, streaming one CallResponse per page.
+  rpc Paginate(CallRequest) returns (stream CallResponse);
+
+  // Liveness + capability probe. Unauthenticated: returns no secrets.
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Mirrors MeridianErrorCategory in src/core/types.ts.
+enum ErrorCategory {
+  ERROR_CATEGORY_UNSPECIFIED = 0;
+  AUTH = 1;
+  RATE_LIMIT = 2;
+  NETWORK = 3;
+  PROVIDER = 4;
+  VALIDATION = 5;
+}
+
+// Mirrors MeridianErrorCode in src/core/types.ts.
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  AUTH_FAILED = 1;
+  RATE_LIMITED = 2;
+  NOT_FOUND = 3;
+  BAD_REQUEST = 4;
+  UPSTREAM_5XX = 5;
+  NETWORK_ERROR = 6;
+  TIMEOUT = 7;
+  UNKNOWN = 8;
+}
+
+// Mirrors CircuitState in src/core/types.ts.
+enum CircuitState {
+  CIRCUIT_STATE_UNSPECIFIED = 0;
+  CLOSED = 1;
+  OPEN = 2;
+  HALF_OPEN = 3;
+}
+
+message CallRequest {
+  string provider = 1;             // e.g. "github"
+  string method = 2;               // GET|POST|PUT|PATCH|DELETE
+  string endpoint = 3;             // relative path, e.g. /repos/octocat/Hello-World
+  map<string, string> query = 4;
+  map<string, string> headers = 5;
+  string body_json = 6;            // JSON-encoded request body ("" = none)
+  string idempotency_key = 7;
+  int32 timeout_ms = 8;            // 0 = adapter default
+  string identity = 9;             // SOC 2 audit identity
+}
+
+message RateLimitInfo {
+  int64 limit = 1;
+  int64 remaining = 2;
+  int64 reset_unix_ms = 3;         // RateLimitInfo.reset as epoch millis
+}
+
+message PaginationInfo {
+  bool has_next = 1;
+  string cursor = 2;
+  int64 total = 3;
+  bool has_total = 4;              // distinguishes total=0 from "absent"
+}
+
+message RequestTrace {
+  int32 retries = 1;
+  double latency_ms = 2;
+  CircuitState circuit_breaker = 3;
+  int64 rate_limit_remaining = 4;
+}
+
+message ResponseMeta {
+  string provider = 1;
+  string request_id = 2;
+  RateLimitInfo rate_limit = 3;
+  PaginationInfo pagination = 4;   // unset when there is no next page
+  repeated string warnings = 5;
+  string schema_version = 6;
+  RequestTrace trace = 7;
+}
+
+message MeridianError {
+  string message = 1;
+  ErrorCategory category = 2;
+  ErrorCode code = 3;
+  bool retryable = 4;
+  string provider = 5;
+  string request_id = 6;
+  int32 status = 7;                // upstream HTTP status (0 if none)
+  string metadata_json = 8;        // JSON-encoded metadata ("" = none)
+  int64 retry_after_unix_ms = 9;   // 0 if none
+}
+
+message CallResponse {
+  string data_json = 1;            // JSON-encoded normalized response data
+  ResponseMeta meta = 2;
+  MeridianError error = 3;         // populated => the call failed
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  repeated string providers = 2;
+  bool recording = 3;
+  bool replaying = 4;
+  bool auth_required = 5;
+}
