@@ -4,6 +4,29 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [0.2.12]
+
+### Fixed
+
+- **Python client tests** — `clients/python/tests` is now a proper package (`tests/__init__.py`), so `pytest` can resolve `from tests.conftest import ...` in `test_client.py` and `test_grpc.py`.
+
+---
+
+## [0.2.11]
+
+### Added
+
+- **Hunter provider** — full request/response normalization, auth handling, and error mapping, bringing the adapter count to 46 (874 contract tests).
+- **Polyglot contract** — the Meridian contract is now defined as a language-neutral gRPC IDL ([`proto/meridian.proto`](proto/meridian.proto)), covering `RequestOptions`, `NormalizedResponse`, `ResponseMeta`, and `MeridianError`.
+- **gRPC Boundary Proxy** — `src/proxy/grpc-server.ts` replaces the previous HTTP proxy, serving `meridian.v1.Meridian` (`Call`, `Paginate`, `Health`) backed by the TS engine. `@grpc/grpc-js` and `@grpc/proto-loader` are optional peer dependencies, loaded lazily so the SDK core stays dependency-free.
+- **Native Python engine** ([`clients/python`](clients/python)) — a from-scratch Python port of the pipeline (retry, circuit breaking, rate limiting, sanitization, normalization) with reference adapters for GitHub, OpenAI, Anthropic, and Stripe. It runs standalone and speaks the same proto, so it can serve the contract or consume either engine.
+
+### Changed
+
+- **Boundary Proxy** — `npx boundary-proxy` now starts a gRPC server instead of an HTTP server; the previous Node-based HTTP proxy is deprecated in favor of the gRPC bridge.
+
+---
+
 ## [0.2.10]
 
 ### Fixed
