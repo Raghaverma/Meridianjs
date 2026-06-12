@@ -355,4 +355,124 @@ describe("ServiceClient", () => {
       Reflect.deleteProperty(process.env, "MERIDIAN_REGION");
     });
   });
+
+  describe("adaptive strategy", () => {
+    const trackingClients = (n: number, calls: number[]) =>
+      Array.from({ length: n }, (_, i) =>
+        makeClient(async () => {
+          calls.push(i);
+          return makeResponse();
+        }),
+      );
+
+    it("routes to the provider with the best success rate", async () => {
+      const calls: number[] = [];
+      const svc = new ServiceClient(
+        ["a", "b"],
+        trackingClients(2, calls),
+        { strategy: "adaptive" },
+        () => ({
+          a: { successRate: "80.0%" },
+          b: { successRate: "99.5%" },
+        }),
+      );
+      await svc.get("/test");
+      expect(calls[0]).toBe(1); // b: higher success rate
+    });
+
+    it("ranks an OPEN-breaker provider last even with a perfect success rate", async () => {
+      const calls: number[] = [];
+      const svc = new ServiceClient(
+        ["a", "b"],
+        trackingClients(2, calls),
+        { strategy: "adaptive" },
+        () => ({
+          a: { successRate: "100.0%" },
+          b: { successRate: "97.0%" },
+        }),
+        () => ({ a: "OPEN", b: "CLOSED" }),
+      );
+      await svc.get("/test");
+      // a scores 0.5·1.0 + 0.3·1 + 0.2·0 = 0.80; b scores 0.5·0.97 + 0.3 + 0.2 = 0.985
+      expect(calls[0]).toBe(1);
+    });
+
+    it("is deterministic: explores unobserved providers once, then settles to config order", async () => {
+      const calls: number[] = [];
+      const svc = new ServiceClient(["a", "b", "c"], trackingClients(3, calls), {
+        strategy: "adaptive",
+      });
+      await svc.get("/1"); // all unobserved → config order → a
+      await svc.get("/2"); // b and c unobserved → explore b
+      await svc.get("/3"); // c unobserved → explore c
+      await svc.get("/4"); // all observed, equal latency → config order → a
+      expect(calls).toEqual([0, 1, 2, 0]);
+    });
+
+    it("honors custom scoring weights", async () => {
+      const calls: number[] = [];
+      // Breaker weight zeroed out: the OPEN breaker on the higher-success
+      // provider no longer matters.
+      const svc = new ServiceClient(
+        ["a", "b"],
+        trackingClients(2, calls),
+        { strategy: "adaptive", adaptiveWeights: { successRate: 1, latency: 0, breaker: 0 } },
+        () => ({
+          a: { successRate: "100.0%" },
+          b: { successRate: "97.0%" },
+        }),
+        () => ({ a: "OPEN", b: "CLOSED" }),
+      );
+      await svc.get("/test");
+      expect(calls[0]).toBe(0);
+    });
+
+    it("fails over through the score-ranked order", async () => {
+      const order: string[] = [];
+      const failing = makeClient(async () => {
+        order.push("best-but-failing");
+        throw new MeridianError("fail", "provider", "test", true);
+      });
+      const backup = makeClient(async () => {
+        order.push("backup");
+        return makeResponse({ ok: true });
+      });
+      const svc = new ServiceClient(
+        ["backup", "best"],
+        [backup, failing],
+        { strategy: "adaptive" },
+        () => ({
+          backup: { successRate: "90.0%" },
+          best: { successRate: "99.9%" },
+        }),
+      );
+      const r = await svc.get("/test");
+      expect(order).toEqual(["best-but-failing", "backup"]);
+      expect((r.data as { ok: boolean }).ok).toBe(true);
+    });
+
+    it("prefers lower observed latency when success rates match", async () => {
+      const calls: number[] = [];
+      const clients = [
+        makeClient(async () => {
+          calls.push(0);
+          return makeResponse({}, 500); // slow
+        }),
+        makeClient(async () => {
+          calls.push(1);
+          return makeResponse({}, 10); // fast
+        }),
+      ];
+      const svc = new ServiceClient(["slow", "fast"], clients, { strategy: "adaptive" });
+      // Warm both latency EWMAs: first request hits "slow" (config order),
+      // fails over nowhere; round-robin the warmup by calling twice.
+      await svc.get("/warm");
+      // "slow" now has latency 500 recorded; "fast" has none (scores 1) → next pick is "fast".
+      await svc.get("/test");
+      expect(calls).toEqual([0, 1]);
+      // With both observed, "fast" stays preferred.
+      await svc.get("/again");
+      expect(calls).toEqual([0, 1, 1]);
+    });
+  });
 });

@@ -19,7 +19,13 @@ import type {
 } from "./core/types.js";
 import { CircuitState, IdempotencyLevel, MeridianError } from "./core/types.js";
 import { DebugRecorder } from "./debug/recorder.js";
+import {
+  createOpenTelemetryObservability,
+  type OpenTelemetryAutoOptions,
+  type OTelApiLike,
+} from "./observability/auto.js";
 import { ConsoleObservability } from "./observability/console.js";
+import type { OpenTelemetryObservability } from "./observability/otel.js";
 import { AdyenAdapter } from "./providers/adyen/adapter.js";
 import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
 import { ApolloAdapter } from "./providers/apollo/adapter.js";
@@ -66,6 +72,12 @@ import { StripeAdapter } from "./providers/stripe/adapter.js";
 import { SupabaseAdapter } from "./providers/supabase/adapter.js";
 import { TwilioAdapter } from "./providers/twilio/adapter.js";
 import { VonageAdapter } from "./providers/vonage/adapter.js";
+import { ContractRegistry } from "./registry/contract-registry.js";
+import type { ReliabilitySession } from "./replay/recorder.js";
+import { ReliabilityRecorder } from "./replay/recorder.js";
+import type { ReplayOptions, ReplaySummary } from "./replay/replayer.js";
+import { replaySession as runReplaySession } from "./replay/replayer.js";
+import { ReliabilityStore } from "./replay/store.js";
 import { SchemaMonitor } from "./schema/monitor.js";
 import { ServiceClient } from "./services/service-client.js";
 import { ProviderCircuitBreaker } from "./strategies/circuit-breaker.js";
@@ -172,6 +184,11 @@ export class Meridian {
   private analyticsCollector = new AnalyticsCollector();
   private debugRecorder = new DebugRecorder();
   private _schemaMonitor: SchemaMonitor | null = null;
+  private _registry: ContractRegistry | null = null;
+  private otelObservability: OpenTelemetryObservability | null = null;
+  private reliabilityRecorder = new ReliabilityRecorder(
+    (provider) => this.circuitBreakers.get(provider)?.getStatus().state,
+  );
 
   private constructor(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
     this.validateConfig(config);
@@ -191,6 +208,10 @@ export class Meridian {
               "localUnsafe",
               "mode",
               "compliance",
+              "telemetry",
+              "services",
+              "policies",
+              "providerCosts",
             ]);
             const providerConfigs: Record<string, ProviderConfig> = {};
 
@@ -220,7 +241,12 @@ export class Meridian {
       this.observability = [new ConsoleObservability()];
     }
 
-    this.observability = [...this.observability, this.analyticsCollector, this.debugRecorder];
+    this.observability = [
+      ...this.observability,
+      this.analyticsCollector,
+      this.debugRecorder,
+      this.reliabilityRecorder,
+    ];
   }
 
   static async create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
@@ -792,6 +818,63 @@ export class Meridian {
     return this._schemaMonitor;
   }
 
+  /**
+   * Local contract registry: versioned response-schema snapshots with drift
+   * history under `.meridian/registry/`, designed to be committed to git and
+   * enforced in CI (`meridian registry check` exits non-zero on breaking
+   * drift).
+   */
+  get registry(): ContractRegistry {
+    if (!this._registry) {
+      this._registry = new ContractRegistry();
+    }
+    return this._registry;
+  }
+
+  /**
+   * Starts a named reliability recording session. Every request through the
+   * pipeline is captured as a timeline event (outcome, retries, breaker state,
+   * latency — never bodies) until stopRecording(). Returns the session name.
+   */
+  startRecording(name?: string): string {
+    this.ensureStarted();
+    const sessionName =
+      name ?? `session-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")}`;
+    this.reliabilityRecorder.start(sessionName);
+    return sessionName;
+  }
+
+  /**
+   * Stops the active recording session. Persists it to
+   * `.meridian/recordings/<name>.json` (override with `dir`, or skip with
+   * `save: false`) so it can be replayed later — `meridian replay <name>`
+   * from the CLI, or replaySession() programmatically.
+   */
+  async stopRecording(options: { dir?: string; save?: boolean } = {}): Promise<ReliabilitySession> {
+    const session = this.reliabilityRecorder.stop();
+    if (options.save !== false) {
+      await new ReliabilityStore(options.dir).save(session);
+    }
+    return session;
+  }
+
+  /**
+   * Replays a recorded session locally — retries, failovers, and breaker
+   * transitions re-fire in order into `onEvent` / `emitTo` adapters, without
+   * touching real providers — and returns the derived outage summary.
+   */
+  async replaySession(
+    nameOrSession: string | ReliabilitySession,
+    options: ReplayOptions & { dir?: string } = {},
+  ): Promise<ReplaySummary> {
+    const { dir, ...replayOptions } = options;
+    const session =
+      typeof nameOrSession === "string"
+        ? await new ReliabilityStore(dir).load(nameOrSession)
+        : nameOrSession;
+    return runReplaySession(session, replayOptions);
+  }
+
   async transaction(steps: TransactionStep[]): Promise<TransactionResult> {
     this.ensureStarted();
     return runTransaction(steps);
@@ -820,6 +903,22 @@ export class Meridian {
     }
   }
 
+  /**
+   * Adds OpenTelemetry instrumentation to a running client. Equivalent to the
+   * `telemetry: { provider: "opentelemetry" }` config shorthand; useful when
+   * the OTel SDK is registered after Meridian is created. Idempotent.
+   */
+  async instrumentOpenTelemetry(
+    options: OpenTelemetryAutoOptions = {},
+    api?: OTelApiLike,
+  ): Promise<void> {
+    if (this.otelObservability) return;
+    this.otelObservability = await createOpenTelemetryObservability(options, api);
+    // Pipelines hold a reference to this array, so they pick the adapter up
+    // immediately — including pipelines created before this call.
+    this.observability.push(this.otelObservability);
+  }
+
   async start(): Promise<void> {
     if (this.config.mode === "distributed" && !this.config.stateStorage) {
       throw new Error(
@@ -835,6 +934,14 @@ export class Meridian {
           "For production deployments, provide a StateStorage implementation. " +
           "For local development, explicitly set 'localUnsafe: true' to acknowledge the limitation.",
       );
+    }
+
+    if (this.config.telemetry?.provider === "opentelemetry") {
+      const { name, metricPrefix, api } = this.config.telemetry;
+      const options: OpenTelemetryAutoOptions = {};
+      if (name !== undefined) options.name = name;
+      if (metricPrefix !== undefined) options.metricPrefix = metricPrefix;
+      await this.instrumentOpenTelemetry(options, api as OTelApiLike | undefined);
     }
 
     if (this.config.providers) {
@@ -858,7 +965,19 @@ export class Meridian {
         const clients = cfg.providers.map((name) => this.createProviderClient(name));
         this.serviceClients.set(
           serviceName,
-          new ServiceClient(cfg.providers, clients, cfg, () => this.analyticsCollector.get()),
+          new ServiceClient(
+            cfg.providers,
+            clients,
+            cfg,
+            () => this.analyticsCollector.get(),
+            () => {
+              const states: Record<string, string> = {};
+              for (const [name, cb] of this.circuitBreakers) {
+                states[name] = cb.getStatus().state;
+              }
+              return states;
+            },
+          ),
         );
       }
     }

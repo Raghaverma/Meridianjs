@@ -54,6 +54,7 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   private errorCounter: OTelCounter;
   private durationHistogram: OTelHistogram;
   private activeSpans: Map<string, OTelSpan> = new Map();
+  private namedCounters: Map<string, OTelCounter> = new Map();
 
   constructor(config: OpenTelemetryConfig) {
     this.tracer = config.tracer;
@@ -146,6 +147,14 @@ export class OpenTelemetryObservability implements ObservabilityAdapter {
   }
 
   recordMetric(metric: Metric): void {
-    this.requestCounter.add(metric.value, metric.tags);
+    // Each named metric gets its own counter; funneling them all into the
+    // requests counter would corrupt the request count.
+    let counter = this.namedCounters.get(metric.name);
+    if (!counter) {
+      const name = `${this.metricPrefix}.${metric.name.replace(/[^a-zA-Z0-9_.]/g, "_")}`;
+      counter = this.meter.createCounter(name);
+      this.namedCounters.set(metric.name, counter);
+    }
+    counter.add(metric.value, metric.tags);
   }
 }

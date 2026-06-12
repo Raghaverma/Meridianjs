@@ -4,6 +4,10 @@ import { parseOpenAPI } from "./openapi.js";
 import type { GeneratorContext } from "./templates.js";
 import { generateAdapter, generateIndex, generatePagination, generateTest } from "./templates.js";
 
+export type { AddDeps, AddOptions, AddResult } from "./add.js";
+export { addProvider, formatAddResult } from "./add.js";
+export type { PaginationHint, ParsedSpec } from "./openapi.js";
+export { parseOpenAPI } from "./openapi.js";
 export type {
   GenerateOpenApiSpecOptions,
   HttpMethod,
@@ -11,6 +15,9 @@ export type {
   ProviderSpecSource,
 } from "./openapi-export.js";
 export { generateOpenApiSpec } from "./openapi-export.js";
+export type { KnownProviderSpec } from "./registry.js";
+export { KNOWN_PROVIDERS, listKnownProviders, resolveKnownProvider } from "./registry.js";
+export type { CompletenessItem, CompletenessReport } from "./templates.js";
 
 export interface GeneratorOptions {
   provider: string;

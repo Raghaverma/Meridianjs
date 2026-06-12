@@ -66,21 +66,47 @@ export type { RequestRecording } from "./debug/index.js";
 // Debug recorder
 export { DebugRecorder } from "./debug/index.js";
 export type {
+  AddDeps,
+  AddOptions,
+  AddResult,
+  CompletenessItem,
+  CompletenessReport,
   GenerateOpenApiSpecOptions,
   GeneratorOptions,
   HttpMethod,
+  KnownProviderSpec,
   OpenApiDocument,
   ProviderSpecSource,
 } from "./generator/index.js";
-// Adapter generator (programmatic API)
-export { generate, generateOpenApiSpec } from "./generator/index.js";
+// Adapter generator (programmatic API) — `meridian add` / `meridian generate`
+export {
+  addProvider,
+  formatAddResult,
+  generate,
+  generateOpenApiSpec,
+  KNOWN_PROVIDERS,
+  listKnownProviders,
+  resolveKnownProvider,
+} from "./generator/index.js";
 // Provider client interface
 export type { ProviderClient } from "./index.js";
 // Main client
 export { Meridian } from "./index.js";
+export type { MigrationFinding, MigrationReport } from "./migrate/index.js";
+// Migration scanner — `meridian migrate <provider>`
+export {
+  formatMigrationReport,
+  listMigrationProviders,
+  scanForMigration,
+} from "./migrate/index.js";
 // Built-in observability adapters
+export type { OpenTelemetryAutoOptions, OTelApiLike } from "./observability/auto.js";
+// OpenTelemetry auto-instrumentation (binds to @opentelemetry/api, optional peer dep)
+export { createOpenTelemetryObservability } from "./observability/auto.js";
 export { ConsoleObservability } from "./observability/console.js";
 export { NoOpObservability } from "./observability/noop.js";
+export type { OpenTelemetryConfig } from "./observability/otel.js";
+export { OpenTelemetryObservability } from "./observability/otel.js";
 export {
   allowedProviders,
   blockedProviders,
@@ -141,6 +167,33 @@ export { VonageAdapter } from "./providers/vonage/adapter.js";
 export type { GrpcProxyServerOptions, ProxyServerOptions } from "./proxy/index.js";
 // gRPC boundary proxy — language-agnostic access to the Meridian pipeline
 export { BoundaryGrpcServer } from "./proxy/index.js";
+export type {
+  CheckResult,
+  DriftEvent,
+  EndpointReport,
+  RegistryReport,
+  SnapshotEntry,
+  SnapshotResult,
+} from "./registry/index.js";
+// Local contract registry — `meridian registry snapshot/check/report`
+export { ContractRegistry, DEFAULT_REGISTRY_DIR } from "./registry/index.js";
+export type {
+  BreakerTransition,
+  FailoverHop,
+  ReliabilityEvent,
+  ReliabilitySession,
+  ReplayOptions,
+  ReplaySummary,
+} from "./replay/index.js";
+// Reliability replay — record real pipeline behavior, replay outages locally
+export {
+  DEFAULT_RECORDINGS_DIR,
+  ReliabilityRecorder,
+  ReliabilityStore,
+  renderTimeline,
+  replaySession,
+  summarizeSession,
+} from "./replay/index.js";
 export type { PaymentRouterOptions } from "./routers/index.js";
 // Routers
 export { PaymentRouter } from "./routers/index.js";

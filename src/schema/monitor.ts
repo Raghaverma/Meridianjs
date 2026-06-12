@@ -12,7 +12,7 @@ export interface SchemaReport {
   generatedAt: string;
 }
 
-function inferSchema(value: unknown): Schema {
+export function inferSchema(value: unknown): Schema {
   if (Array.isArray(value)) {
     return { type: "array", items: value.length > 0 ? inferSchema(value[0]) : { type: "unknown" } };
   }

@@ -4,6 +4,26 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **`meridian add <provider>`** — one-command provider generation: resolves the OpenAPI spec (curated registry: slack, github, stripe, twilio, box, sendgrid — or `--openapi <url|path>`), then generates the adapter, unit tests, **contract tests** (the same 19-invariant battery every built-in adapter passes — green out of the box), a pagination strategy inferred from the spec's query parameters (cursor/page/offset style + exact param name), retry classification grounded in the spec's documented status codes, and a `GENERATED.md` completeness report scoring what was inferred vs assumed (every heuristic carries a `TODO(meridian-generator)` marker).
+- **OpenTelemetry auto-instrumentation** — `telemetry: { provider: "opentelemetry" }` (or `meridian.instrumentOpenTelemetry()`) binds spans/metrics/errors to `@opentelemetry/api` (new optional peer dependency) with one line; exporter recipes for Datadog, Grafana, Honeycomb, and New Relic in [docs/opentelemetry.md](docs/opentelemetry.md).
+- **Reliability replay** — `meridian.startRecording(name)` / `stopRecording()` capture the pipeline's behavior timeline (outcomes, retries, breaker states, latencies — never payloads) to `.meridian/recordings/<name>.json`; `meridian replay <name>` re-renders the outage locally with derived failovers, breaker transitions, and latency stats; `meridian.replaySession()` re-emits the timeline through observability adapters. See [docs/reliability-replay.md](docs/reliability-replay.md).
+- **Adaptive routing** — `strategy: "adaptive"` for services scores providers on observed success rate + latency + circuit-breaker state with explicit `adaptiveWeights`; ranking is deterministic (ties explore unmeasured providers once, then settle to config order).
+- **`meridian migrate <provider>`** — scans a codebase for direct SDK imports, client constructions, mapped method calls, and hand-rolled HTTP calls (openai, anthropic, stripe, github, twilio, sendgrid, razorpay), reporting what maps cleanly to Meridian and what needs manual attention, plus a suggested provider config. Read-only — no rewriting.
+- **Local contract registry** — `meridian.registry.snapshot/check/report/history` and the `meridian registry` CLI: versioned response-schema snapshots with append-only drift history under `.meridian/registry/`, designed to be committed to git; `registry check` exits non-zero on breaking drift for CI gating. See [docs/registry.md](docs/registry.md).
+- **Unified CLI** — the `meridian` binary now dispatches `add`, `generate`, `migrate`, `replay`, and `registry` subcommands.
+
+### Fixed
+
+- **HTTP errors were never retried.** `executeHttpRequest` throws raw `{status, headers, body}` objects, but the retry strategy only retried errors already carrying `retryable: true` — so a real 429/503 from a provider failed immediately regardless of retry config (only timeouts and pre-classified mock errors ever retried). The pipeline now classifies raw HTTP failures through the adapter's `parseError` at the retry decision point, while propagating the original error unchanged.
+- **OpenTelemetry metric corruption** — `OpenTelemetryObservability.recordMetric()` funneled every pipeline metric into the `meridian.requests` counter, inflating request counts; named metrics now get their own counters.
+- **Flat-config key collision** — top-level `services`, `policies`, `providerCosts`, and the new `telemetry` keys were treated as provider configs when using the flat config style.
+
+---
+
 ## [0.2.12]
 
 ### Fixed

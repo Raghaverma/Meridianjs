@@ -443,12 +443,25 @@ export interface ServiceConfig {
     | "cheapest"
     | "highest-success-rate"
     | "weighted"
-    | "geo";
+    | "geo"
+    | "adaptive";
   failoverOn?: MeridianErrorCategory[];
   costs?: Record<string, number>;
   weights?: Record<string, number>;
   regions?: Record<string, string[]>;
   defaultRegion?: string;
+  /**
+   * Scoring weights for the "adaptive" strategy, which routes to the provider
+   * with the best blend of observed success rate, latency, and circuit-breaker
+   * state. Weights are relative (normalized internally); selection is
+   * deterministic — ties resolve to config order. Defaults:
+   * successRate 0.5, latency 0.3, breaker 0.2.
+   */
+  adaptiveWeights?: {
+    successRate?: number;
+    latency?: number;
+    breaker?: number;
+  };
 }
 
 export interface MeridianConfig {
@@ -467,6 +480,23 @@ export interface MeridianConfig {
     strictMode?: boolean;
   };
   observability?: ObservabilityAdapter | ObservabilityAdapter[];
+
+  /**
+   * One-line telemetry auto-instrumentation. With
+   * `telemetry: { provider: "opentelemetry" }`, every request emits spans,
+   * metrics, and errors through `@opentelemetry/api` (optional peer dep) to
+   * whatever exporter the host app registered.
+   */
+  telemetry?: {
+    provider: "opentelemetry";
+    /** Instrumentation scope name. Default "meridianjs". */
+    name?: string;
+    /** Metric name prefix. Default "meridian". */
+    metricPrefix?: string;
+    /** Injection seam for tests / non-global API objects; defaults to importing `@opentelemetry/api`. */
+    api?: unknown;
+  };
+
   idempotency?: {
     defaultLevel: IdempotencyLevel;
     autoGenerateKeys?: boolean;

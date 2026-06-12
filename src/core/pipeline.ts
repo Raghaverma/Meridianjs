@@ -233,6 +233,8 @@ export class RequestPipeline {
         },
         idempotencyLevel,
         !!options.idempotencyKey,
+        0,
+        (error) => this.isErrorRetryable(error),
       );
 
       const rateLimitInfo = this.config.adapter.rateLimitPolicy(response.headers);
@@ -386,6 +388,28 @@ export class RequestPipeline {
 
       throw meridianError;
     }
+  }
+
+  /**
+   * Decides retryability for the retry strategy. Errors that already carry a
+   * `retryable` flag (MeridianError, CircuitOpenError) are trusted as-is; raw
+   * HTTP failures from executeHttpRequest ({status, headers, body}) are
+   * classified through the adapter — otherwise a real 429/5xx would never
+   * retry, since parseError normally runs only after retries are exhausted.
+   * The raw error keeps propagating so the outer error path is unchanged.
+   */
+  private isErrorRetryable(error: unknown): boolean {
+    if (error && typeof error === "object" && "retryable" in error) {
+      return (error as { retryable: boolean }).retryable === true;
+    }
+    if (error && typeof error === "object" && "status" in error) {
+      try {
+        return this.config.adapter.parseError(error).retryable === true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
   }
 
   private async executeHttpRequest(

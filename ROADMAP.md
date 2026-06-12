@@ -4,6 +4,23 @@ Future direction for the Meridian SDK — covering Indian and international prov
 
 ---
 
+## Execution Roadmap (v0.3 cycle)
+
+The next milestone is proving Meridian can act as the control plane for third-party APIs, not just an SDK with reliability features. Priorities, in order:
+
+1. **Adapter auto-generation** — `npx meridian add <provider>`: download the OpenAPI spec, generate the adapter, contract tests, pagination handler, retry classification, and normalization mappings. Generated code carries explicit `TODO(meridian-generator)` markers and a completeness score for everything inferred rather than known, so gaps are visible instead of discovered in production.
+2. **OpenTelemetry auto-instrumentation** — `telemetry: { provider: "opentelemetry" }` binds the existing OTel observability adapter to `@opentelemetry/api` (optional peer dep) with one line; documented exporter recipes for Datadog, Grafana, Honeycomb, and New Relic.
+3. **Reliability replay** — promote the debug recorder to first-class named sessions persisted under `.meridian/recordings/`; `meridian replay <name>` re-renders the outage locally: retries, failovers, breaker transitions, latency spikes.
+4. **Adaptive routing** — `strategy: "adaptive"` for services, scoring providers on success rate + latency + circuit-breaker state with explicit, configurable weights and deterministic tie-breaking. Cost/quota-aware routing deliberately deferred.
+5. **Migration tooling** — `npx meridian migrate <provider>`: scan a codebase for direct SDK/HTTP usage of a provider and report what maps cleanly to Meridian and what needs attention. Scanner first; no auto-rewrite.
+6. **Local contract registry** — `meridian registry snapshot/check/report`: versioned schema snapshots with drift history under `.meridian/registry/`, designed to be committed to git and enforced in CI. Hosted registry deferred until the local workflow proves out.
+7. **Hosted registry** — deferred (separate product decision).
+8. **WASM policy plugins** — `policies: [wasm("./policy.wasm")]` so teams can write policies in Rust/Go/Zig without arbitrary code execution. Parked until requested.
+
+The shared `.meridian/` directory convention (already used by `FileSystemSchemaStorage` for schemas) extends to `recordings/` and `registry/` so replay and the registry use one on-disk layout.
+
+---
+
 ## Current State (v0.2.3)
 
 ### Built-in Adapters

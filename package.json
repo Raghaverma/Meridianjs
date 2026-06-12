@@ -65,7 +65,7 @@
   },
   "bin": {
     "boundary-proxy": "dist/proxy/cli.js",
-    "meridian": "dist/generator/cli.js"
+    "meridian": "dist/cli/main.js"
   },
   "keywords": [
     "api",
@@ -85,7 +85,8 @@
   },
   "peerDependencies": {
     "@grpc/grpc-js": "^1.14.0",
-    "@grpc/proto-loader": "^0.7.0"
+    "@grpc/proto-loader": "^0.7.0",
+    "@opentelemetry/api": "^1.9.0"
   },
   "peerDependenciesMeta": {
     "@grpc/grpc-js": {
@@ -93,12 +94,16 @@
     },
     "@grpc/proto-loader": {
       "optional": true
+    },
+    "@opentelemetry/api": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.7.13",
+    "@opentelemetry/api": "^1.9.1",
     "@types/node": "^25.9.2",
     "@vitest/coverage-v8": "^4.1.8",
     "typescript": "^6.0.3",

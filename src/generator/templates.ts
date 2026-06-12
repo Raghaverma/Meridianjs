@@ -1,9 +1,42 @@
+export interface GeneratorPagination {
+  style: "cursor" | "offset" | "page";
+  param: string;
+  limitParam?: string;
+  /** Whether the parameter was read from the OpenAPI spec or is a default. */
+  source: "spec" | "default";
+}
+
 export interface GeneratorContext {
   provider: string;
   baseUrl: string;
   authType: "apiKey" | "bearer" | "basic" | "oauth2";
   authKeyName: string;
   endpoints: Array<{ method: string; path: string; operationId?: string }>;
+  /** Spec-derived header name for apiKey auth (e.g. "X-Api-Key"). */
+  apiKeyHeader?: string;
+  /** Spec-derived query parameter name for apiKey auth (e.g. "api_key"). */
+  apiKeyQuery?: string;
+  /** Pagination parameter inferred from the OpenAPI spec. */
+  pagination?: GeneratorPagination;
+  /** Distinct HTTP status codes the spec documents across operations. */
+  documentedStatuses?: number[];
+  /** The array-valued property list responses wrap data in, when detected. */
+  envelopeKey?: string | null;
+  /** Import specifier for runProviderContract in the generated contract test. */
+  contractImport?: string;
+}
+
+export interface CompletenessItem {
+  aspect: string;
+  source: "spec" | "default";
+  detail: string;
+}
+
+export interface CompletenessReport {
+  /** 0–100; how much of the adapter was derived from the spec vs assumed. */
+  score: number;
+  items: CompletenessItem[];
+  todos: string[];
 }
 
 function pascal(name: string): string {
@@ -13,23 +46,31 @@ function pascal(name: string): string {
     .join("");
 }
 
-function authHeaderLine(ctx: GeneratorContext): string {
+function authHeaderLine(ctx: GeneratorContext): string | null {
   if (ctx.authType === "basic") {
     return `"Authorization": \`Basic \${Buffer.from(\`\${authToken.token}:\${authToken.secret ?? ""}\`).toString("base64")}\``;
+  }
+  if (ctx.apiKeyQuery) return null; // credential travels as a query parameter
+  if (ctx.apiKeyHeader && ctx.apiKeyHeader.toLowerCase() !== "authorization") {
+    return `${JSON.stringify(ctx.apiKeyHeader)}: authToken.token`;
   }
   return '"Authorization": `Bearer ${authToken.token}`';
 }
 
 function authStrategyBody(ctx: GeneratorContext): string {
-  const className = `${pascal(ctx.provider)}`;
+  const provider = JSON.stringify(ctx.provider);
   if (ctx.authType === "basic") {
     return `    const user = config.username ?? config.apiKey ?? "";
     const pass = config.password ?? "";
-    if (!user) throw new Error("${className}: username or apiKey is required");
+    if (!user) {
+      throw new MeridianError("username or apiKey is required", "auth", ${provider}, false);
+    }
     return { token: user, secret: pass };`;
   }
   return `    const key = config.apiKey ?? config.token ?? "";
-    if (!key) throw new Error("${className}: apiKey or token is required");
+    if (!key) {
+      throw new MeridianError("apiKey or token is required", "auth", ${provider}, false);
+    }
     return { token: key };`;
 }
 
@@ -41,11 +82,51 @@ function endpointComments(ctx: GeneratorContext): string {
       (e) => `  //   ${e.method.padEnd(7)} ${e.path}${e.operationId ? ` (${e.operationId})` : ""}`,
     )
     .join("\n");
-  return `\n  // Known endpoints from OpenAPI spec:\n${lines}\n`;
+  const more = ctx.endpoints.length > 20 ? `\n  //   … and ${ctx.endpoints.length - 20} more` : "";
+  return `\n  // Known endpoints from OpenAPI spec:\n${lines}${more}\n`;
+}
+
+function errorStatusComment(ctx: GeneratorContext): string {
+  const statuses = ctx.documentedStatuses ?? [];
+  if (statuses.length === 0) {
+    return `  // TODO(meridian-generator): the OpenAPI spec did not document error status
+  // codes; the classification below uses universal HTTP semantics. Verify the
+  // provider does not use non-standard codes (e.g. 200 with an error body).`;
+  }
+  const errors = statuses.filter((s) => s >= 400);
+  const has429 = errors.includes(429);
+  return `  // Status codes documented in the OpenAPI spec: ${statuses.join(", ")}.
+  // ${
+    has429
+      ? "429 is documented, so the rate_limit mapping below is spec-confirmed."
+      : "TODO(meridian-generator): 429 is not documented in the spec — verify how this provider signals rate limiting."
+  }`;
+}
+
+function envelopeComment(ctx: GeneratorContext): string {
+  if (!ctx.envelopeKey) return "";
+  return `
+    // Most list responses in the OpenAPI spec wrap data in a ${JSON.stringify(ctx.envelopeKey)}
+    // array property; ResponseNormalizer passes the body through unchanged, so
+    // consumers read \`response.data.${ctx.envelopeKey}\` for collections.`;
 }
 
 export function generateAdapter(ctx: GeneratorContext): string {
   const name = pascal(ctx.provider);
+  const authHeader = authHeaderLine(ctx);
+  const headerLines = [
+    ...(authHeader ? [`      ${authHeader},`] : []),
+    '      "User-Agent": `Meridian-SDK/${SDK_VERSION}`,',
+    '      "Content-Type": "application/json",',
+    "      ...options.headers,",
+  ].join("\n");
+  const queryAuthLine = ctx.apiKeyQuery
+    ? `
+    // The OpenAPI spec declares apiKey auth in the query string.
+    url.searchParams.set(${JSON.stringify(ctx.apiKeyQuery)}, authToken.token);
+`
+    : "";
+
   return `import { ResponseNormalizer } from "../../core/normalizer.js";
 import type {
   AdapterInput,
@@ -65,8 +146,9 @@ ${endpointComments(ctx)}
 /**
  * Looks for an error message under the field names most APIs use
  * (\`message\`, \`error\`, \`error.message\`, \`error_description\`, \`detail\`,
- * \`errors[0]\`/\`errors[0].message\`). Verify against ${ctx.provider}'s actual
- * error envelope and adjust if it uses a different shape.
+ * \`errors[0]\`/\`errors[0].message\`).
+ * TODO(meridian-generator): verify against ${ctx.provider}'s actual error
+ * envelope and adjust if it uses a different shape.
  */
 function extractErrorMessage(body: unknown): string | null {
   if (typeof body !== "object" || body === null) return null;
@@ -103,7 +185,7 @@ export class ${name}Adapter implements ProviderAdapter {
     const effectiveBaseUrl = baseUrl ?? this.baseUrl;
 
     const url = new URL(endpoint, effectiveBaseUrl);
-
+${queryAuthLine}
     if (options.query) {
       for (const [key, value] of Object.entries(options.query)) {
         url.searchParams.set(key, String(value));
@@ -111,10 +193,7 @@ export class ${name}Adapter implements ProviderAdapter {
     }
 
     const headers: Record<string, string> = {
-      ${authHeaderLine(ctx)},
-      "User-Agent": \`Meridian-SDK/\${SDK_VERSION}\`,
-      "Content-Type": "application/json",
-      ...options.headers,
+${headerLines}
     };
 
     let body: string | undefined;
@@ -130,11 +209,12 @@ export class ${name}Adapter implements ProviderAdapter {
 
   parseResponse(raw: RawResponse): NormalizedResponse {
     const rateLimitInfo = this.rateLimitPolicy(raw.headers);
-    const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, this.paginationStrategy());
+    const paginationInfo = ResponseNormalizer.extractPaginationInfo(raw, this.paginationStrategy());${envelopeComment(ctx)}
     return ResponseNormalizer.normalize(raw, "${ctx.provider}", rateLimitInfo, paginationInfo);
   }
 
   parseError(raw: unknown): MeridianError {
+${errorStatusComment(ctx)}
     if (typeof raw === "object" && raw !== null && "status" in raw) {
       const status = (raw as { status: number }).status;
       const body = (raw as { body?: unknown }).body;
@@ -167,7 +247,8 @@ ${authStrategyBody(ctx)}
   rateLimitPolicy(headers: Headers): RateLimitInfo {
     // Checks the header-naming conventions most providers use — X-RateLimit-*,
     // X-Rate-Limit-*, the RFC-draft RateLimit-*, and Retry-After as a fallback
-    // for the reset time. Verify against ${ctx.provider}'s actual headers.
+    // for the reset time.
+    // TODO(meridian-generator): verify against ${ctx.provider}'s actual headers.
     const limit =
       headers.get("x-ratelimit-limit") ??
       headers.get("x-rate-limit-limit") ??
@@ -207,16 +288,25 @@ ${authStrategyBody(ctx)}
 `;
 }
 
-export function generatePagination(ctx: GeneratorContext): string {
-  const name = pascal(ctx.provider);
+function cursorPagination(ctx: GeneratorContext, name: string): string {
+  const param = ctx.pagination?.param ?? "cursor";
+  const paramComment =
+    ctx.pagination?.source === "spec"
+      ? `// Cursor query parameter ${JSON.stringify(param)} derived from the OpenAPI spec.`
+      : `// "cursor" is the most common query-param name for cursor-based pagination
+    // (Stripe, Slack, GitHub GraphQL, ...).
+    // TODO(meridian-generator): verify against ${ctx.provider}'s actual docs and
+    // rename if it expects e.g. "page[cursor]" or "after".`;
+
   return `import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
 
 export class ${name}PaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {
     // Checks the cursor field conventions most providers use — top-level
     // (next_cursor / cursor / next / next_page), nested under meta/pagination,
-    // and Relay-style page_info.end_cursor. Verify against ${ctx.provider}'s
-    // actual pagination shape and adjust the field names accordingly.
+    // and Relay-style page_info.end_cursor.
+    // TODO(meridian-generator): verify against ${ctx.provider}'s actual
+    // pagination shape and adjust the field names accordingly.
     const body = (response.body ?? {}) as Record<string, unknown>;
 
     const direct = body.next_cursor ?? body.cursor ?? body.next ?? body.next_page;
@@ -257,21 +347,116 @@ export class ${name}PaginationStrategy implements PaginationStrategy {
     options: RequestOptions,
     cursor: string,
   ): { endpoint: string; options: RequestOptions } {
-    // "cursor" is the most common query-param name for cursor-based pagination
-    // (Stripe, Slack, GitHub GraphQL, ...); verify against ${ctx.provider}'s
-    // actual docs and rename if it expects e.g. "page[cursor]" or "after".
+    ${paramComment}
     return {
       endpoint,
-      options: { ...options, query: { ...options.query, cursor } },
+      options: { ...options, query: { ...options.query, ${JSON.stringify(param)}: cursor } },
     };
   }
 }
 `;
 }
 
+function pageOrOffsetPagination(ctx: GeneratorContext, name: string): string {
+  const pagination = ctx.pagination!;
+  const param = pagination.param;
+  const isPage = pagination.style === "page";
+  const styleWord = isPage ? "Page-number" : "Offset";
+
+  const extractBody = isPage
+    ? `    const direct = body.next_page ?? body.nextPage;
+    if (typeof direct === "string") return direct;
+    if (typeof direct === "number") return String(direct);
+
+    const page = typeof body.page === "number" ? body.page : null;
+    const totalPages =
+      typeof body.total_pages === "number"
+        ? body.total_pages
+        : typeof body.totalPages === "number"
+          ? body.totalPages
+          : null;
+    if (page !== null && totalPages !== null && page < totalPages) return String(page + 1);
+
+    return null;`
+    : `    const direct = body.next_offset ?? body.nextOffset;
+    if (typeof direct === "string") return direct;
+    if (typeof direct === "number") return String(direct);
+
+    const offset = typeof body.offset === "number" ? body.offset : null;
+    const limit = typeof body.limit === "number" ? body.limit : null;
+    const total = typeof body.total === "number" ? body.total : null;
+    if (offset !== null && limit !== null && total !== null && offset + limit < total) {
+      return String(offset + limit);
+    }
+
+    return null;`;
+
+  return `import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+
+export class ${name}PaginationStrategy implements PaginationStrategy {
+  // ${styleWord} pagination inferred from the OpenAPI spec (query parameter
+  // ${JSON.stringify(param)}). The response-side field names below are heuristics.
+  // TODO(meridian-generator): verify against ${ctx.provider}'s response shape.
+  extractCursor(response: RawResponse): string | null {
+    const body = (response.body ?? {}) as Record<string, unknown>;
+
+${extractBody}
+  }
+
+  extractTotal(response: RawResponse): number | null {
+    const body = (response.body ?? {}) as Record<string, unknown>;
+    if (typeof body.total === "number") return body.total;
+
+    const meta = body.meta as Record<string, unknown> | undefined;
+    if (typeof meta?.total === "number") return meta.total;
+
+    return null;
+  }
+
+  hasNext(response: RawResponse): boolean {
+    return this.extractCursor(response) !== null;
+  }
+
+  buildNextRequest(
+    endpoint: string,
+    options: RequestOptions,
+    cursor: string,
+  ): { endpoint: string; options: RequestOptions } {
+    // ${JSON.stringify(param)} derived from the OpenAPI spec.
+    return {
+      endpoint,
+      options: { ...options, query: { ...options.query, ${JSON.stringify(param)}: cursor } },
+    };
+  }
+}
+`;
+}
+
+export function generatePagination(ctx: GeneratorContext): string {
+  const name = pascal(ctx.provider);
+  if (ctx.pagination && ctx.pagination.style !== "cursor") {
+    return pageOrOffsetPagination(ctx, name);
+  }
+  return cursorPagination(ctx, name);
+}
+
 export function generateIndex(ctx: GeneratorContext): string {
   const name = pascal(ctx.provider);
   return `export { ${name}Adapter } from "./adapter.js";
+`;
+}
+
+export function generateContractTest(ctx: GeneratorContext): string {
+  const name = pascal(ctx.provider);
+  const importPath = ctx.contractImport ?? "meridianjs/contract";
+  return `import { runProviderContract } from ${JSON.stringify(importPath)};
+import { ${name}Adapter } from "./adapter.js";
+
+// The universal Meridian provider contract — the same battery every built-in
+// adapter passes (error normalization, retry semantics, rate-limit parsing,
+// pagination, request shaping). Keep this green; provider-specific behavior
+// belongs in adapter.test.ts.
+runProviderContract(${JSON.stringify(ctx.provider)}, new ${name}Adapter());
 `;
 }
 
@@ -282,6 +467,12 @@ export function generateTest(ctx: GeneratorContext): string {
       ? "{ username: 'testuser', password: 'testpass' }"
       : "{ apiKey: 'test-key' }";
 
+  const authAssertion = ctx.apiKeyQuery
+    ? `expect(req.url).toContain("${ctx.apiKeyQuery}=test-key");`
+    : ctx.apiKeyHeader && ctx.apiKeyHeader.toLowerCase() !== "authorization"
+      ? `expect(req.headers[${JSON.stringify(ctx.apiKeyHeader)}]).toBeDefined();`
+      : 'expect(req.headers["Authorization"]).toBeDefined();';
+
   return `import { describe, expect, it } from "vitest";
 import { ${name}Adapter } from "./adapter.js";
 
@@ -289,7 +480,7 @@ const adapter = new ${name}Adapter();
 
 describe("${name}Adapter", () => {
   describe("buildRequest", () => {
-    it("builds a GET request with auth header", () => {
+    it("builds a GET request with credentials attached", () => {
       const req = adapter.buildRequest({
         endpoint: "/test",
         options: { method: "GET" },
@@ -297,7 +488,7 @@ describe("${name}Adapter", () => {
       });
       expect(req.url).toContain("/test");
       expect(req.method).toBe("GET");
-      expect(req.headers["Authorization"]).toBeDefined();
+      ${authAssertion}
     });
 
     it("appends query parameters", () => {
@@ -374,5 +565,65 @@ describe("${name}Adapter", () => {
     });
   });
 });
+`;
+}
+
+export function generateReport(ctx: GeneratorContext, completeness: CompletenessReport): string {
+  const name = pascal(ctx.provider);
+  const rows = completeness.items
+    .map(
+      (item) =>
+        `| ${item.aspect} | ${item.source === "spec" ? "✅ from spec" : "⚠️ heuristic default"} | ${item.detail} |`,
+    )
+    .join("\n");
+  const todos =
+    completeness.todos.length > 0
+      ? completeness.todos.map((t) => `- [ ] ${t}`).join("\n")
+      : "- [x] Nothing outstanding — every aspect was derived from the spec.";
+
+  return `# Generated adapter: ${ctx.provider}
+
+> Generated by \`meridian add\`. **Completeness score: ${completeness.score}/100.**
+> The score reflects how much of this adapter was derived from the provider's
+> OpenAPI spec versus filled in with heuristic defaults. Every heuristic is
+> marked with \`TODO(meridian-generator)\` in the source.
+
+## What was inferred vs assumed
+
+| Aspect | Source | Detail |
+|---|---|---|
+${rows}
+
+## Before shipping
+
+${todos}
+
+## Wiring it up
+
+Register the adapter when creating the client:
+
+\`\`\`ts
+import { Meridian } from "meridianjs";
+import { ${name}Adapter } from "./providers/${ctx.provider}/index.js";
+
+const meridian = await Meridian.create({
+  localUnsafe: true, // or configure stateStorage for production
+  providers: {
+    ${ctx.provider}: {
+      auth: { apiKey: process.env.${ctx.provider.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_API_KEY ?? "" },
+      adapter: new ${name}Adapter(),
+    },
+  },
+});
+\`\`\`
+
+Run the generated tests:
+
+\`\`\`bash
+npx vitest run ${ctx.provider}
+\`\`\`
+
+\`contract.test.ts\` runs the same universal contract battery every built-in
+Meridian adapter passes. It must stay green.
 `;
 }

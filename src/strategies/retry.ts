@@ -19,6 +19,7 @@ export class RetryStrategy {
     idempotencyLevel: IdempotencyLevel,
     hasIdempotencyKey: boolean,
     attempt = 0,
+    isRetryable?: (error: unknown) => boolean,
   ): Promise<T> {
     try {
       return await fn();
@@ -27,7 +28,7 @@ export class RetryStrategy {
         throw error;
       }
 
-      if (!this.isExplicitlyRetryable(error)) {
+      if (!(isRetryable ?? this.isExplicitlyRetryable)(error)) {
         throw error;
       }
 
@@ -39,7 +40,7 @@ export class RetryStrategy {
 
       await this.sleep(delay);
 
-      return this.execute(fn, idempotencyLevel, hasIdempotencyKey, attempt + 1);
+      return this.execute(fn, idempotencyLevel, hasIdempotencyKey, attempt + 1, isRetryable);
     }
   }
 

@@ -22,16 +22,25 @@ export class ServiceClient {
   private weights: Record<string, number>;
   private regions: Record<string, string[]>;
   private defaultRegion: string | undefined;
+  private adaptiveWeights: { successRate: number; latency: number; breaker: number };
   private getStats: (() => Record<string, { successRate: string }>) | undefined;
+  private getBreakerStates: (() => Record<string, string>) | undefined;
 
   constructor(
     providerNames: string[],
     providers: ProviderClient[],
     config: Pick<
       ServiceConfig,
-      "strategy" | "failoverOn" | "costs" | "weights" | "regions" | "defaultRegion"
+      | "strategy"
+      | "failoverOn"
+      | "costs"
+      | "weights"
+      | "regions"
+      | "defaultRegion"
+      | "adaptiveWeights"
     >,
     getStats?: () => Record<string, { successRate: string }>,
+    getBreakerStates?: () => Record<string, string>,
   ) {
     if (providers.length === 0) {
       throw new Error("ServiceClient requires at least one provider.");
@@ -45,7 +54,13 @@ export class ServiceClient {
     this.weights = config.weights ?? {};
     this.regions = config.regions ?? {};
     if (config.defaultRegion !== undefined) this.defaultRegion = config.defaultRegion;
+    this.adaptiveWeights = {
+      successRate: config.adaptiveWeights?.successRate ?? 0.5,
+      latency: config.adaptiveWeights?.latency ?? 0.3,
+      breaker: config.adaptiveWeights?.breaker ?? 0.2,
+    };
     this.getStats = getStats;
+    this.getBreakerStates = getBreakerStates;
   }
 
   get<T = unknown>(endpoint: string, options?: RequestOptions): Promise<NormalizedResponse<T>> {
@@ -103,6 +118,7 @@ export class ServiceClient {
     if (this.strategy === "highest-success-rate") return this.highestSuccessRateIndex();
     if (this.strategy === "weighted") return this.weightedIndex();
     if (this.strategy === "geo") return this.geoIndex();
+    if (this.strategy === "adaptive") return this.adaptiveOrder()[0]!;
     return 0;
   }
 
@@ -135,7 +151,49 @@ export class ServiceClient {
     if (this.strategy === "geo") {
       return this.geoFailoverOrder();
     }
+    if (this.strategy === "adaptive") {
+      return this.adaptiveOrder();
+    }
     return this.providers.map((_, i) => i);
+  }
+
+  /**
+   * Ranks providers by a blended health score:
+   *   successRate · w₁ + latency · w₂ + breaker · w₃
+   * Each component is normalized to 0..1 (latency relative to the fastest
+   * provider; breaker CLOSED=1, HALF_OPEN=0.5, OPEN=0; providers without data
+   * score 1, so new providers aren't starved). Ranking is deterministic:
+   * equal scores prefer the provider with no latency observation yet (a
+   * one-shot exploration so unmeasured providers get traffic), then config
+   * order.
+   */
+  private adaptiveOrder(): number[] {
+    const stats = this.getStats?.() ?? {};
+    const breakers = this.getBreakerStates?.() ?? {};
+    const w = this.adaptiveWeights;
+    const totalWeight = w.successRate + w.latency + w.breaker || 1;
+    const knownLatencies = this.latencyMs.filter((ms) => ms > 0);
+    const minLatency = knownLatencies.length > 0 ? Math.min(...knownLatencies) : 0;
+
+    const scores = this.providerNames.map((name, idx) => {
+      const successScore = Number.parseFloat(stats[name]?.successRate ?? "100") / 100;
+      const observed = this.latencyMs[idx]!;
+      const latencyScore = observed > 0 && minLatency > 0 ? minLatency / observed : 1;
+      const breakerState = breakers[name];
+      const breakerScore = breakerState === "OPEN" ? 0 : breakerState === "HALF_OPEN" ? 0.5 : 1;
+      const score =
+        (w.successRate * successScore + w.latency * latencyScore + w.breaker * breakerScore) /
+        totalWeight;
+      return { idx, score, unobserved: observed === 0 };
+    });
+
+    return scores
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.unobserved !== b.unobserved) return a.unobserved ? -1 : 1;
+        return a.idx - b.idx;
+      })
+      .map(({ idx }) => idx);
   }
 
   private fastestIndex(): number {
