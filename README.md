@@ -74,6 +74,7 @@ npm run benchmark:reliability  # reliability checks only
 - [Reliability Replay](#reliability-replay)
 - [CLI](#cli)
 - [More Features](#more-features)
+- [Polyglot](#polyglot-one-contract-any-language)
 - [Security](#security)
 - [Providers](#providers)
 - [Contributing](#contributing)
@@ -435,12 +436,35 @@ docker compose up -d        # proxy on 127.0.0.1:4242, with a healthcheck
 
 (Already have Node? `npm install meridianjs && npx boundary-proxy` works too.)
 
-**2. Call it from your language.** A complete, end-to-end-tested **[Go client](clients/go)**
-ships as the reference binding — `go get` and go, stubs already generated:
+**2. Call it from your language.** Two pre-built, end-to-end-tested clients ship in the repo:
+
+**Go** — stubs already generated, zero codegen step:
 
 ```go
 c, _ := meridian.Dial(ctx, "127.0.0.1:4242", meridian.WithToken(token))
 resp, err := c.Get(ctx, "github", "/repos/octocat/Hello-World")  // same shape for all 46 providers
+```
+
+**Rust** — async `tonic` client, generates stubs from the proto at build time:
+
+```rust
+let client = Client::connect("127.0.0.1:4242", token).await?;
+let repo = client.get("github", "/repos/octocat/Hello-World").await?;
+```
+
+See [`clients/go`](clients/go) and [`clients/rust`](clients/rust) for full usage and examples.
+
+**3. Stream LLM responses cross-language.** The `StreamCall` RPC streams token-by-token
+SSE deltas (Anthropic, OpenAI, Gemini, Cohere, Mistral, and more) to any gRPC client —
+no JS required:
+
+```go
+stream, _ := c.StreamCall(ctx, &pb.CallRequest{Provider: "anthropic", Endpoint: "/v1/messages"})
+for {
+    chunk, err := stream.Recv()
+    if err == io.EOF || chunk.Done { break }
+    fmt.Print(chunk.DataJson)
+}
 ```
 
 Or smoke-test any provider with no codegen at all:
@@ -452,8 +476,8 @@ grpcurl -plaintext -H 'authorization: Bearer YOUR_TOKEN' \
   127.0.0.1:4242 meridian.v1.Meridian/Call
 ```
 
-Generate a client for **Rust (`tonic`), C++, C, Java, C#**, and more straight from the
-proto — see the [language table](docs/polyglot.md#generate-a-client-for-any-language).
+Generate a client for **C++, C, Java, C#**, and more straight from the proto — see the
+[language table](docs/polyglot.md#generate-a-client-for-any-language).
 A [native Python engine](clients/python) also ships in [`clients/python`](clients/python).
 Because every binding implements the same `.proto`, identical calls return identical
 normalized shapes regardless of language.
