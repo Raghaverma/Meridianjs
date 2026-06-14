@@ -102,7 +102,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@grpc/grpc-js": "^1.14.4",
-    "@grpc/proto-loader": "^0.7.13",
+    "@grpc/proto-loader": "^0.8.1",
     "@opentelemetry/api": "^1.9.1",
     "@types/node": "^25.9.2",
     "@vitest/coverage-v8": "^4.1.8",
