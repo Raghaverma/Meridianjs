@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 // stays dependency-free. @grpc/* are optional peer dependencies needed only when
 // you run the Boundary Proxy.
 import type * as grpc from "@grpc/grpc-js";
+import type { StreamChunk } from "../core/streaming.js";
 import type {
   MeridianErrorCategory,
   NormalizedResponse,
@@ -121,6 +122,17 @@ function recordedToProto(value: unknown): Record<string, unknown> {
   }
   // Not a normalized shape — surface the whole recorded payload as data.
   return { data_json: JSON.stringify(value ?? null) };
+}
+
+/** An SDK StreamChunk → StreamChunk proto object (a non-terminal delta). */
+function chunkToProto(chunk: StreamChunk, index: number): Record<string, unknown> {
+  return {
+    data_json: JSON.stringify(chunk.data ?? null),
+    index,
+    event: chunk.event ?? "",
+    raw: chunk.raw ?? "",
+    done: false,
+  };
 }
 
 /** Any thrown error → CallResponse proto object with `error` populated. */
@@ -260,6 +272,7 @@ export class BoundaryGrpcServer {
       Health: this.handleHealth.bind(this),
       Call: this.handleCall.bind(this),
       Paginate: this.handlePaginate.bind(this),
+      StreamCall: this.handleStreamCall.bind(this),
     } satisfies grpc.UntypedServiceImplementation);
 
     await new Promise<void>((resolveBind, rejectBind) => {
@@ -491,6 +504,57 @@ export class BoundaryGrpcServer {
         }
       } catch (err) {
         call.write(errorToProto(err, provider));
+      } finally {
+        call.end();
+      }
+    })();
+  }
+
+  private handleStreamCall(call: grpc.ServerWritableStream<CallRequestMsg, unknown>): void {
+    if (!this.isAuthorized(call.metadata)) {
+      call.emit("error", {
+        code: this.grpcLib.status.UNAUTHENTICATED,
+        details:
+          "Unauthorized. Provide the proxy token via metadata 'authorization: Bearer <token>' " +
+          "or 'x-proxy-token: <token>'.",
+      });
+      return;
+    }
+
+    const req = call.request;
+    const provider = req.provider;
+    const endpoint = req.endpoint || "/";
+    const { options } = this.buildOptions(req);
+    // SSE endpoints are POST by convention; the SDK's stream() defaults to POST
+    // when method is absent. buildOptions always sets GET, so drop it unless the
+    // caller asked for a specific method.
+    if (!req.method) {
+      delete options.method;
+    }
+
+    let index = 0;
+    void (async () => {
+      try {
+        const providerClient = this.meridian?.provider(provider as "github");
+        if (!providerClient) {
+          call.write({
+            index: 0,
+            done: true,
+            ...errorToProto(
+              new MeridianError(`Unknown provider: "${provider}"`, "validation", provider, false),
+              provider,
+            ),
+          });
+          return;
+        }
+        for await (const chunk of providerClient.stream(endpoint, options)) {
+          call.write(chunkToProto(chunk, index++));
+        }
+        // Terminal sentinel: lets clients distinguish a clean finish from a
+        // truncated connection.
+        call.write({ index, done: true });
+      } catch (err) {
+        call.write({ index, done: true, ...errorToProto(err, provider) });
       } finally {
         call.end();
       }

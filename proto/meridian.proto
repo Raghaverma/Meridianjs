@@ -15,12 +15,23 @@ syntax = "proto3";
 // JSON encode/decode on each side.
 package meridian.v1;
 
+// Per-language codegen options. These never change the wire format — they only
+// tell each language's generator where to place the binding. Add one per
+// language you generate stubs for (java_package, csharp_namespace, …).
+option go_package = "github.com/Raghaverma/meridianjs/clients/go/genproto/meridianv1;meridianv1";
+
 service Meridian {
   // Execute a single normalized request (.get/.post/.put/.patch/.delete).
   rpc Call(CallRequest) returns (CallResponse);
 
   // Traverse a paginated endpoint, streaming one CallResponse per page.
   rpc Paginate(CallRequest) returns (stream CallResponse);
+
+  // Stream a Server-Sent-Events / token response (anthropic, openai, gemini,
+  // cohere, mistral, …). Emits one StreamChunk per upstream SSE delta, then a
+  // final chunk with done=true. The request defaults to POST unless `method`
+  // is set explicitly.
+  rpc StreamCall(CallRequest) returns (stream StreamChunk);
 
   // Liveness + capability probe. Unauthenticated: returns no secrets.
   rpc Health(HealthRequest) returns (HealthResponse);
@@ -115,6 +126,18 @@ message CallResponse {
   string data_json = 1;            // JSON-encoded normalized response data
   ResponseMeta meta = 2;
   MeridianError error = 3;         // populated => the call failed
+}
+
+// One delta of a server-streamed (SSE) response. Mirrors StreamChunk<T> in
+// src/core/streaming.ts. The stream is terminated by a final chunk with
+// done=true (and no data); if it carries `error`, the stream failed.
+message StreamChunk {
+  string data_json = 1;            // JSON-encoded delta ("" on the terminal chunk)
+  uint32 index = 2;                // 0-based position in the stream
+  string event = 3;                // SSE event name ("" = none)
+  string raw = 4;                  // verbatim SSE data payload ("" on terminal/error)
+  bool done = 5;                   // true on the final, data-less terminal chunk
+  MeridianError error = 6;         // populated => the stream failed (last chunk)
 }
 
 message HealthRequest {}

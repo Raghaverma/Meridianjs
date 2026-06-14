@@ -1,0 +1,26 @@
+# Keep the build context tiny and never ship local state or secrets.
+node_modules
+dist
+coverage
+clients
+benchmarks
+demos
+examples
+docs
+blog
+assets
+scripts
+**/__snapshots__
+**/*.test.ts
+**/*.tsbuildinfo
+*.log
+.git
+.github
+.claude
+.env
+.env.*
+.DS_Store
+*.tgz
+.meridian
+.omc
+.omx

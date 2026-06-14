@@ -1,0 +1,30 @@
+# Run the Meridian Boundary Proxy with one command:
+#
+#   cp .env.example .env      # then fill in a token + the providers you use
+#   docker compose up         # proxy on localhost:4242
+#
+# Any gRPC-capable language (Go, Rust, C, C++, Java, Python, …) then talks to
+# the engine at 127.0.0.1:4242 using proto/meridian.proto. See docs/polyglot.md.
+
+services:
+  proxy:
+    build: .
+    image: meridian/proxy:latest
+    container_name: meridian-proxy
+    restart: unless-stopped
+    ports:
+      # host:container — change the host side to relocate the local endpoint.
+      - "127.0.0.1:4242:4242"
+    environment:
+      # REQUIRED. The proxy refuses to expose provider credentials on a public
+      # interface without a shared secret. Every client must send this token as
+      # gRPC metadata "authorization: Bearer <token>".
+      MERIDIAN_PROXY_TOKEN: ${MERIDIAN_PROXY_TOKEN:?set MERIDIAN_PROXY_TOKEN in .env}
+      # Provider credentials — only set the ones you actually call. The proxy
+      # injects these upstream so your client code never handles a real secret.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+    # Liveness uses the image's built-in HEALTHCHECK (the proxy's own Health
+    # RPC), so `docker compose ps` shows healthy/unhealthy with no extra tooling.

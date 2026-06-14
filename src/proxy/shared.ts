@@ -163,8 +163,12 @@ export function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
 
   const providerConfigs: Record<string, ProviderConfig> = {
     github: { auth: { token: cred("github", "token", "GITHUB_TOKEN") } },
-    anthropic: { auth: { apiKey: cred("anthropic", "apiKey", "ANTHROPIC_API_KEY") } },
-    openai: { auth: { apiKey: cred("openai", "apiKey", "OPENAI_API_KEY") } },
+    // The anthropic/openai adapters read `auth.token` (not apiKey) — the value
+    // still comes from the apiKey opt / *_API_KEY env, just placed where the
+    // adapter looks. Misconfiguring this as apiKey silently breaks auth, which
+    // would defeat StreamCall (the AI providers are its whole point).
+    anthropic: { auth: { token: cred("anthropic", "apiKey", "ANTHROPIC_API_KEY") } },
+    openai: { auth: { token: cred("openai", "apiKey", "OPENAI_API_KEY") } },
     stripe: { auth: { apiKey: cred("stripe", "apiKey", "STRIPE_SECRET_KEY") } },
     razorpay: {
       auth: {

@@ -420,34 +420,43 @@ createUpiDeepLink({ vpa: "merchant@oksbi", amount: 1000 }); // "upi://pay?pa=...
 
 ## Polyglot: one contract, any language
 
-Meridian's contract is no longer TypeScript-only. It is defined as a language-neutral
-gRPC IDL in [`proto/meridian.proto`](proto/meridian.proto) — `RequestOptions`,
-`NormalizedResponse`, `ResponseMeta`, and the `MeridianError` model expressed as a
-wire format. Any gRPC-capable language can drive the pipeline.
+Use Meridian from **C, C++, Rust, Go, Java, Python — any gRPC-capable language**, with
+no Node required. The engine runs once as a sidecar (the **Boundary Proxy**) and every
+language drives it over one language-neutral contract,
+[`proto/meridian.proto`](proto/meridian.proto). One engine, thin clients — add a
+provider once and every language gets it. Full guide: **[docs/polyglot.md](docs/polyglot.md)**.
 
-- **gRPC Boundary Proxy (TypeScript engine).** `npx boundary-proxy` starts a gRPC server
-  implementing `meridian.v1.Meridian`. Call it from Go, Python, Rust, or `grpcurl`:
+**1. Run the engine — no Node needed:**
 
-  ```bash
-  grpcurl -plaintext -d '{"provider":"github","method":"GET",
-    "endpoint":"/repos/octocat/Hello-World"}' \
-    127.0.0.1:4242 meridian.v1.Meridian/Call
-  ```
+```bash
+cp .env.example .env        # set MERIDIAN_PROXY_TOKEN + your provider creds
+docker compose up -d        # proxy on 127.0.0.1:4242, with a healthcheck
+```
 
-- **Native Python engine.** [`clients/python`](clients/python) is a from-scratch Python
-  port of the pipeline (retry, circuit breaking, rate limiting, sanitization,
-  normalization) with reference adapters for GitHub, OpenAI, Anthropic, and Stripe. It
-  runs standalone *and* speaks the same proto — it can serve the contract or consume
-  either engine:
+(Already have Node? `npm install meridianjs && npx boundary-proxy` works too.)
 
-  ```python
-  from meridian import Meridian
-  meridian = await Meridian.create({"providers": {"github": {"auth": {"token": "ghp_..."}}}})
-  res = await meridian.github.get("/repos/octocat/Hello-World")
-  ```
+**2. Call it from your language.** A complete, end-to-end-tested **[Go client](clients/go)**
+ships as the reference binding — `go get` and go, stubs already generated:
 
-Because both engines implement the same `.proto`, identical calls return identical
-normalized shapes regardless of language. See [`clients/python/README.md`](clients/python/README.md).
+```go
+c, _ := meridian.Dial(ctx, "127.0.0.1:4242", meridian.WithToken(token))
+resp, err := c.Get(ctx, "github", "/repos/octocat/Hello-World")  // same shape for all 46 providers
+```
+
+Or smoke-test any provider with no codegen at all:
+
+```bash
+grpcurl -plaintext -H 'authorization: Bearer YOUR_TOKEN' \
+  -import-path proto -proto meridian.proto \
+  -d '{"provider":"github","method":"GET","endpoint":"/repos/octocat/Hello-World"}' \
+  127.0.0.1:4242 meridian.v1.Meridian/Call
+```
+
+Generate a client for **Rust (`tonic`), C++, C, Java, C#**, and more straight from the
+proto — see the [language table](docs/polyglot.md#generate-a-client-for-any-language).
+A [native Python engine](clients/python) also ships in [`clients/python`](clients/python).
+Because every binding implements the same `.proto`, identical calls return identical
+normalized shapes regardless of language.
 
 ---
 

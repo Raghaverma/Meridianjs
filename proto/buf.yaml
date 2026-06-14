@@ -1,0 +1,41 @@
+version: v2
+# Single-module repo: the contract lives flat in this directory as
+# meridian.proto (not meridian/v1/meridian.proto). buf governs its lint and
+# breaking-change checks; every language binding is generated from it.
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+  # These STANDARD rules conflict with the contract's deliberate, wire-locked
+  # shape. meridian.proto mirrors src/core/types.ts and is already generated
+  # into committed stubs (Go, Python) — renaming anything here would be a
+  # breaking change to every published binding, not a lint fix. Each exclusion
+  # is a conscious governance decision:
+  except:
+    # File is flat (proto/meridian.proto) by design so every language's codegen
+    # input is one path; the package is meridian.v1. Enforcing meridian/v1/
+    # would move the file and break buf.gen.yaml / the Python Makefile inputs.
+    - PACKAGE_DIRECTORY_MATCH
+    # The service is `Meridian`, not `MeridianService` — it's the public client
+    # type name in every binding.
+    - SERVICE_SUFFIX
+    # Call/Paginate/StreamCall intentionally share CallRequest: the same request
+    # shape, returned unary or streamed. One request type is the contract.
+    - RPC_REQUEST_RESPONSE_UNIQUE
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    # Enum values mirror the TS unions exactly (AUTH, RATE_LIMIT, CLOSED, …).
+    # Prefixing (ERROR_CATEGORY_AUTH) would desync the cross-language enum names.
+    - ENUM_VALUE_PREFIX
+  # Keep the zero-value hygiene the proto already follows (*_UNSPECIFIED = 0)
+  # and allow the shared request + empty Health request explicitly.
+  enum_zero_value_suffix: _UNSPECIFIED
+  rpc_allow_same_request_response: true
+  rpc_allow_google_protobuf_empty_requests: true
+  rpc_allow_google_protobuf_empty_responses: true
+breaking:
+  # Detect wire-incompatible changes (field number/type reuse, removals, …)
+  # against the published contract. CI runs this on PRs vs origin/main.
+  use:
+    - FILE

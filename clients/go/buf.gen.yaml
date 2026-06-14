@@ -1,0 +1,18 @@
+# Codegen config for the Go binding. Stubs are generated from the repo's single
+# source of truth — ../../proto/meridian.proto — and committed under genproto/
+# so `go get` works with no local protoc/buf.
+#
+# Regenerate after editing the proto:
+#   make generate        (runs buf in Docker; no local install needed)
+version: v2
+plugins:
+  # Messages/enums. Remote plugins run on buf.build — no local protoc needed.
+  # Versions are pinned so `make generate` and CI produce byte-identical stubs;
+  # bump deliberately (and regenerate) rather than tracking "latest".
+  - remote: buf.build/protocolbuffers/go:v1.36.11
+    out: genproto/meridianv1
+    opt: paths=source_relative
+  # The gRPC service client/server stubs.
+  - remote: buf.build/grpc/go:v1.6.2
+    out: genproto/meridianv1
+    opt: paths=source_relative

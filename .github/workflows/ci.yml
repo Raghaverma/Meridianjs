@@ -281,6 +281,44 @@ jobs:
         working-directory: clients/python
         run: pytest -q
 
+# ─── Proto contract: lint, breaking-change, stale-codegen, Go client ─────────
+# Governs proto/meridian.proto — the single source of truth every language
+# binding is generated from. Uses the SAME bufbuild/buf image the
+# clients/go/Makefile uses, so CI can never drift from `make generate`. Docker
+# is preinstalled on ubuntu-latest runners; no new action SHAs to pin.
+  proto:
+    name: Proto — Lint, Codegen & Go Client
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          # buf breaking compares against origin/main, so fetch full history.
+          fetch-depth: 0
+      - name: Lint proto
+        run: docker run --rm -v "$PWD":/work -w /work bufbuild/buf:1.70.0 lint proto
+      - name: Breaking-change check vs origin/main
+        # Only meaningful on PRs; on push-to-main there is nothing to compare to.
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin main
+          docker run --rm -v "$PWD":/work -w /work bufbuild/buf:1.70.0 \
+            breaking proto --against ".git#ref=origin/main,subdir=proto"
+      - name: Regenerate Go stubs (same image as `make generate`)
+        run: docker run --rm -v "$PWD":/work -w /work/clients/go bufbuild/buf:1.70.0 generate ../../proto
+      - name: Fail if committed Go stubs are stale
+        run: |
+          if ! git diff --exit-code -- clients/go/genproto; then
+            echo "::error::clients/go/genproto is out of date. Run 'make -C clients/go generate' and commit."
+            exit 1
+          fi
+      - name: Build & vet Go client
+        run: docker run --rm -v "$PWD/clients/go":/src -w /src golang:1.22 sh -c 'go build ./... && go vet ./...'
+      - name: Conformance suite (token-protected proxy in Docker)
+        # Builds the proxy image and asserts the contract end-to-end: auth
+        # enforcement, SSRF guard, normalized errors. No provider creds needed.
+        run: ./clients/go/conformance/run.sh
+
 # ─── Datadog synthetic tests (optional — runs if DD secrets configured) ───────
   datadog-synthetics:
     name: Datadog Synthetics
@@ -329,6 +367,7 @@ jobs:
       - security
       - package-quality
       - python-tests
+      - proto
     steps:
       - name: Fail if any required job did not succeed
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
