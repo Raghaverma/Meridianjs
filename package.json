@@ -38,7 +38,11 @@
   ],
   "sideEffects": false,
   "scripts": {
+    "sync-version": "node scripts/sync-version.mjs",
+    "prebuild": "npm run sync-version",
     "build": "tsc",
+    "pretest": "npm run sync-version",
+    "pretypecheck": "npm run sync-version",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:watch": "vitest --watch",
