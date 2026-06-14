@@ -6,8 +6,17 @@ All notable changes to Meridian are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.3.0] — 2026-06-14
+
 ### Added
 
+- **Docker Boundary Proxy** — `Dockerfile`, `docker-compose.yml`, and `.env.example` ship in the repo root. `docker compose up -d` starts the gRPC engine on `127.0.0.1:4242` with a built-in healthcheck — no Node or npm required on the host. See [docs/polyglot.md](docs/polyglot.md).
+- **Go reference client** ([`clients/go`](clients/go)) — a complete, end-to-end-tested binding with pre-generated protobuf stubs, a typed `Client` struct, and a conformance suite that boots the proxy in Docker and asserts auth enforcement, SSRF guards, and error normalization. `go get github.com/Raghaverma/meridianjs/clients/go/meridian`.
+- **Rust client** ([`clients/rust`](clients/rust)) — async `tonic`-based binding; generates stubs from `proto/meridian.proto` at build time via `build.rs`. Normalized errors and the same call shape as the Go client.
+- **`StreamCall` gRPC RPC** — streams SSE token deltas (Anthropic, OpenAI, Gemini, Cohere, Mistral, …) to any gRPC client language-by-language, with no JS runtime required. Emits one `StreamChunk` per upstream delta; the terminal chunk carries `done: true`. See `proto/meridian.proto`.
+- **Proto CI job** — `buf lint`, breaking-change detection against `origin/main` (on PRs), Go stub freshness check (`clients/go/genproto` must match `make generate`), Go build + vet, and the full conformance suite run on every push. Uses the same `bufbuild/buf:1.70.0` image as the `Makefile` so CI and local never drift.
 - **`meridian add <provider>`** — one-command provider generation: resolves the OpenAPI spec (curated registry: slack, github, stripe, twilio, box, sendgrid — or `--openapi <url|path>`), then generates the adapter, unit tests, **contract tests** (the same 19-invariant battery every built-in adapter passes — green out of the box), a pagination strategy inferred from the spec's query parameters (cursor/page/offset style + exact param name), retry classification grounded in the spec's documented status codes, and a `GENERATED.md` completeness report scoring what was inferred vs assumed (every heuristic carries a `TODO(meridian-generator)` marker).
 - **OpenTelemetry auto-instrumentation** — `telemetry: { provider: "opentelemetry" }` (or `meridian.instrumentOpenTelemetry()`) binds spans/metrics/errors to `@opentelemetry/api` (new optional peer dependency) with one line; exporter recipes for Datadog, Grafana, Honeycomb, and New Relic in [docs/opentelemetry.md](docs/opentelemetry.md).
 - **Reliability replay** — `meridian.startRecording(name)` / `stopRecording()` capture the pipeline's behavior timeline (outcomes, retries, breaker states, latencies — never payloads) to `.meridian/recordings/<name>.json`; `meridian replay <name>` re-renders the outage locally with derived failovers, breaker transitions, and latency stats; `meridian.replaySession()` re-emits the timeline through observability adapters. See [docs/reliability-replay.md](docs/reliability-replay.md).
@@ -18,6 +27,7 @@ All notable changes to Meridian are documented here.
 
 ### Fixed
 
+- **Anthropic and OpenAI auth in the Boundary Proxy** — `shared.ts` was placing the API key in `auth.apiKey`, but those adapters read `auth.token`; the mismatch silently broke all proxied calls to both providers (including `StreamCall`). The key is now placed in `auth.token` as the adapters expect.
 - **HTTP errors were never retried.** `executeHttpRequest` throws raw `{status, headers, body}` objects, but the retry strategy only retried errors already carrying `retryable: true` — so a real 429/503 from a provider failed immediately regardless of retry config (only timeouts and pre-classified mock errors ever retried). The pipeline now classifies raw HTTP failures through the adapter's `parseError` at the retry decision point, while propagating the original error unchanged.
 - **OpenTelemetry metric corruption** — `OpenTelemetryObservability.recordMetric()` funneled every pipeline metric into the `meridian.requests` counter, inflating request counts; named metrics now get their own counters.
 - **Flat-config key collision** — top-level `services`, `policies`, `providerCosts`, and the new `telemetry` keys were treated as provider configs when using the flat config style.

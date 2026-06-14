@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - "v*"
+  # Allows a dry run without pushing a real tag. Set dry_run=true to skip all
+  # publish/push steps and just validate the changelog + build.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — build and validate only, skip publish/push/release'
+        required: false
+        default: true
+        type: boolean
 
 # Least privilege by default. Jobs that publish / create releases opt in below.
 permissions:
@@ -71,11 +80,16 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - name: Tag must equal package.json version
         run: |
+          # Only meaningful on tag pushes; workflow_dispatch has no tag to compare.
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "Non-tag trigger — skipping version check."
+            exit 0
+          fi
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           echo "package.json: $PKG_VERSION | tag: $TAG_VERSION"
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION. Update package.json before tagging."
             exit 1
           fi
 
@@ -146,12 +160,47 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+# ─── Build and push Docker image to GHCR ─────────────────────────────────────
+# Publishes ghcr.io/<owner>/meridian-proxy:v<version> and :latest.
+# After the first push, set the package visibility to Public under:
+# github.com/<owner> → Packages → meridian-proxy → Package settings.
+  docker:
+    name: Docker — Build & Push
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [quality-gate]
+    if: github.event_name == 'push'   # skip on workflow_dispatch dry runs
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Read version
+        id: version
+        run: |
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push
+        run: |
+          IMAGE=ghcr.io/${{ github.repository_owner }}/meridian-proxy
+          VERSION="${{ steps.version.outputs.version }}"
+          docker build \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.version=${VERSION}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            -t "${IMAGE}:v${VERSION}" \
+            -t "${IMAGE}:latest" \
+            .
+          docker push "${IMAGE}:v${VERSION}"
+          docker push "${IMAGE}:latest"
+
 # ─── Create GitHub Release ────────────────────────────────────────────────────
   github-release:
     name: GitHub Release
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [publish]
+    needs: [publish, docker]
+    if: github.event_name == 'push'
     permissions:
       contents: write   # create GitHub release
     steps:
