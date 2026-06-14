@@ -7,7 +7,7 @@
 Build once. Survive provider failures.
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
-[![version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
 [![tests](https://img.shields.io/badge/tests-1962%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-46-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-874-brightgreen)](#providers)

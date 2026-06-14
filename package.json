@@ -1,6 +1,6 @@
 {
   "name": "meridianjs",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Meridian - A TypeScript-first SDK that enforces a single stable contract across all third-party API providers",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",
@@ -76,6 +76,7 @@
     "retry"
   ],
   "license": "MIT",
+  "homepage": "https://meridianjs.raghav-verma.com",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Raghaverma/meridianjs.git"

@@ -8,6 +8,14 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [0.3.1] — 2026-06-14
+
+### Changed
+
+- Set homepage to `https://meridianjs.raghav-verma.com` in `package.json`.
+
+---
+
 ## [0.3.0] — 2026-06-14
 
 ### Added
