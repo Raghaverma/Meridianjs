@@ -70,7 +70,9 @@ npm run benchmark:reliability  # reliability checks only
 - [Observability](#observability)
 - [Policy Engine](#policy-engine)
 - [Transactions](#transactions)
-- [Schema Drift Detection](#schema-drift-detection)
+- [Schema Drift Detection & Contract Registry](#schema-drift-detection--contract-registry)
+- [Reliability Replay](#reliability-replay)
+- [CLI](#cli)
 - [More Features](#more-features)
 - [Security](#security)
 - [Providers](#providers)
@@ -214,7 +216,7 @@ sequenceDiagram
     Meridian-->>App: result (meta.provider = "anthropic")
 ```
 
-**Routing strategies:** `failover` · `round-robin` · `lowest-latency` · `cheapest` · `highest-success-rate` · `weighted` · `geo`
+**Routing strategies:** `failover` · `round-robin` · `lowest-latency` · `cheapest` · `highest-success-rate` · `weighted` · `geo` · `adaptive`
 
 ```typescript
 // weighted: 70% Stripe, 30% Razorpay
@@ -222,6 +224,9 @@ payments: { providers: ["stripe", "razorpay"], strategy: "weighted", weights: { 
 
 // geo: route by region (MERIDIAN_REGION env var)
 payments: { providers: ["razorpay", "stripe"], strategy: "geo", regions: { "ap-south-1": ["razorpay"], "us-east-1": ["stripe"] } }
+
+// adaptive: ranks providers live on success rate + latency + circuit-breaker state
+llm: { providers: ["openai", "anthropic", "gemini"], strategy: "adaptive", adaptiveWeights: { successRate: 0.6, latency: 0.3, breaker: 0.1 } }
 ```
 
 ---
@@ -244,6 +249,17 @@ meridian.cost()
 // { providers: { openai: { requests: 1243, costPerRequest: 0.03, estimatedSpend: 37.29 } },
 //   total: { requests: 1243, estimatedSpend: 37.29 }, since: "2026-06-05T...", currency: "USD" }
 ```
+
+**OpenTelemetry auto-instrumentation** — one line binds every span, metric, and error to `@opentelemetry/api`:
+
+```typescript
+const meridian = await Meridian.create({
+  providers: { /* ... */ },
+  telemetry: { provider: "opentelemetry" },
+});
+```
+
+Exporter recipes for Datadog, Grafana, Honeycomb, and New Relic: [docs/opentelemetry.md](docs/opentelemetry.md).
 
 ---
 
@@ -298,7 +314,7 @@ flowchart LR
 
 ---
 
-## Schema Drift Detection
+## Schema Drift Detection & Contract Registry
 
 Snapshot a response. Check later. Get alerted when the provider changes their API silently.
 
@@ -316,6 +332,53 @@ const report = await meridian.schema.report("stripe");
 // { provider: "stripe", endpoints: [{ endpoint: "/v1/customers", fieldCount: 12, version: "..." }] }
 ```
 
+The **local contract registry** persists versioned snapshots under `.meridian/registry/` (designed to be committed to git) with an append-only drift history, plus a CLI for CI gating:
+
+```bash
+npx meridian registry snapshot stripe /v1/customers
+npx meridian registry check          # exits non-zero on breaking drift — wire into CI
+npx meridian registry report stripe
+npx meridian registry history stripe /v1/customers
+```
+
+Same API from code: `meridian.registry.snapshot/check/report/history`. See [docs/registry.md](docs/registry.md).
+
+---
+
+## Reliability Replay
+
+Record what the pipeline actually did during an incident — outcomes, retries, breaker transitions, latencies, never payloads — and replay it later for debugging or postmortems.
+
+```typescript
+meridian.startRecording("openai-outage");
+// ... traffic happens ...
+const recording = meridian.stopRecording();
+// → .meridian/recordings/openai-outage.json
+```
+
+```bash
+npx meridian replay openai-outage
+# re-renders the outage: failovers, breaker transitions, latency stats
+```
+
+`meridian.replaySession()` re-emits a recorded timeline through your observability adapters. See [docs/reliability-replay.md](docs/reliability-replay.md).
+
+---
+
+## CLI
+
+The `meridian` binary unifies adapter generation, migration, replay, and registry tooling:
+
+```bash
+npx meridian add <provider>        # generate adapter + tests + contract tests + pagination from an OpenAPI spec
+npx meridian generate --provider acme --openapi ./acme.json   # lower-level generator
+npx meridian migrate <provider>    # scan your codebase for direct SDK usage and report what maps to Meridian
+npx meridian replay <name>         # re-render a recorded reliability timeline
+npx meridian registry <subcommand> # snapshot / check / report / history for the contract registry
+```
+
+`meridian add` resolves a curated OpenAPI registry (slack, github, stripe, twilio, box, sendgrid) or `--openapi <url|path>`, and writes a `GENERATED.md` report scoring what was inferred vs. assumed.
+
 ---
 
 ## More Features
@@ -330,8 +393,8 @@ meridian.findProviders({ capability: "streaming" });
 // [{ name: "openai" }, { name: "anthropic" }, { name: "gemini" }, ...]
 
 // Adapter generator
-// npx meridian generate --provider acme --openapi ./acme.json
-// → adapter.ts  adapter.test.ts  pagination.ts  index.ts (8 tests pass immediately)
+// npx meridian add acme --openapi ./acme.json
+// → adapter.ts  adapter.test.ts  contract tests  pagination.ts  index.ts  GENERATED.md
 
 // Pagination
 for await (const page of meridian.provider("stripe")!.paginate("/v1/customers")) { ... }
@@ -423,6 +486,6 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md) for private reporting.
 
 ## Contributing
 
-New adapter: `npx meridian generate --provider name --openapi ./spec.json` → implement TODOs → `npm test`.
+New adapter: `npx meridian add <name> --openapi ./spec.json` → review `GENERATED.md` → `npm test`.
 
 [Changelog](CHANGELOG.md) · [License: MIT](LICENSE.md) · [npm](https://www.npmjs.com/package/meridianjs)

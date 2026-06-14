@@ -18,7 +18,6 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   defaults: true,
   oneofs: true,
 });
-// biome-ignore lint/suspicious/noExplicitAny: dynamic proto package shape
 const proto = grpc.loadPackageDefinition(packageDefinition) as any;
 
 interface CallResp {
@@ -32,7 +31,6 @@ function makeClient(port: number) {
 }
 
 function call(
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic gRPC client
   client: any,
   request: Record<string, unknown>,
   metadata?: Record<string, string>,
@@ -50,7 +48,6 @@ function call(
 }
 
 function health(
-  // biome-ignore lint/suspicious/noExplicitAny: dynamic gRPC client
   client: any,
 ): Promise<{ status: string; providers: string[]; auth_required: boolean }> {
   return new Promise((resolveHealth, reject) => {
@@ -68,7 +65,6 @@ function health(
 const MOCK_REPO = { id: 1, name: "Hello-World", full_name: "octocat/Hello-World" };
 
 function mockUpstream(statusCode = 200, body: unknown = MOCK_REPO) {
-  // biome-ignore lint/suspicious/noExplicitAny: test fetch stub
   (globalThis as any).fetch = vi.fn().mockResolvedValue({
     ok: statusCode >= 200 && statusCode < 300,
     status: statusCode,
@@ -95,9 +91,7 @@ const AUTH_PORT = PORT + 100;
 
 let server: BoundaryGrpcServer;
 let authServer: BoundaryGrpcServer;
-// biome-ignore lint/suspicious/noExplicitAny: dynamic gRPC client
 let client: any;
-// biome-ignore lint/suspicious/noExplicitAny: dynamic gRPC client
 let authClient: any;
 
 beforeAll(async () => {
@@ -126,13 +120,11 @@ describe("BoundaryGrpcServer", () => {
   describe("1. Server startup", () => {
     it("defaults to port 4242 when none is provided", () => {
       const s = new BoundaryGrpcServer();
-      // biome-ignore lint/suspicious/noExplicitAny: private field access
       expect((s as any).port).toBe(4242);
     });
 
     it("accepts a custom host", () => {
       const s = new BoundaryGrpcServer({ host: "0.0.0.0", port: PORT + 1, authToken: "t" });
-      // biome-ignore lint/suspicious/noExplicitAny: private field access
       expect((s as any).host).toBe("0.0.0.0");
     });
   });
@@ -186,7 +178,6 @@ describe("BoundaryGrpcServer", () => {
         body_json: JSON.stringify({ name: "new-repo" }),
       });
       expect(res.error).toBeNull();
-      // biome-ignore lint/suspicious/noExplicitAny: test fetch stub
       const mockFetch = (globalThis as any).fetch as ReturnType<typeof vi.fn>;
       const lastCall = mockFetch.mock.calls.at(-1);
       expect(lastCall?.[1]?.method?.toUpperCase()).toBe("POST");
@@ -200,7 +191,6 @@ describe("BoundaryGrpcServer", () => {
         endpoint: "/repos/octocat/Hello-World/issues",
         query: { state: "open", per_page: "10" },
       });
-      // biome-ignore lint/suspicious/noExplicitAny: test fetch stub
       const mockFetch = (globalThis as any).fetch as ReturnType<typeof vi.fn>;
       const [calledUrl] = mockFetch.mock.calls.at(-1) ?? [];
       expect(String(calledUrl)).toContain("state=open");
@@ -288,7 +278,6 @@ describe("BoundaryGrpcServer", () => {
           "content-type": "application/json",
         },
       });
-      // biome-ignore lint/suspicious/noExplicitAny: test fetch stub
       const mockFetch = (globalThis as any).fetch as ReturnType<typeof vi.fn>;
       const init = mockFetch.mock.calls.at(-1)?.[1] as RequestInit | undefined;
       const sent = new Headers(init?.headers as HeadersInit);
