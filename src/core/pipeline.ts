@@ -203,10 +203,10 @@ export class RequestPipeline {
       await this.config.rateLimiter.acquire();
 
       let retryCount = 0;
-      const response = await this.config.retryStrategy.execute(
-        async () => {
-          retryCount++;
-          return await this.config.circuitBreaker.execute(async () => {
+      const response = await this.config.circuitBreaker.execute(async () => {
+        return await this.config.retryStrategy.execute(
+          async () => {
+            retryCount++;
             try {
               return await this.executeHttpRequest(endpoint, options, await this.getAuthToken());
             } catch (err) {
@@ -229,13 +229,13 @@ export class RequestPipeline {
               }
               throw err;
             }
-          });
-        },
-        idempotencyLevel,
-        !!options.idempotencyKey,
-        0,
-        (error) => this.isErrorRetryable(error),
-      );
+          },
+          idempotencyLevel,
+          !!options.idempotencyKey,
+          0,
+          (error) => this.isErrorRetryable(error),
+        );
+      });
 
       const rateLimitInfo = this.config.adapter.rateLimitPolicy(response.headers);
       this.config.rateLimiter.updateFromHeaders(response.headers, rateLimitInfo);
