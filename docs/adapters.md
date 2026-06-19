@@ -1,6 +1,6 @@
 # Adapters Guide
 
-Adapters act as translation layers between the Meridian request pipeline and individual third-party APIs. Meridian includes 39 pre-built adapters, but you can easily write your own custom adapter to normalize any API.
+Adapters act as translation layers between the Meridian request pipeline and individual third-party APIs. Meridian includes 46 pre-built adapters, but you can easily write your own custom adapter to normalize any API.
 
 ---
 

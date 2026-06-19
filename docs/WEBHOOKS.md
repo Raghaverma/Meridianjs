@@ -117,21 +117,17 @@ app.post("/webhooks/stripe", (req, res) => {
 
 Stripe webhooks include a signed timestamp (`t=<unix_seconds>` in the `Stripe-Signature` header). Meridian's verifier automatically rejects webhooks older than 300 seconds (5 minutes) to prevent replay attacks — a single captured webhook cannot be replayed indefinitely.
 
-This tolerance is configurable per-adapter via `verifyWebhook` options:
+This tolerance is the optional 4th positional argument to `verifyWebhook`, in **seconds**:
 
 ```ts
 // Default: reject events older than 300 seconds
 const isValid = adapter.verifyWebhook(req.body, signature, secret);
 
-// Custom tolerance (in milliseconds)
-const isValid = adapter.verifyWebhook(req.body, signature, secret, { 
-  toleranceMs: 60000 // 1 minute
-});
+// Custom tolerance (in seconds)
+const isValid = adapter.verifyWebhook(req.body, signature, secret, 60); // 1 minute
 
 // Opt-out of timestamp checks (not recommended for production)
-const isValid = adapter.verifyWebhook(req.body, signature, secret, { 
-  toleranceMs: Infinity
-});
+const isValid = adapter.verifyWebhook(req.body, signature, secret, Infinity);
 ```
 
 Always keep the default 300-second tolerance in production to protect against captured webhooks being replayed to drive duplicate fulfillment.
