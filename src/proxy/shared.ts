@@ -83,6 +83,13 @@ export const SUPPORTED_PROVIDERS = [
   "mistral",
   "mollie",
   "apollo",
+  "billdesk",
+  "ccavenue",
+  "datadog",
+  "googlemaps",
+  "hunter",
+  "s3",
+  "sentry",
 ] as const;
 
 export const PROVIDER_CATEGORIES: Record<string, string[]> = {
@@ -98,15 +105,19 @@ export const PROVIDER_CATEGORIES: Record<string, string[]> = {
     "checkout",
     "klarna",
     "mollie",
+    "billdesk",
+    "ccavenue",
   ],
   Comms: ["msg91", "exotel", "gupshup", "twilio", "sendgrid", "mailgun", "vonage"],
   "Banking/UPI": ["setu", "decentro"],
 
   Logistics: ["shiprocket", "delhivery"],
   KYC: ["hyperverge", "digio", "karza", "idfy", "auth0"],
-  "Tax/Maps": ["cleartax", "mapmyindia", "perfios"],
+  "Tax/Maps": ["cleartax", "mapmyindia", "perfios", "googlemaps"],
   AI: ["anthropic", "openai", "gemini", "cohere", "mistral"],
-  Dev: ["github", "hubspot", "supabase", "apollo"],
+  Dev: ["github", "hubspot", "supabase", "apollo", "hunter"],
+  Monitoring: ["datadog", "sentry"],
+  Storage: ["s3"],
 };
 
 /** Options shared by every proxy transport (credentials, recording, auth, headers). */
@@ -327,6 +338,51 @@ export function buildMeridianConfig(opts: ProxyServerOptions): MeridianConfig {
     apollo: {
       auth: {
         apiKey: cred("apollo", "apiKey", "APOLLO_API_KEY"),
+      },
+    },
+    billdesk: {
+      auth: {
+        clientId: process.env.BILLDESK_CLIENT_ID ?? "",
+        clientSecret: process.env.BILLDESK_SECRET_KEY ?? "",
+      },
+    },
+    ccavenue: {
+      auth: {
+        apiKey: process.env.CCAVENUE_ACCESS_CODE ?? "",
+        apiSecret: process.env.CCAVENUE_WORKING_KEY ?? "",
+      },
+    },
+    datadog: {
+      auth: {
+        apiKey: cred("datadog", "apiKey", "DATADOG_API_KEY"),
+        // Application key (optional, needed for read endpoints) — the adapter
+        // reads it from apiSecret.
+        apiSecret: process.env.DATADOG_APP_KEY ?? "",
+      },
+    },
+    googlemaps: {
+      auth: {
+        apiKey: cred("googlemaps", "apiKey", "GOOGLE_MAPS_API_KEY"),
+      },
+    },
+    hunter: {
+      auth: {
+        apiKey: cred("hunter", "apiKey", "HUNTER_API_KEY"),
+      },
+    },
+    s3: {
+      auth: {
+        username: process.env.AWS_ACCESS_KEY_ID ?? "",
+        password: process.env.AWS_SECRET_ACCESS_KEY ?? "",
+        custom: {
+          region: process.env.AWS_REGION ?? "us-east-1",
+          ...(process.env.AWS_SESSION_TOKEN ? { sessionToken: process.env.AWS_SESSION_TOKEN } : {}),
+        },
+      },
+    },
+    sentry: {
+      auth: {
+        token: cred("sentry", "token", "SENTRY_AUTH_TOKEN"),
       },
     },
   };
