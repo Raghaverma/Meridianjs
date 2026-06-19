@@ -66,3 +66,7 @@ for await (const page of meridian.provider("github").paginate("/orgs/my-org/repo
   if (count >= 100) break;
 }
 ```
+
+### Offset Pagination Termination
+
+When using offset-based pagination (e.g., `limit` and `offset` query parameters) without a `total` count, the generator automatically terminates when an empty page is received. This prevents unbounded iteration and ensures the loop completes cleanly instead of reaching internal page limits.

@@ -8,7 +8,7 @@ To prevent requests from being rejected by third-party APIs with `429 Too Many R
 
 1. **Header Inspection**: Every API response is parsed by the provider's adapter to extract rate limit metadata (e.g. `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `Retry-After`).
 2. **Local Token Bucket**: Meridian uses a Token Bucket rate limiter initialized with provider limits.
-3. **Adaptive Backoff**: When remaining capacity drops below **20%** (utilization > 80%), Meridian automatically reduces the allowed request rate by **50%** to avoid hitting hard limits.
+3. **Adaptive Backoff**: When remaining capacity drops below **20%** (utilization > 80%), Meridian automatically reduces the allowed request rate by **50%** to avoid hitting hard limits. As utilization drops back below 80%, the rate gradually recovers toward the baseline, preventing permanent throttling.
 4. **Queue & Stagger**: When the local bucket runs out of tokens, subsequent requests are delayed and queued rather than thrown. If the queue size exceeds the limit, it throws a rate limit queue error.
 
 ---

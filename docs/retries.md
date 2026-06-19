@@ -82,3 +82,22 @@ const meridian = await Meridian.create({
 | `jitter` | `boolean` | `true` | If true, adds a random jitter value (up to 50% of the delay) to stagger request execution. |
 
 Even with `maxRetries` configured, a retry only happens when **both** are true: the adapter marked the error `retryable: true`, and the idempotency level is proven (`SAFE`/`IDEMPOTENT`, or `CONDITIONAL` with an idempotency key supplied). See [Adapters](./adapters.md) for `getIdempotencyConfig()`.
+
+---
+
+## Non-idempotent Methods and Failover
+
+POST and PATCH requests are inherently non-idempotent and cannot be safely retried or failed over to a different provider without explicit idempotency context. The service-layer failover (when multiple providers are available) **skips POST/PATCH entirely** — these methods throw their original error, requiring the caller to explicitly reconcile state before a retry. GET, PUT, and DELETE requests (which are idempotent by design) continue to failover normally.
+
+**Example:**
+```typescript
+// Service with two payment providers
+const client = meridian.service("payment").provider("stripe", "razorpay");
+
+// Failover applies here (both GET and PUT are idempotent)
+await client.get("/charges/123");       // Stripe fails → Razorpay handles it
+await client.put("/charges/123", {...}); // Stripe fails → Razorpay handles it
+
+// Failover is skipped for non-idempotent methods
+await client.post("/charges", {...});   // Stripe fails → error to caller
+```

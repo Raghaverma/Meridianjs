@@ -4,6 +4,14 @@ export class RateLimiter {
   private tokens: number;
   private lastRefill: number;
   private config: Required<RateLimitConfig>;
+  /**
+   * The user-configured baseline rate. `config.tokensPerSecond` is the *current*
+   * adaptive rate and may be lowered under pressure; this is the ceiling it
+   * recovers back to once the provider's quota is healthy again. Without a
+   * separate baseline the adaptive logic could only ratchet down, permanently
+   * throttling the client after a single brush with the limit.
+   */
+  private readonly baseTokensPerSecond: number;
   private queue: Array<{
     resolve: () => void;
     reject: (error: Error) => void;
@@ -17,6 +25,7 @@ export class RateLimiter {
       adaptiveBackoff: config.adaptiveBackoff ?? true,
       queueSize: config.queueSize ?? 50,
     };
+    this.baseTokensPerSecond = this.config.tokensPerSecond;
     this.tokens = this.config.maxTokens;
     this.lastRefill = Date.now();
   }
@@ -85,19 +94,39 @@ export class RateLimiter {
     const limit = rateLimitInfo.limit;
     const reset = rateLimitInfo.reset.getTime();
 
-    const utilization = (limit - remaining) / limit;
-    if (utilization > 0.8) {
-      this.config.tokensPerSecond = Math.max(1, this.config.tokensPerSecond * 0.5);
+    // A non-positive or non-finite limit tells us nothing — leave the rate alone
+    // rather than dividing by it.
+    if (!Number.isFinite(limit) || limit <= 0) {
+      return;
     }
 
-    const now = Date.now();
-    const timeUntilReset = reset - now;
-    if (timeUntilReset > 0 && remaining < limit) {
-      const tokensNeeded = limit - remaining;
-      const newRate = tokensNeeded / (timeUntilReset / 1000);
-      if (newRate > 0 && newRate < this.config.tokensPerSecond) {
-        this.config.tokensPerSecond = newRate;
+    const utilization = (limit - remaining) / limit;
+
+    if (utilization > 0.8) {
+      // Close to the cap: back off. Throttle relative to the configured baseline
+      // (not the current rate) so repeated near-limit responses can't ratchet the
+      // rate toward zero.
+      let newRate = Math.max(1, this.baseTokensPerSecond * 0.5);
+
+      // If pacing the *remaining* quota across the reset window is slower still,
+      // use that — this is what stops us from burning the last few tokens early.
+      // (Previously this used `limit - remaining`, i.e. tokens already consumed,
+      // which throttled hardest exactly when the most quota was left and never
+      // recovered.)
+      const now = Date.now();
+      const timeUntilReset = reset - now;
+      if (timeUntilReset > 0 && remaining >= 0) {
+        const pace = remaining / (timeUntilReset / 1000);
+        if (pace > 0 && pace < newRate) {
+          newRate = pace;
+        }
       }
+
+      this.config.tokensPerSecond = newRate;
+    } else {
+      // Healthy headroom (including after the quota window resets): recover toward
+      // the user-configured baseline instead of staying stuck at a degraded rate.
+      this.config.tokensPerSecond = this.baseTokensPerSecond;
     }
   }
 
@@ -109,6 +138,7 @@ export class RateLimiter {
 
   reset(): void {
     this.tokens = this.config.maxTokens;
+    this.config.tokensPerSecond = this.baseTokensPerSecond;
     this.lastRefill = Date.now();
     for (const item of this.queue) {
       item.reject(new Error("Rate limiter was reset"));

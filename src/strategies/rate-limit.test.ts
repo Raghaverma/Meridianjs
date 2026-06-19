@@ -128,6 +128,62 @@ describe("RateLimiter", () => {
       expect((limiter as any).config.tokensPerSecond).toBeLessThan(initialRate);
     });
 
+    it("recovers toward the configured baseline once quota is healthy again", () => {
+      const limiter = new RateLimiter({
+        tokensPerSecond: 100,
+        maxTokens: 100,
+        adaptiveBackoff: true,
+      });
+      const rate = () => (limiter as any).config.tokensPerSecond;
+
+      // One brush with the limit drops the rate.
+      limiter.updateFromHeaders(new Headers(), {
+        limit: 100,
+        remaining: 2,
+        reset: new Date(Date.now() + 60_000),
+      });
+      expect(rate()).toBeLessThan(100);
+
+      // Window resets: full quota, no pressure. The rate must climb back, not
+      // stay permanently throttled (regression: it used to ratchet down only).
+      limiter.updateFromHeaders(new Headers(), {
+        limit: 100,
+        remaining: 100,
+        reset: new Date(Date.now() + 60_000),
+      });
+      expect(rate()).toBe(100);
+    });
+
+    it("does not throttle on normal sub-80% utilization", () => {
+      const limiter = new RateLimiter({
+        tokensPerSecond: 10,
+        maxTokens: 100,
+        adaptiveBackoff: true,
+      });
+      // 20% utilization (remaining 80/100). Previously the reset-window branch
+      // used tokens-consumed and collapsed the rate even here.
+      limiter.updateFromHeaders(new Headers(), {
+        limit: 100,
+        remaining: 80,
+        reset: new Date(Date.now() + 60_000),
+      });
+      expect((limiter as any).config.tokensPerSecond).toBe(10);
+    });
+
+    it("ignores a non-positive limit instead of dividing by it", () => {
+      const limiter = new RateLimiter({
+        tokensPerSecond: 10,
+        maxTokens: 100,
+        adaptiveBackoff: true,
+      });
+      limiter.updateFromHeaders(new Headers(), {
+        limit: 0,
+        remaining: 0,
+        reset: new Date(Date.now() + 60_000),
+      });
+      expect((limiter as any).config.tokensPerSecond).toBe(10);
+    });
+
     it("should not adjust rate when adaptiveBackoff is disabled", () => {
       const limiter = new RateLimiter({
         tokensPerSecond: 10,

@@ -11,6 +11,14 @@ import type { ProviderClient } from "../index.js";
 
 type RoutableMethod = "get" | "post" | "put" | "patch" | "delete";
 
+/** Methods safe to retry on a different provider without risking a duplicated
+ * side effect. POST/PATCH are non-idempotent and must not silently fail over —
+ * the second provider has never seen the first's idempotency key, so a write that
+ * actually succeeded before a network drop / 5xx would be executed twice. */
+function isIdempotentMethod(method: RoutableMethod): boolean {
+  return method === "get" || method === "put" || method === "delete";
+}
+
 export class ServiceClient {
   private providers: ProviderClient[];
   private providerNames: string[];
@@ -244,6 +252,10 @@ export class ServiceClient {
       return result;
     }
 
+    // Non-idempotent writes must not be replayed on another provider (double
+    // side effect — e.g. a duplicate charge). Surface the original error instead.
+    const canFailover = isIdempotentMethod(method);
+
     // weighted/geo: select primary probabilistically/by-region, failover through rest
     if (this.strategy === "weighted" || this.strategy === "geo") {
       const primaryIdx = this.selectIndex();
@@ -252,7 +264,8 @@ export class ServiceClient {
         this.updateLatency(primaryIdx, result.meta.trace?.latency);
         return result;
       } catch (err) {
-        if (!(err instanceof MeridianError) || !this.failoverOn.has(err.category)) throw err;
+        if (!(err instanceof MeridianError) || !this.failoverOn.has(err.category) || !canFailover)
+          throw err;
       }
       const fallbacks = this.failoverOrder().filter((i) => i !== primaryIdx);
       let lastError: MeridianError | null = null;
@@ -291,6 +304,7 @@ export class ServiceClient {
       } catch (err) {
         if (err instanceof MeridianError && this.failoverOn.has(err.category)) {
           lastError = err;
+          if (!canFailover) throw err; // never replay a write on another provider
           continue;
         }
         throw err;

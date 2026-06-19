@@ -6,6 +6,15 @@ All notable changes to Meridian are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **RateLimiter adaptive backoff permanently collapses throughput** — the adaptive backoff algorithm only ratcheted the rate downward with no recovery path, and used an inverted formula (consumed tokens as numerator instead of remaining), causing the rate to collapse to ~1-2 req/s after any spike and never recover. The rate limiter now maintains a baseline ceiling, throttles relative to the baseline, and recovers when utilization drops below 80%. Regression tests assert recovery curve and no permanent degradation.
+- **Failover replays non-idempotent writes** — both the payment router and service client auto-failed POST/PATCH requests to secondary providers on network/rate-limit/provider errors, causing duplicate charges and state mutations (idempotency keys are provider-scoped and don't prevent second-provider submission). POST and PATCH now throw their original error without failover, requiring callers to explicitly reconcile state before manual retry. GET, PUT, DELETE continue to failover normally as they are idempotent by design.
+- **Stripe webhook verifier lacks timestamp freshness check** — `verifyWebhook` validated the HMAC but never compared the signed `t` timestamp to the current time, accepting 6-year-old captured webhooks and enabling indefinite replay. The verifier now rejects events older than 300 seconds (matching Stripe's own 5-minute tolerance); the tolerance is configurable per call and can be disabled with `Infinity` if needed.
+- **OffsetPaginationStrategy advances forever without a total** — when no total count is available, `extractCursor` always returned offset+limit, keeping `hasNext: true` and iterating until the 1000-page hard cap instead of terminating cleanly. The strategy now detects empty pages and stops when there are no more results, preventing wasteful requests and exceptions.
+- **IdempotencyResolver crashes on override patterns with regex metacharacters** — the pattern `/:[\w-]+/g` replacement fed directly into `new RegExp` without escaping literal segments, so override keys like `POST /charge(v2` produced invalid regex and threw during idempotency lookup. The resolver now escapes metacharacters before substitution and wraps in try/catch; uncompilable patterns simply don't match.
+- **Circuit breaker counts each retry attempt as a separate failure** — the architecture placed the breaker inside the retry loop, so a request that failed and retried 3 times counted as 3 failures rather than 1, opening the breaker 3-6× faster than `failureThreshold` implied. The breaker now wraps the retry strategy (not individual attempts), counting logical requests only; this is both more correct semantically and prevents retry inflation of the failure counter.
+
 ---
 
 ## [0.3.1] — 2026-06-14

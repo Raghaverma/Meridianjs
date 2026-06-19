@@ -102,11 +102,41 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
         : this.defaultLimit;
 
     const total = this.extractTotal(response);
-    if (total !== null && currentOffset + limit >= total) {
+    if (total !== null) {
+      // Authoritative end-of-results signal.
+      return currentOffset + limit >= total ? null : String(currentOffset + limit);
+    }
+
+    // No total to bound against. Without this guard `hasNext` stays true forever
+    // (the offset just keeps climbing), so an empty trailing page would drive the
+    // paginator to its hard page cap instead of terminating. Treat an empty page
+    // as the end — there is, by definition, nothing after it.
+    if (this.pageIsEmpty(response.body)) {
       return null;
     }
 
     return String(currentOffset + limit);
+  }
+
+  /**
+   * Best-effort detection of an empty page when the provider gives no `total`.
+   * Looks for the result array at the body root or under the common list keys.
+   * Returns false when no array can be located (unknown shape — keep paginating
+   * so we never under-fetch a provider we don't recognize).
+   */
+  private pageIsEmpty(body: unknown): boolean {
+    if (Array.isArray(body)) {
+      return body.length === 0;
+    }
+    if (typeof body === "object" && body !== null) {
+      for (const key of ["items", "data", "results", "records"]) {
+        const value = (body as Record<string, unknown>)[key];
+        if (Array.isArray(value)) {
+          return value.length === 0;
+        }
+      }
+    }
+    return false;
   }
 
   extractTotal(response: RawResponse): number | null {

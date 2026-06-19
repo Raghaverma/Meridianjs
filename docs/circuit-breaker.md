@@ -66,21 +66,21 @@ When the cooldown expires (`Date.now() >= nextAttempt`), the next call transitio
 
 ## Position in the pipeline
 
-The circuit breaker wraps the innermost `fetch()` call, inside the retry loop:
+The circuit breaker wraps the retry strategy, not individual attempts:
 
 ```
 rateLimiter.acquire()
-  └─ retryStrategy.execute(
-       └─ circuitBreaker.execute(
+  └─ circuitBreaker.execute(
+       └─ retryStrategy.execute(
             └─ fetch(builtRequest.url)
          )
      )
 ```
 
-This means:
-- A circuit-open error **is counted as a retry attempt** if `maxRetries > 0` and the error is somehow retryable (it is not by default — `CircuitOpenError` has `retryable: false`).
-- The circuit breaker's failure count increases on **every** failed attempt, including retried ones. A retry loop that attempts 3 times on a dead provider will record 3 failures.
-- The service-layer failover sees the final `MeridianError` after all retries have been exhausted. If the circuit is `OPEN`, the error reaches the service layer after the first attempt (no retries), so failover is faster for a tripped circuit than for a slow timeout.
+This architecture means:
+- The circuit breaker tracks **logical requests**, not physical retry attempts. A request that fails and retries 3 times counts as 1 failure, not 3.
+- Recovery is proportional to the configured `failureThreshold`: a breaker set to open after 5 failures will actually open after 5 logical failures, not 5 attempts per failure.
+- The service-layer failover sees the final `MeridianError` after all retries have been exhausted. If the circuit is `OPEN`, the error reaches the service layer synchronously (< 1ms) without any network calls.
 
 ## Fail-fast savings
 

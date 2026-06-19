@@ -85,6 +85,27 @@ describe("ServiceClient", () => {
       const r = await svc.get("/test");
       expect((r.data as { id: number }).id).toBe(2);
     });
+
+    it("does NOT fail over a non-idempotent POST to another provider", async () => {
+      // A POST that fails after possibly executing must not be silently replayed
+      // on a second provider (double side effect). The error propagates instead.
+      const b = successClient({ id: 2 });
+      const bPost = vi.spyOn(b, "post");
+      const svc = new ServiceClient(["a", "b"], [failClient("network"), b], {
+        strategy: "failover",
+      });
+      await expect(svc.post("/charge")).rejects.toBeInstanceOf(MeridianError);
+      expect(bPost).not.toHaveBeenCalled();
+    });
+
+    it("still fails over idempotent GET/PUT/DELETE", async () => {
+      const svc = new ServiceClient(["a", "b"], [failClient("network"), successClient({ id: 2 })], {
+        strategy: "failover",
+      });
+      expect(((await svc.get("/x")).data as { id: number }).id).toBe(2);
+      expect(((await svc.put("/x")).data as { id: number }).id).toBe(2);
+      expect(((await svc.delete("/x")).data as { id: number }).id).toBe(2);
+    });
   });
 
   describe("round-robin strategy", () => {

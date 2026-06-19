@@ -314,7 +314,21 @@ export class StripeAdapter implements ProviderAdapter {
     };
   }
 
-  verifyWebhook(payload: string | Buffer, signature: string, secret: string): boolean {
+  /**
+   * Verify a Stripe webhook signature.
+   *
+   * @param toleranceSeconds Maximum age (in seconds) of the signed timestamp that
+   *   is still accepted, matching Stripe's own SDK default of 300s. This guards
+   *   against replay attacks: without it, a single captured `t=...,v1=...` header
+   *   stays valid forever because the timestamp is signed but never compared to
+   *   now. Pass `Infinity` to disable the freshness check (not recommended).
+   */
+  verifyWebhook(
+    payload: string | Buffer,
+    signature: string,
+    secret: string,
+    toleranceSeconds = 300,
+  ): boolean {
     try {
       // Detect Stripe-Signature header format: "t=<timestamp>,v1=<hex>[,v0=<hex>]"
       let sigHex = signature;
@@ -334,6 +348,14 @@ export class StripeAdapter implements ProviderAdapter {
         sigHex = v1;
         // Stripe signs "${timestamp}.${rawPayload}" when a timestamp is present
         if (t) {
+          // Reject stale/forged timestamps before doing the HMAC compare so a
+          // replayed event cannot be accepted on signature alone.
+          if (Number.isFinite(toleranceSeconds)) {
+            const ts = Number.parseInt(t, 10);
+            if (!Number.isFinite(ts)) return false;
+            const ageSeconds = Math.abs(Date.now() / 1000 - ts);
+            if (ageSeconds > toleranceSeconds) return false;
+          }
           const payloadStr = Buffer.isBuffer(payload) ? payload.toString("utf8") : payload;
           signingPayload = `${t}.${payloadStr}`;
         }

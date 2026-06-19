@@ -420,7 +420,7 @@ describe("StripeAdapter - Contract Tests", () => {
     });
 
     it("should return true for a valid Stripe-Signature header (t=...,v1=... format)", () => {
-      const timestamp = "1700000000";
+      const timestamp = String(Math.floor(Date.now() / 1000));
       const signingPayload = `${timestamp}.${payload}`;
       const v1 = hmacHex(secret, signingPayload);
       const header = `t=${timestamp},v1=${v1}`;
@@ -428,12 +428,23 @@ describe("StripeAdapter - Contract Tests", () => {
     });
 
     it("should return false for a tampered payload with a valid Stripe-Signature header", () => {
-      const timestamp = "1700000000";
+      const timestamp = String(Math.floor(Date.now() / 1000));
       const signingPayload = `${timestamp}.${payload}`;
       const v1 = hmacHex(secret, signingPayload);
       const header = `t=${timestamp},v1=${v1}`;
       const tamperedPayload = `${payload}tampered`;
       expect(adapter.verifyWebhook(tamperedPayload, header, secret)).toBe(false);
+    });
+
+    it("should reject a replayed signature whose timestamp is outside the tolerance", () => {
+      // A correctly-signed but stale event must not verify — otherwise a single
+      // captured webhook can be replayed forever.
+      const stale = "1700000000"; // Nov 2023
+      const v1 = hmacHex(secret, `${stale}.${payload}`);
+      const header = `t=${stale},v1=${v1}`;
+      expect(adapter.verifyWebhook(payload, header, secret)).toBe(false);
+      // ...but an explicit caller can widen the tolerance if they really mean to.
+      expect(adapter.verifyWebhook(payload, header, secret, Number.POSITIVE_INFINITY)).toBe(true);
     });
 
     it("should return false for a Stripe-Signature header missing v1", () => {

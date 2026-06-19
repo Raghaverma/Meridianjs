@@ -13,6 +13,13 @@ export interface PaymentRouterOptions {
   failoverOn?: Array<MeridianError["category"]>;
 }
 
+/** HTTP methods that are safe to retry on a different provider without risking a
+ * duplicated side effect. GET is safe; PUT/DELETE are idempotent by HTTP
+ * semantics. POST/PATCH are not, so they are never auto-failed-over. */
+function isIdempotentMethod(method: string): boolean {
+  return method === "get" || method === "put" || method === "delete";
+}
+
 export class PaymentRouter {
   private providers: ProviderClient[];
   private strategy: "failover" | "round-robin";
@@ -72,7 +79,14 @@ export class PaymentRouter {
       return provider[method]<T>(endpoint, options);
     }
 
-    // Failover strategy
+    // Failover strategy. Replaying a non-idempotent write (POST/PATCH — e.g. a
+    // charge) on a second provider can double-execute the side effect: provider A
+    // may have actually processed the request before the connection dropped or it
+    // returned a 5xx. Idempotency keys don't help here because they are
+    // provider-scoped — gateway B has never seen gateway A's key. So only safe /
+    // idempotent methods fail over automatically; for POST/PATCH the error is
+    // surfaced to the caller to reconcile rather than silently re-charging.
+    const canFailover = isIdempotentMethod(method);
     let lastError: MeridianError | null = null;
     for (const provider of this.providers) {
       try {
@@ -80,6 +94,7 @@ export class PaymentRouter {
       } catch (err) {
         if (err instanceof MeridianError && this.failoverOn.has(err.category)) {
           lastError = err;
+          if (!canFailover) throw err; // never re-send a write to another gateway
           continue; // try next provider
         }
         throw err; // non-retryable — propagate immediately

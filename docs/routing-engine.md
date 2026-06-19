@@ -69,21 +69,25 @@ Reads `process.env.MERIDIAN_REGION ?? config.defaultRegion`, looks up the first 
 
 ## Failover ordering: `failoverOrder()`
 
-When the primary provider throws a `MeridianError` whose `category` is in `failoverOn` (default: `["rate_limit", "network", "provider"]`), `ServiceClient.route()` iterates through the failover order:
+When the primary provider throws a `MeridianError` whose `category` is in `failoverOn` (default: `["rate_limit", "network", "provider"]`), `ServiceClient.route()` iterates through the failover order — **but only for idempotent methods**:
 
 ```typescript
 for (const idx of this.failoverOrder()) {
   try {
     return await this.providers[idx].method(endpoint, options);
   } catch (err) {
-    if (err instanceof MeridianError && this.failoverOn.has(err.category)) continue;
+    // Failover applies only to GET, PUT, DELETE (idempotent methods)
+    // POST and PATCH never failover — they throw immediately
+    if (err instanceof MeridianError && this.failoverOn.has(err.category) && isIdempotentMethod) continue;
     throw err; // non-retryable: surface immediately
   }
 }
 throw lastError ?? allFailedError;
 ```
 
-The order depends on strategy:
+POST and PATCH requests cannot be safely failed over to a different provider after a network error, since the original provider may have processed the request even though the client never received the response. Failing over could result in duplicate charges, duplicate state mutations, or other side effects. Callers of POST/PATCH methods must handle these errors and reconcile state manually if needed.
+
+The order depends on strategy (for idempotent methods):
 
 | Strategy | Failover order |
 |---|---|

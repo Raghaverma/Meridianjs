@@ -48,8 +48,21 @@ export class IdempotencyResolver {
   }
 
   private matchesPattern(pattern: string, operationKey: string): boolean {
-    const regexPattern = pattern.replace(/:[\w-]+/g, "[^/]+");
-    const regex = new RegExp(`^${regexPattern}$`);
+    // Escape regex metacharacters in the literal parts of the pattern first, so a
+    // pattern like "POST /charge(v2" can't produce an invalid RegExp (which would
+    // throw) or be interpreted as an unintended regex. ":param" placeholders are
+    // left intact by the escape (":" and word chars aren't metacharacters) and
+    // then turned into path-segment wildcards.
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regexPattern = escaped.replace(/:[\w-]+/g, "[^/]+");
+    let regex: RegExp;
+    try {
+      regex = new RegExp(`^${regexPattern}$`);
+    } catch {
+      // A pattern we still can't compile never matches, rather than crashing the
+      // whole request on an idempotency lookup.
+      return false;
+    }
     return regex.test(operationKey);
   }
 

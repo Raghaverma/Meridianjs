@@ -1,8 +1,50 @@
-# Upgrade Guide (v0.x to v0.2.3)
-
-Meridian v0.2.3 introduces structural improvements to request execution safety, distributed coordination, and the custom adapter interface. This guide details the steps to upgrade your application.
+# Upgrade Guide
 
 > Looking to move *to* Meridian from another SDK or framework (OpenAI SDK, Stripe SDK, OpenRouter, LangChain)? See the [migration guides](migrations/index.md) instead.
+
+---
+
+## v0.2.3 to v0.3.0
+
+Meridian v0.3.0 fixes six critical reliability and security issues discovered during comprehensive testing. **All fixes are automatic** — no code changes are required, but behavior changes deserve awareness.
+
+### Fixed Issues
+
+| Issue | Impact | Change |
+|-------|--------|--------|
+| **#1 — RateLimiter adaptive backoff collapse** | SDK silently throttles all requests to ~0.5 req/s after first API call | Adaptive backoff now recovers to baseline when utilization ≤ 80%; no more permanent degradation |
+| **#2 — Failover replays non-idempotent writes** | POST requests fail over and charge twice; double mutations | POST/PATCH no longer failover; throw original error requiring caller reconciliation |
+| **#3 — Stripe webhook timestamp freshness** | Old captured webhooks replay forever, drive duplicate fulfillment | Webhooks older than 300s are automatically rejected; matches Stripe's own 5-minute tolerance |
+| **#4 — Offset pagination advances forever** | Requests without a total count iterate up to 1000 pages then throw | Pagination terminates cleanly on empty page when total is unavailable |
+| **#5 — IdempotencyResolver regex crash** | Override keys with special chars (e.g., `POST /charge(v2`) crash during idempotency lookup | Regex metacharacters are escaped; uncompilable patterns silently don't match |
+| **#6 — Circuit breaker counts retries** | Retry loop inflates failure count 3-6× faster than config implies | Breaker now counts logical requests, not physical attempts; architecture moved outside retry |
+
+### Migration Notes
+
+**Failover Behavior Change (#2):** If you have multi-provider services with POST/PATCH methods, these now throw on the first provider's error instead of attempting a second provider. This is the correct behavior for non-idempotent operations, but you may need to add explicit error handling to reconcile state (e.g., checking whether the charge was actually processed before retrying).
+
+```typescript
+// Before: post request automatically failed over to provider B
+// After: post request throws immediately, requires caller handling
+try {
+  await meridian.service("payment").post("/charges", chargeData);
+} catch (err) {
+  // Reconcile: check if charge was actually created before retrying
+  const charge = await stripeAdmin.charges.retrieve(chargeData.idempotencyKey);
+  if (!charge) {
+    // Safe to retry with a new idempotency key
+    throw err;
+  }
+}
+```
+
+All other fixes are transparent and require no code changes.
+
+---
+
+## v0.x to v0.2.3
+
+Meridian v0.2.3 introduces structural improvements to request execution safety, distributed coordination, and the custom adapter interface. This guide details the steps to upgrade your application.
 
 ---
 
