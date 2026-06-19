@@ -105,8 +105,10 @@ export class RateLimiter {
     if (utilization > 0.8) {
       // Close to the cap: back off. Throttle relative to the configured baseline
       // (not the current rate) so repeated near-limit responses can't ratchet the
-      // rate toward zero.
-      let newRate = Math.max(1, this.baseTokensPerSecond * 0.5);
+      // rate toward zero. Floor the backoff at 1 req/s for normal baselines, but
+      // never above the baseline itself — a sub-1/s configured rate must not be
+      // pushed *up* by a "throttle".
+      let newRate = Math.max(Math.min(1, this.baseTokensPerSecond), this.baseTokensPerSecond * 0.5);
 
       // If pacing the *remaining* quota across the reset window is slower still,
       // use that — this is what stops us from burning the last few tokens early.
