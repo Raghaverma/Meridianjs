@@ -75,6 +75,20 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
   private limitQueryParam: string;
   private totalHeader?: string;
   private defaultLimit: number;
+  /**
+   * Tracks the offset that was sent in the most recent request so that
+   * `extractCursor` can compute the *next* offset even when the provider does
+   * not echo the current offset in the response body.
+   *
+   * Without this, `currentOffset` defaults to 0 every time — the computed
+   * cursor is always `String(0 + limit)`, and the paginate loop's cycle-
+   * detector fires on the second page.
+   *
+   * Updated inside `buildNextRequest` (which knows the offset for the request
+   * it is about to build) so that the following `extractCursor` call sees the
+   * correct base.
+   */
+  private currentOffset = 0;
 
   constructor(
     offsetQueryParam = "offset",
@@ -91,10 +105,12 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
   }
 
   extractCursor(response: RawResponse): string | null {
+    // Prefer the offset the provider echoes back; fall back to what we tracked
+    // locally so providers that don't echo still page correctly.
     const currentOffset =
       typeof response.body === "object" && response.body !== null && "offset" in response.body
-        ? ((response.body as { offset?: number }).offset ?? 0)
-        : 0;
+        ? ((response.body as { offset?: number }).offset ?? this.currentOffset)
+        : this.currentOffset;
 
     const limit =
       typeof response.body === "object" && response.body !== null && "limit" in response.body
@@ -173,6 +189,10 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
         : typeof limitValue === "string"
           ? Number.parseInt(limitValue, 10)
           : this.defaultLimit;
+
+    // Record the offset being sent so that the next extractCursor() call can
+    // compute the following offset even if the provider doesn't echo it back.
+    this.currentOffset = offset;
 
     return {
       endpoint,

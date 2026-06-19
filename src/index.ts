@@ -489,7 +489,12 @@ export class Meridian {
         const cursor = response.meta.pagination?.cursor;
 
         if (!hasNext || !cursor) {
-          break;
+          // Natural end of results — finish the generator. Using `return` (not
+          // `break`) is important: a clean completion on exactly the maxPages-th
+          // page must not fall through to the limit check below and raise a
+          // spurious "infinite pagination loop" error after every page has
+          // already been yielded.
+          return;
         }
 
         if (seenCursors.has(cursor)) {

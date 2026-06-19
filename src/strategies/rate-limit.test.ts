@@ -24,19 +24,18 @@ describe("RateLimiter", () => {
       await expect(pending).rejects.toThrow("Rate limiter was reset");
     });
 
-    it("elapsed time should be clamped to >= 0 after handle429", async () => {
+    it("handle429 drains the bucket to zero so no requests bypass the pause", () => {
       const limiter = new RateLimiter({
         tokensPerSecond: 10,
         maxTokens: 10,
         adaptiveBackoff: true,
       });
 
+      // Bucket starts full; handle429 must drain it entirely so callers can't
+      // consume pre-existing tokens during the retryAfter window.
+      expect((limiter as any).tokens).toBe(10);
       limiter.handle429(5);
-
-      const initialTokens = (limiter as any).tokens;
-      await limiter.acquire();
-
-      expect((limiter as any).tokens).toBe(initialTokens - 1);
+      expect((limiter as any).tokens).toBe(0);
     });
 
     it("tokens should not exceed maxTokens after refill", async () => {
@@ -86,26 +85,34 @@ describe("RateLimiter", () => {
       await expect(pending2).rejects.toThrow("Rate limiter was reset");
     });
 
-    it("handle429 should pause token refill for specified duration", async () => {
+    it("handle429 pauses token refill: bucket stays empty until retryAfter elapses", async () => {
       const limiter = new RateLimiter({
-        tokensPerSecond: 100,
-        maxTokens: 10,
+        tokensPerSecond: 1000,
+        maxTokens: 100,
         adaptiveBackoff: true,
       });
 
-      for (let i = 0; i < 5; i++) {
-        await limiter.acquire();
-      }
+      limiter.handle429(60); // 60-second pause
 
-      const tokensAfterAcquire = (limiter as any).tokens;
-
-      limiter.handle429(1);
-
+      // Even with a very fast refill rate, tokens must not appear within a few
+      // milliseconds — lastRefill is 60 seconds in the future.
       await new Promise((resolve) => setTimeout(resolve, 10));
+      // Trigger a refill check without blocking.
+      (limiter as any).refill();
+      expect((limiter as any).tokens).toBe(0);
+    });
 
-      await limiter.acquire();
+    it("handle429 is a no-op when adaptiveBackoff is disabled", () => {
+      const limiter = new RateLimiter({
+        tokensPerSecond: 10,
+        maxTokens: 10,
+        adaptiveBackoff: false,
+      });
 
-      expect((limiter as any).tokens).toBeLessThan(tokensAfterAcquire);
+      const before = (limiter as any).tokens;
+      limiter.handle429(5);
+      // Bucket must be unchanged — handle429 only fires when adaptiveBackoff is on.
+      expect((limiter as any).tokens).toBe(before);
     });
   });
 

@@ -36,4 +36,33 @@ describe("OffsetPaginationStrategy", () => {
     const s = new OffsetPaginationStrategy("offset", "limit");
     expect(s.extractCursor(raw({ offset: 0, limit: 2, items: [1, 2] }))).toBe("2");
   });
+
+  it("advances correctly across multiple pages when provider does not echo offset in response body", () => {
+    // Regression: extractCursor read currentOffset from response.body.offset. If
+    // the provider never echoes it, currentOffset was always 0, so every page
+    // returned the same cursor ("100") and the cycle-detector fired on page 2.
+    //
+    // The fix threads offset through the strategy's own state, updated in
+    // buildNextRequest so the following extractCursor call sees the correct base.
+    const s = new OffsetPaginationStrategy("offset", "limit");
+    const defaultLimit = 100;
+
+    // Page 1 response — body has results but no offset field.
+    const page1 = raw({ items: Array(defaultLimit).fill(1) });
+    const cursor1 = s.extractCursor(page1);
+    expect(cursor1).toBe("100"); // 0 + 100
+
+    // Simulate the paginate loop calling buildNextRequest then fetching page 2.
+    s.buildNextRequest("/items", {}, cursor1!);
+
+    // Page 2 response — still no offset echoed.
+    const page2 = raw({ items: Array(defaultLimit).fill(1) });
+    const cursor2 = s.extractCursor(page2);
+    expect(cursor2).toBe("200"); // must advance, not repeat "100"
+
+    s.buildNextRequest("/items", {}, cursor2!);
+
+    const page3 = raw({ items: Array(defaultLimit).fill(1) });
+    expect(s.extractCursor(page3)).toBe("300");
+  });
 });

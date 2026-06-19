@@ -134,6 +134,11 @@ export class RateLimiter {
 
   handle429(retryAfter: number): void {
     if (this.config.adaptiveBackoff) {
+      // Drain existing tokens so in-flight callers that haven't yet acquired
+      // a token are queued, not bypassed. Pushing lastRefill alone pauses
+      // future *refills* but leaves any accumulated tokens in the bucket —
+      // requests keep going through until the bucket empties organically.
+      this.tokens = 0;
       this.lastRefill = Date.now() + retryAfter * 1000;
     }
   }
