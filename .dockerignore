@@ -9,7 +9,10 @@ examples
 docs
 blog
 assets
-scripts
+# Keep scripts out of the image, but the build stage's `prebuild` hook
+# (npm run sync-version) needs sync-version.mjs, so let that one file through.
+scripts/*
+!scripts/sync-version.mjs
 **/__snapshots__
 **/*.test.ts
 **/*.tsbuildinfo

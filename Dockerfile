@@ -20,9 +20,11 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Compile src -> dist (tsc). proto/ is needed both to build and at runtime.
+# scripts/sync-version.mjs runs via the `prebuild` hook to stamp SDK_VERSION.
 COPY tsconfig.json ./
 COPY src ./src
 COPY proto ./proto
+COPY scripts/sync-version.mjs ./scripts/sync-version.mjs
 RUN npm run build
 
 # ---- Stage 2: install only the runtime gRPC deps ----------------------------
