@@ -4,7 +4,7 @@
 
 ---
 
-## v0.3.1 to v0.3.2
+## v0.3.2 to v0.3.3
 
 Meridian v0.3.2 is a hardening release. All fixes are automatic — no API or config changes required.
 
