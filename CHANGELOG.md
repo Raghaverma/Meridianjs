@@ -6,6 +6,10 @@ All notable changes to Meridian are documented here.
 
 ## [Unreleased]
 
+---
+
+## [0.3.2] — 2026-06-19
+
 ### Fixed
 
 - **RateLimiter adaptive backoff permanently collapses throughput** — the adaptive backoff algorithm only ratcheted the rate downward with no recovery path, and used an inverted formula (consumed tokens as numerator instead of remaining), causing the rate to collapse to ~1-2 req/s after any spike and never recover. The rate limiter now maintains a baseline ceiling, throttles relative to the baseline, and recovers when utilization drops below 80%. Regression tests assert recovery curve and no permanent degradation.
@@ -14,6 +18,9 @@ All notable changes to Meridian are documented here.
 - **OffsetPaginationStrategy advances forever without a total** — when no total count is available, `extractCursor` always returned offset+limit, keeping `hasNext: true` and iterating until the 1000-page hard cap instead of terminating cleanly. The strategy now detects empty pages and stops when there are no more results, preventing wasteful requests and exceptions.
 - **IdempotencyResolver crashes on override patterns with regex metacharacters** — the pattern `/:[\w-]+/g` replacement fed directly into `new RegExp` without escaping literal segments, so override keys like `POST /charge(v2` produced invalid regex and threw during idempotency lookup. The resolver now escapes metacharacters before substitution and wraps in try/catch; uncompilable patterns simply don't match.
 - **Circuit breaker counts each retry attempt as a separate failure** — the architecture placed the breaker inside the retry loop, so a request that failed and retried 3 times counted as 3 failures rather than 1, opening the breaker 3-6× faster than `failureThreshold` implied. The breaker now wraps the retry strategy (not individual attempts), counting logical requests only; this is both more correct semantically and prevents retry inflation of the failure counter.
+- **`paginate()` throws spurious "infinite pagination loop" error on the boundary page** — when results ended naturally on exactly the 1000th page, the post-loop hard-cap guard fired after all data had already been yielded, making a complete run indistinguishable from a genuine runaway loop. The generator now returns cleanly on natural completion; the guard only fires when the cap truncates an ongoing sequence.
+- **`OffsetPaginationStrategy` cycle-detects on page 2 when provider does not echo offset** — `extractCursor` read the current offset from `response.body.offset`; providers that omit it caused `currentOffset` to reset to 0 on every page, returning the same cursor repeatedly and triggering the paginator's cycle guard. The strategy now threads the offset through its own state, updated in `buildNextRequest`, so pagination advances correctly regardless of response shape.
+- **`handle429` does not drain existing tokens** — `handle429` pushed `lastRefill` into the future to pause new token generation, but tokens already in the bucket let requests bypass the retryAfter window entirely. The bucket is now drained to zero alongside the refill-pause so all subsequent callers are queued until the window elapses.
 
 ---
 

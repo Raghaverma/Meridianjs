@@ -4,6 +4,22 @@
 
 ---
 
+## v0.3.1 to v0.3.2
+
+Meridian v0.3.2 is a hardening release. All fixes are automatic — no API or config changes required.
+
+### Fixed Issues
+
+| Issue | Impact | Change |
+|-------|--------|--------|
+| **#7 — RateLimiter bucket not drained on 429** | Tokens already in the bucket let requests bypass the `Retry-After` window | `handle429` now drains the bucket to zero alongside pausing refills |
+| **#8 — OffsetPaginationStrategy cycle-detects on page 2** | Providers that don't echo `offset` in the response body produce the same cursor every page, crashing with "Pagination cycle detected" | Strategy tracks the last sent offset internally; response body is optional |
+| **#9 — `paginate()` throws on the boundary page** | A run that ends naturally on exactly the 1000th page raised a spurious "infinite pagination loop" error after all data was already yielded | Generator returns cleanly on natural completion; limit guard only fires on genuine truncation |
+
+No migration steps required.
+
+---
+
 ## v0.2.3 to v0.3.0
 
 Meridian v0.3.0 fixes six critical reliability and security issues discovered during comprehensive testing. **All fixes are automatic** — no code changes are required, but behavior changes deserve awareness.
