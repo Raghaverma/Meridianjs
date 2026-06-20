@@ -7,7 +7,7 @@
 Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"..."}}`. Razorpay returns something else entirely. Meridian normalizes all of it — errors, rate limits, pagination, retries — so your application never has to care which provider is behind a call.
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
-[![version](https://img.shields.io/badge/version-0.3.3-blue)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-0.3.4-blue)](CHANGELOG.md)
 [![tests](https://img.shields.io/badge/tests-2094%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-47-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-1637-brightgreen)](#providers)

@@ -4,6 +4,12 @@
 
 ---
 
+## v0.3.3 to v0.3.4
+
+Version alignment release — no API or behaviour changes. The Rust client (`Cargo.toml`) and Python client (`pyproject.toml`) are now versioned in sync with the engine. No migration steps required.
+
+---
+
 ## v0.3.2 to v0.3.3
 
 Meridian v0.3.2 is a hardening release. All fixes are automatic — no API or config changes required.

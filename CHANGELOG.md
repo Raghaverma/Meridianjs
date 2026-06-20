@@ -8,6 +8,15 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [0.3.4] — 2026-06-20
+
+### Changed
+
+- Rust client version aligned to engine version (`0.1.0` → `0.3.4`).
+- Python client version bumped to `0.3.4` to match engine.
+
+---
+
 ## [0.3.3] — 2026-06-19
 
 ### Fixed
