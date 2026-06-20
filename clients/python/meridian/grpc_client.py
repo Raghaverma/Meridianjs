@@ -14,6 +14,7 @@ from typing import Any, AsyncIterator, Optional
 import grpc
 
 from .contract import (
+    Chunk,
     CircuitState,
     ErrorCategory,
     MeridianError,
@@ -112,10 +113,21 @@ class _RemoteProvider:
     def paginate(self, endpoint: str, **kwargs) -> AsyncIterator[NormalizedResponse]:
         return self._client.paginate(self._provider, endpoint, **kwargs)
 
+    def stream_call(self, endpoint: str, **kwargs) -> AsyncIterator[Chunk]:
+        return self._client.stream_call(self._provider, endpoint, **kwargs)
+
 
 class MeridianGrpcClient:
-    def __init__(self, target: str, auth_token: Optional[str] = None) -> None:
-        self._channel = grpc.aio.insecure_channel(target)
+    def __init__(
+        self,
+        target: str,
+        auth_token: Optional[str] = None,
+        tls: bool = False,
+    ) -> None:
+        if tls:
+            self._channel = grpc.aio.secure_channel(target, grpc.ssl_channel_credentials())
+        else:
+            self._channel = grpc.aio.insecure_channel(target)
         self._stub = meridian_pb2_grpc.MeridianStub(self._channel)
         self._auth_token = auth_token
 
@@ -159,6 +171,18 @@ class MeridianGrpcClient:
         request = self._build_request(provider, "GET", endpoint, **kwargs)
         async for resp in self._stub.Paginate(request, metadata=self._metadata()):
             yield _response_from_proto(resp)
+
+    async def stream_call(
+        self, provider: str, endpoint: str, **kwargs
+    ) -> AsyncIterator[Chunk]:
+        request = self._build_request(provider, "POST", endpoint, **kwargs)
+        async for chunk in self._stub.StreamCall(request, metadata=self._metadata()):
+            if chunk.HasField("error") and chunk.error.code:
+                raise _error_from_proto(chunk.error)
+            if chunk.done:
+                return
+            data = json.loads(chunk.data_json) if chunk.data_json else None
+            yield Chunk(data=data, index=chunk.index, event=chunk.event, raw=chunk.raw)
 
     async def health(self) -> dict:
         resp = await self._stub.Health(meridian_pb2.HealthRequest(), metadata=self._metadata())

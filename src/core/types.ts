@@ -506,6 +506,13 @@ export interface MeridianConfig {
 
   stateStorage?: StateStorage;
 
+  /**
+   * Share 429 cooldown windows across all processes via `stateStorage`.
+   * Defaults to `true` when `stateStorage` is configured. Set to `false` to
+   * keep cooldowns local to each process even in distributed mode.
+   */
+  sharedCooldown?: boolean;
+
   observabilitySanitizer?: {
     redactedKeys?: string[];
   };

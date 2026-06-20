@@ -10,7 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, TypeVar
+
+_T = TypeVar("_T")
 
 
 class ErrorCategory(str, Enum):
@@ -237,3 +239,23 @@ class MeridianError(Exception):
 
 def now_utc() -> datetime:
     return datetime.now(timezone.utc)
+
+
+@dataclass
+class Chunk:
+    """One SSE token delta from a StreamCall response.
+
+    Mirrors Go's ``Chunk`` struct and Rust's ``Chunk`` struct field-for-field.
+    ``done=True`` on the terminal chunk; ``data`` is ``None`` on that chunk.
+    """
+
+    data: Any
+    index: int
+    event: str
+    raw: str
+
+    def decode(self, cls: type[_T]) -> _T:
+        """Deserialise ``data`` into ``cls`` by passing it as keyword arguments."""
+        if not isinstance(self.data, dict):
+            raise TypeError(f"Cannot decode non-dict data into {cls}")
+        return cls(**self.data)

@@ -84,6 +84,7 @@ import { ProviderCircuitBreaker } from "./strategies/circuit-breaker.js";
 import { IdempotencyResolver } from "./strategies/idempotency.js";
 import { RateLimiter } from "./strategies/rate-limit.js";
 import { RetryStrategy } from "./strategies/retry.js";
+import { SharedCooldownManager } from "./strategies/shared-cooldown.js";
 import type { TransactionResult, TransactionStep } from "./transactions/saga.js";
 import { runTransaction } from "./transactions/saga.js";
 import { FileSystemSchemaStorage } from "./validation/schema-storage.js";
@@ -434,6 +435,9 @@ export class Meridian {
       },
     };
     if (this.config.policies) pipelineConfig.policies = this.config.policies;
+    if (this.config.stateStorage && this.config.sharedCooldown !== false) {
+      pipelineConfig.sharedCooldown = new SharedCooldownManager(this.config.stateStorage);
+    }
     const pipeline = new RequestPipeline(pipelineConfig);
 
     this.pipelines.set(providerName, pipeline);

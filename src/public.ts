@@ -206,6 +206,8 @@ export { ServiceClient } from "./services/index.js";
 export type { RedisLikeClient, UpstashRedisClient } from "./state/index.js";
 // State storage implementations
 export { MemoryStateStorage, RedisStateStorage, UpstashStateStorage } from "./state/index.js";
+// Distributed 429 cooldown coordination
+export { SharedCooldownManager } from "./strategies/shared-cooldown.js";
 export type { MockCall, MockHandler, MockResponse } from "./testing/index.js";
 // Testing utilities
 export { Fixtures, MockAdapter } from "./testing/index.js";

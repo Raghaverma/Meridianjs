@@ -10,6 +10,7 @@ language-neutral contract defined in proto/meridian.proto, so a Python app can:
 
 from .client import Meridian, ProviderClient
 from .contract import (
+    Chunk,
     CircuitState,
     ErrorCategory,
     ErrorCode,
@@ -23,11 +24,12 @@ from .contract import (
     ResponseMeta,
 )
 
-__version__ = "0.2.11"
+__version__ = "0.3.3"
 
 __all__ = [
     "Meridian",
     "ProviderClient",
+    "Chunk",
     "MeridianError",
     "NormalizedResponse",
     "ResponseMeta",

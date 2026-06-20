@@ -3,6 +3,7 @@ import type { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
 import type { IdempotencyResolver } from "../strategies/idempotency.js";
 import type { RateLimiter } from "../strategies/rate-limit.js";
 import type { RetryStrategy } from "../strategies/retry.js";
+import type { SharedCooldownManager } from "../strategies/shared-cooldown.js";
 import { assertSafeEndpoint } from "./endpoint-validator.js";
 import { sanitizeMeridianError } from "./error-sanitizer.js";
 import { sanitizeMetric, sanitizeObject } from "./observability-sanitizer.js";
@@ -55,6 +56,7 @@ export interface PipelineConfig {
     options: RequestOptions,
   ) => void;
   policies?: Policy[];
+  sharedCooldown?: SharedCooldownManager;
 }
 
 export class RequestPipeline {
@@ -200,6 +202,10 @@ export class RequestPipeline {
     try {
       await this.getAuthToken(); // warm the cache before acquiring the rate limiter
 
+      if (this.config.sharedCooldown) {
+        const secs = await this.config.sharedCooldown.getCooldownSeconds(this.config.provider);
+        if (secs > 0) this.config.rateLimiter.handle429(secs);
+      }
       await this.config.rateLimiter.acquire();
 
       let retryCount = 0;
@@ -330,9 +336,9 @@ export class RequestPipeline {
       }
 
       if (meridianError.category === "rate_limit" && meridianError.retryAfter) {
-        this.config.rateLimiter.handle429(
-          Math.floor((meridianError.retryAfter.getTime() - Date.now()) / 1000),
-        );
+        const secs = Math.floor((meridianError.retryAfter.getTime() - Date.now()) / 1000);
+        this.config.rateLimiter.handle429(secs);
+        await this.config.sharedCooldown?.recordCooldown(this.config.provider, secs);
       }
 
       let errorContext: ErrorContext = {
