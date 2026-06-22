@@ -144,29 +144,37 @@ Meridian retries retryable errors (with exponential backoff) before throwing, so
 
 ## 6. The actual reason to migrate: failover
 
-The OpenAI SDK only talks to OpenAI. If OpenAI is down or rate-limiting you, you're down too — unless you hand-write a fallback to Anthropic or Gemini with a *different* request/response shape. Meridian lets you configure a `service("llm")` that fails over automatically, with the **same call you already wrote**:
+The OpenAI SDK only talks to OpenAI. If OpenAI is down or rate-limiting you, you're down too — unless you hand-write a fallback to Anthropic or Gemini with a *different* request/response shape.
 
-```typescript
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: { auth: { apiKey: process.env.OPENAI_API_KEY } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic"], strategy: "failover" },
-  },
-});
+This is the one place the migration looks different from steps 1–5 above: a chat completion is a `POST`, and Meridian's `service()` abstraction never auto-fails-over a write (a different provider has no way to know whether the original call already produced output) — and even if it did, OpenAI/Anthropic don't share a body shape, so there's no single endpoint to route to. The fix is `meridianjs/ai`: it wraps the [Vercel AI SDK](https://ai-sdk.dev), which already normalizes every provider into one interface, so failover (even on a completion call) is both possible and safe — providers only bill for output actually returned.
 
-// Same shape as Step 2 — but now tries Anthropic if OpenAI's circuit breaker is open
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
-});
-
-console.log(meta.trace.provider); // "openai" or "anthropic" — whichever actually responded
+```bash
+npm install ai @ai-sdk/openai @ai-sdk/anthropic
 ```
 
-See [LLMs](../llms/index.md) for routing strategies (`failover`, `round-robin`, `lowest-latency`, `cheapest`, `weighted`, `geo`) and [Meridian vs. OpenRouter](../comparisons/openrouter.md) if you're considering a hosted router instead.
+```typescript
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
+
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5")],
+  }),
+});
+
+// Tries OpenAI, then Anthropic if OpenAI's circuit breaker is open
+const { text, response } = await generateText({
+  model,
+  prompt: "Summarize this contract.",
+});
+
+console.log(response.modelId); // whichever model actually responded
+```
+
+This is a different call shape than steps 1–5 (it goes through the AI SDK's `generateText`, not `meridian.provider("openai").post(...)`) because that's what makes the failover safe and shape-agnostic in the first place. See [docs/ai-sdk.md](../ai-sdk.md) for the full reference, and [Meridian vs. OpenRouter](../comparisons/openrouter.md) if you're considering a hosted router instead.
 
 ## What you keep from the OpenAI SDK
 
@@ -179,4 +187,4 @@ See [LLMs](../llms/index.md) for routing strategies (`failover`, `round-robin`, 
 - [ ] Replace `openai.chat.completions.create(body)` with `meridian.provider("openai").post("/v1/chat/completions", { body })`
 - [ ] Replace `instanceof OpenAI.XError` checks with `instanceof MeridianError` + `error.category`
 - [ ] Delete hand-rolled retry/backoff loops (Meridian retries internally)
-- [ ] Optional: add Anthropic/Gemini and a `service("llm")` for automatic failover
+- [ ] Optional: add `meridianjs/ai` + Anthropic/Gemini for automatic LLM failover (see step 6)

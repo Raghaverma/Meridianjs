@@ -90,9 +90,9 @@ import {
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
-    openai:  { baseUrl: "https://api.openai.com",  auth: { type: "bearer", token: process.env.OPENAI_KEY! } },
-    stripe:  { baseUrl: "https://api.stripe.com",  auth: { type: "bearer", token: process.env.STRIPE_KEY! } },
-    github:  { baseUrl: "https://api.github.com",  auth: { type: "bearer", token: process.env.GITHUB_TOKEN! } },
+    openai:  { baseUrl: "https://api.openai.com",  auth: { token: process.env.OPENAI_KEY! } },
+    stripe:  { baseUrl: "https://api.stripe.com",  auth: { token: process.env.STRIPE_KEY! } },
+    github:  { baseUrl: "https://api.github.com",  auth: { token: process.env.GITHUB_TOKEN! } },
   },
   services: {
     llm:      { providers: ["openai"],  strategy: "failover" },

@@ -1,11 +1,15 @@
 /**
  * multi-provider-llm — Run: npx tsx index.ts
  *
- * Demonstrates: LLM failover (OpenAI → Anthropic), cheapest-cost embeddings
- * (Cohere → OpenAI), per-call meta.provider/trace logging, schema drift
- * detection, and meridian.analytics() summary.
+ * Demonstrates: LLM failover via meridianjs/ai (OpenAI → Anthropic), cheapest-
+ * cost embeddings (Cohere → OpenAI) via Meridian's HTTP service layer, schema
+ * drift detection, and analytics across both layers.
  */
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
 import {
+  AnalyticsCollector,
   Meridian,
   MeridianError,
   SchemaMonitor,
@@ -13,6 +17,7 @@ import {
   type SchemaMetadata,
   type SchemaStorage,
 } from "meridianjs";
+import { meridianReliability } from "meridianjs/ai";
 
 // InMemorySchemaStorage is internal; implement the 3-method interface here.
 class InMemorySchemaStorage implements SchemaStorage {
@@ -24,7 +29,13 @@ class InMemorySchemaStorage implements SchemaStorage {
     this.schemas.set(this.k(provider, endpoint), schema);
     const list = this.versions.get(provider) ?? [];
     const i = list.findIndex((m) => m.endpoint === endpoint);
-    const entry: SchemaMetadata = { endpoint, version, savedAt: new Date().toISOString() };
+    const entry: SchemaMetadata = {
+      provider,
+      endpoint,
+      version,
+      checksum: String(JSON.stringify(schema).length),
+      createdAt: new Date(),
+    };
     i >= 0 ? (list[i] = entry) : list.push(entry);
     this.versions.set(provider, list);
   }
@@ -40,16 +51,13 @@ async function main() {
   const meridian = await Meridian.create({
     localUnsafe: true,
     providers: {
-      openai:    { auth: { apiKey: process.env.OPENAI_API_KEY ?? "" } },
-      anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY ?? "" } },
-      cohere:    { auth: { apiKey: process.env.COHERE_API_KEY ?? "" } },
+      openai: { auth: { apiKey: process.env.OPENAI_API_KEY ?? "" } },
+      cohere: { auth: { apiKey: process.env.COHERE_API_KEY ?? "" } },
     },
     services: {
-      llm: {
-        providers: ["openai", "anthropic"],
-        strategy: "failover",
-        failoverOn: ["rate_limit", "network", "provider"],
-      },
+      // Cost-based routing, not error-failover: each call picks the cheapest
+      // provider. Like every Meridian service(), a failed POST surfaces its
+      // error rather than retrying on the other provider (see docs/failover).
       embeddings: {
         providers: ["cohere", "openai"],
         strategy: "cheapest",
@@ -58,28 +66,31 @@ async function main() {
     },
   });
 
+  // Chat goes through meridianjs/ai instead of meridian.service("llm") — the
+  // AI SDK already normalizes OpenAI/Anthropic into one interface, so this is
+  // the one place real cross-provider failover (including on writes) is both
+  // safe and possible without translating request/response shapes by hand.
+  // See docs/ai-sdk.md.
+  const chatAnalytics = new AnalyticsCollector();
+  const chatModel = wrapLanguageModel({
+    model: openai("gpt-4o"),
+    middleware: meridianReliability({
+      fallbacks: [anthropic("claude-opus-4-5")],
+      retry: { maxRetries: 2, baseDelay: 200 },
+      observability: [chatAnalytics],
+    }),
+  });
+
   const schemaMonitor = new SchemaMonitor(new InMemorySchemaStorage());
 
   async function chat(message: string): Promise<string> {
     try {
-      const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-        body: { model: "gpt-4o", messages: [{ role: "user", content: message }], max_tokens: 256 },
-      });
-      console.log(`[chat] provider=${meta.provider}  latency=${meta.trace.latency}ms  retries=${meta.trace.retries}`);
-
-      // alert() snapshots on first call; subsequent calls detect drift and fire the callback.
-      const drifts = await schemaMonitor.alert(meta.provider, "/v1/chat/completions", data,
-        (d, p, ep) => console.warn(`[schema-drift] ${p} ${ep}:`, d));
-      if (drifts.length === 0) console.log("[schema] no drift detected");
-
-      return (data as { choices?: Array<{ message?: { content?: string } }> })
-        ?.choices?.[0]?.message?.content ?? "(no content)";
+      const { text, response } = await generateText({ model: chatModel, prompt: message });
+      console.log(`[chat] provider=${response.modelId ?? "unknown"}`);
+      return text;
     } catch (err) {
-      if (err instanceof MeridianError) {
-        console.error(`[chat] ${err.category} from ${err.provider}: ${err.message}`);
-        return `ERROR: ${err.message}`;
-      }
-      throw err;
+      console.error("[chat] failed on every provider:", err);
+      return "ERROR";
     }
   }
 
@@ -89,34 +100,51 @@ async function main() {
         // Cohere uses "texts"+"input_type"; OpenAI uses "input". Send both; each adapter ignores unknown keys.
         body: { model: "embed-english-v3.0", input: text, texts: [text], input_type: "search_query" },
       });
-      console.log(`[embed] provider=${meta.provider}  latency=${meta.trace.latency}ms`);
+      console.log(`[embed] provider=${meta.provider}  latency=${meta.trace?.latency ?? 0}ms`);
+
+      // alert() snapshots on first call; subsequent calls detect drift and fire the callback.
+      const drifts = await schemaMonitor.alert(meta.provider, "/v1/embeddings", data, (d, p, ep) =>
+        console.warn(`[schema-drift] ${p} ${ep}:`, d),
+      );
+      if (drifts.length === 0) console.log("[schema] no drift detected");
+
       // Cohere: { embeddings: [[...]] }  /  OpenAI: { data: [{ embedding: [...] }] }
-      return (data as { embeddings?: number[][] })?.embeddings?.[0]
-        ?? (data as { data?: Array<{ embedding: number[] }> })?.data?.[0]?.embedding
-        ?? [];
+      return (
+        (data as { embeddings?: number[][] })?.embeddings?.[0] ??
+        (data as { data?: Array<{ embedding: number[] }> })?.data?.[0]?.embedding ??
+        []
+      );
     } catch (err) {
-      if (err instanceof MeridianError) { console.error(`[embed] ${err.category}: ${err.message}`); return []; }
+      if (err instanceof MeridianError) {
+        console.error(`[embed] ${err.category}: ${err.message}`);
+        return [];
+      }
       throw err;
     }
   }
 
-  console.log("=== Chat ===");
+  console.log("=== Chat (meridianjs/ai, OpenAI -> Anthropic on failure) ===");
   console.log("Reply:", (await chat("What is TypeScript in one sentence?")).slice(0, 120));
   console.log("Reply:", (await chat("Name three benefits of an SDK abstraction layer.")).slice(0, 120));
 
-  console.log("\n=== Embeddings ===");
+  console.log("\n=== Embeddings (meridian.service, cheapest-cost routing) ===");
   for (const text of ["integration reliability", "third-party API failover"]) {
     const vec = await embed(text);
-    console.log(`  "${text}" → length=${vec.length}, first=[${vec.slice(0, 3).join(", ")}]`);
+    console.log(`  "${text}" -> length=${vec.length}, first=[${vec.slice(0, 3).join(", ")}]`);
   }
 
-  console.log("\n=== Analytics ===");
+  console.log("\n=== Analytics: HTTP services (embeddings) ===");
   for (const [p, s] of Object.entries(meridian.analytics())) {
     console.log(`  ${p}: requests=${s.requests}  successRate=${s.successRate}  avgLatency=${s.avgLatency}ms`);
   }
 
-  console.log("\n=== Health ===");
-  console.log(meridian.health());
+  console.log("\n=== Analytics: AI SDK middleware (chat) ===");
+  for (const [p, s] of Object.entries(chatAnalytics.get())) {
+    console.log(`  ${p}: requests=${s.requests}  successRate=${s.successRate}  avgLatency=${s.avgLatency}ms`);
+  }
 }
 
-main().catch((err) => { console.error("Fatal:", err); process.exit(1); });
+main().catch((err) => {
+  console.error("Fatal:", err);
+  process.exit(1);
+});

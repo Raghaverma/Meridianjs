@@ -175,28 +175,42 @@ The advantage of doing this through Meridian: the **same** `adapter.verifyWebhoo
 
 ## 7. The actual reason to migrate: payment provider failover
 
-The Stripe SDK only talks to Stripe. If Stripe has an incident during a checkout flow, every charge fails — full stop. Meridian lets you configure a `service("payments")` that fails over to Razorpay or Cashfree with the **same call you already wrote**:
+The Stripe SDK only talks to Stripe. If Stripe has an incident during a checkout flow, every charge fails — full stop.
+
+This is the one place the migration isn't a drop-in `meridian.provider("stripe")` swap: Stripe and Razorpay don't share a request/response shape (`/v1/charges` with `source` vs `/v1/orders` with `receipt`), and a charge is a `POST` — Meridian's `service()` abstraction never auto-fails-over a write, because a different provider has no way to know whether the original charge already happened (see [docs/failover/index.md](../failover/index.md)). What you write is a small routing function on top of the same `meridian.provider()` calls from step 2, each still getting its own retry/circuit-breaker/normalized errors:
 
 ```typescript
+import { Meridian, MeridianError } from "meridianjs";
+
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
     stripe: { auth: { apiKey: process.env.STRIPE_SECRET_KEY! } },
     razorpay: { auth: { username: process.env.RZP_KEY!, password: process.env.RZP_SECRET! } },
   },
-  services: {
-    payments: { providers: ["stripe", "razorpay"], strategy: "failover" },
-  },
 });
 
-const { data, meta } = await meridian.service("payments")!.post("/v1/charges", {
-  body: { amount: 5000, currency: "inr" },
-});
+async function charge(amount: number, currency: string, orderId: string) {
+  if (meridian.getCircuitStatus("stripe")?.state !== "OPEN") {
+    try {
+      const { data } = await meridian.provider("stripe")!.post<{ id: string }>("/v1/charges", {
+        idempotencyKey: `charge_${orderId}`,
+        body: { amount, currency },
+      });
+      return { provider: "stripe", chargeId: data.id };
+    } catch (err) {
+      if (!(err instanceof MeridianError) || !["provider", "network"].includes(err.category)) throw err;
+    }
+  }
 
-console.log(meta.trace.provider); // "stripe" or "razorpay" — whichever actually handled it
+  const { data } = await meridian.provider("razorpay")!.post<{ id: string }>("/v1/orders", {
+    body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+  });
+  return { provider: "razorpay", chargeId: data.id };
+}
 ```
 
-Note that request/response *shapes* still differ between Stripe and Razorpay (Meridian doesn't invent a universal charge schema) — what Meridian normalizes is the failover mechanics, error categories, retries, and observability. Plan failover request bodies accordingly, or keep provider-specific branches keyed off `meta.trace.provider`.
+`getCircuitStatus("stripe")` fails fast (under 1ms, no network call) once Stripe's breaker opens, instead of waiting out a timeout on every charge during an outage.
 
 ## What you keep from the Stripe SDK
 
@@ -210,4 +224,4 @@ Note that request/response *shapes* still differ between Stripe and Razorpay (Me
 - [ ] Replace `autoPagingEach`/`autoPagingToArray` with `for await (const page of stripe.paginate(...))`
 - [ ] Replace `instanceof StripeError` checks with `instanceof MeridianError` + `error.category`
 - [ ] Replace `stripe.webhooks.constructEvent` with `adapter.verifyWebhook(payload, signature, secret)`
-- [ ] Optional: add Razorpay/Cashfree and a `service("payments")` for automatic failover
+- [ ] Optional: add Razorpay/Cashfree and a routing function like step 7's `charge()` for failover

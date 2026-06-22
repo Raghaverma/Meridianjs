@@ -70,34 +70,45 @@ await meridian.provider("stripe")!.post("/v1/charges", {
 
 ## Handling outages: failover to Razorpay
 
-If the outage is total and retries fail, you need a fallback payment processor. The challenge is that Stripe and Razorpay have different APIs.
+If the outage is total and retries fail, you need a fallback payment processor. The challenge is that Stripe and Razorpay have different APIs — `/v1/charges` with `source` vs `/v1/orders` with `receipt`. There's no single endpoint+body that's valid for both, so Meridian's `service()` abstraction (one call, one shape, routed to whichever provider a strategy picks) doesn't fit here — it's built for providers that *do* share a contract, and even then it only auto-fails-over idempotent methods, never a charge (`POST`). A different provider has no way to know whether your first charge attempt already succeeded, so replaying it risks billing the customer twice. See [docs/failover/index.md](../docs/failover/index.md).
 
-Meridian's service abstraction handles this without requiring you to normalise the response yourself — you route to whichever provider is healthy, then handle the response format at the application layer:
+What Meridian *does* give you for free on each leg is retry, a circuit breaker, and normalized errors — call each provider directly and write the ~10 lines of routing yourself:
 
 ```typescript
+import { Meridian, MeridianError } from "meridianjs";
+
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
     stripe:   { auth: { apiKey: process.env.STRIPE_KEY } },
-    razorpay: { auth: { keyId: process.env.RAZORPAY_KEY_ID, keySecret: process.env.RAZORPAY_KEY_SECRET } },
-  },
-  services: {
-    payments: {
-      providers: ["stripe", "razorpay"],
-      strategy: "failover",
-      failoverOn: ["provider", "network"],
-      // rate limits: we retry, not failover — they're transient
-    },
+    razorpay: { auth: { username: process.env.RAZORPAY_KEY_ID, password: process.env.RAZORPAY_KEY_SECRET } },
   },
 });
 
-const { data, meta } = await meridian.service("payments")!.post(
-  meta.provider === "stripe" ? "/v1/charges" : "/v1/orders",
-  { body: chargeBody },
-);
+async function charge(amount: number, currency: string, orderId: string) {
+  // Skip straight to Razorpay if Stripe's breaker is already open — no
+  // point waiting for a timeout you already know is coming.
+  if (meridian.getCircuitStatus("stripe")?.state !== "OPEN") {
+    try {
+      const { data } = await meridian.provider("stripe")!.post("/v1/charges", {
+        idempotencyKey: `charge_${orderId}`,
+        body: { amount, currency, source: "tok_visa" },
+      });
+      return { provider: "stripe", data };
+    } catch (err) {
+      if (!(err instanceof MeridianError) || !["provider", "network"].includes(err.category)) throw err;
+      // fall through to Razorpay below
+    }
+  }
 
-console.log(`Charged via ${meta.provider}`);
+  const { data } = await meridian.provider("razorpay")!.post("/v1/orders", {
+    body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+  });
+  return { provider: "razorpay", data };
+}
 ```
+
+Each call still gets Stripe's and Razorpay's own retry/circuit-breaker/normalized-error handling — you're just the one deciding when to hop providers and how to translate the request, which is unavoidable once the two APIs genuinely disagree on shape.
 
 For a seamless checkout experience, hide the provider selection from the user entirely and handle response normalisation in an adapter layer specific to your application.
 
@@ -105,28 +116,31 @@ For a seamless checkout experience, hide the provider selection from the user en
 
 ## Weighted split: reduce dependency before an outage
 
-Waiting for an outage to test Razorpay means debugging payment failures in production.
+Waiting for an outage to test Razorpay means debugging payment failures in production. A better strategy is continuous low-traffic routing to your backup — before an outage forces your hand.
 
-A better strategy is continuous low-traffic routing to your backup:
+This is still application code, not a `service()` config, for the same reason as failover: there's no single endpoint+body valid for both providers. It's a small dispatch function on top of the same `meridian.provider()` calls:
 
 ```typescript
-services: {
-  payments: {
-    providers: ["stripe", "razorpay"],
-    strategy: "weighted",
-    weights: { stripe: 95, razorpay: 5 },  // 5% of traffic to Razorpay continuously
-  },
+function pickProvider(weights: Record<string, number>): string {
+  const roll = Math.random() * 100;
+  let cumulative = 0;
+  for (const [provider, weight] of Object.entries(weights)) {
+    cumulative += weight;
+    if (roll < cumulative) return provider;
+  }
+  return Object.keys(weights)[0]!;
 }
+
+const provider = pickProvider({ stripe: 95, razorpay: 5 }); // 5% to Razorpay continuously
+const { data } =
+  provider === "stripe"
+    ? await meridian.provider("stripe")!.post("/v1/charges", { body: { amount, currency, source: "tok_visa" } })
+    : await meridian.provider("razorpay")!.post("/v1/orders", {
+        body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+      });
 ```
 
-This keeps your Razorpay integration warm and tested. During an outage, shift the weights:
-
-```typescript
-// flip to 100% Razorpay
-weights: { stripe: 0, razorpay: 100 }
-```
-
-No redeployment needed if weights come from config. No surprises because you've been running real payments through Razorpay already.
+This keeps your Razorpay integration warm and tested. During an outage, shift `weights` to `{ stripe: 0, razorpay: 100 }` — no redeployment needed if weights come from config, no surprises because you've been running real payments through Razorpay already.
 
 ---
 
@@ -134,7 +148,7 @@ No redeployment needed if weights come from config. No surprises because you've 
 
 When Stripe is returning 503s, every payment request waits for Stripe's 10-second timeout before failing. At 50 transactions per minute, that's 500 seconds of wasted capacity and 50 abandoned carts per minute.
 
-A circuit breaker opens after the first 5 failures and routes directly to Razorpay without waiting:
+A circuit breaker on the Stripe provider opens after the first 5 failures:
 
 ```typescript
 providers: {
@@ -150,6 +164,8 @@ providers: {
   },
 }
 ```
+
+That's exactly what the `charge()` function above checks with `meridian.getCircuitStatus("stripe")?.state !== "OPEN"` — once the breaker opens, that check fails fast (under 1ms, no network call) and routes straight to Razorpay, instead of waiting out Stripe's 10-second timeout on every request. When the breaker's `timeout` expires, one probe request checks if Stripe recovered; if it succeeds, the breaker closes and `charge()` starts trying Stripe again automatically — you don't need to change the routing logic, only the breaker's internal state changes.
 
 Once open, the `payments` service skips Stripe entirely. When the timeout expires, one probe request checks if Stripe recovered; if it succeeds, the circuit closes and traffic returns to Stripe automatically.
 

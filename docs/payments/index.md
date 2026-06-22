@@ -1,6 +1,6 @@
 # Payments
 
-Normalize Stripe, Razorpay, and Cashfree behind a single interface with automatic failover.
+Get consistent retries, circuit breakers, and normalized errors across Stripe, Razorpay, Cashfree, and other payment providers — and a clean pattern for routing between them when a primary is down.
 
 ## Problem
 
@@ -35,42 +35,45 @@ const stripeCustomers = await stripe.customers.list({ limit: 100 });
 
 ## With Meridian
 
+Stripe and Razorpay don't share a request/response shape (`/v1/charges` with `source` vs `/v1/orders` with `receipt`), and a charge is a `POST` — Meridian's `service()` abstraction never auto-fails-over a write, since a different provider has no way to know whether the original charge already happened (see [docs/failover/index.md](../failover/index.md)). Unifying them means calling each directly and writing a small amount of routing yourself; what Meridian still gives you on *each* call is retry, a circuit breaker, and normalized errors:
+
 ```typescript
-import { Meridian } from "meridianjs";
+import { Meridian, MeridianError } from "meridianjs";
 
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
     stripe: {
       baseUrl: "https://api.stripe.com",
-      auth: { type: "bearer", token: process.env.STRIPE_KEY! },
-      retry: { attempts: 3, backoff: "exponential" },
+      auth: { token: process.env.STRIPE_KEY! },
+      retry: { maxRetries: 3, baseDelay: 500, maxDelay: 8_000 },
     },
     razorpay: {
       baseUrl: "https://api.razorpay.com",
-      auth: { type: "basic", username: process.env.RZP_KEY!, password: process.env.RZP_SECRET! },
-      retry: { attempts: 3, backoff: "exponential" },
-    },
-    cashfree: {
-      baseUrl: "https://api.cashfree.com",
-      auth: { type: "bearer", token: process.env.CASHFREE_KEY! },
-    },
-  },
-  services: {
-    payments: {
-      providers: ["stripe", "razorpay", "cashfree"],
-      strategy: "failover",
+      auth: { username: process.env.RZP_KEY!, password: process.env.RZP_SECRET! },
+      retry: { maxRetries: 3, baseDelay: 500, maxDelay: 8_000 },
     },
   },
 });
 
-// One call — Meridian handles failover transparently
-const { data, meta } = await meridian.service("payments")!.post("/v1/charges", {
-  body: { amount: 5000, currency: "inr" },
-});
+async function charge(amount: number, currency: string, orderId: string) {
+  if (meridian.getCircuitStatus("stripe")?.state !== "OPEN") {
+    try {
+      const { data } = await meridian.provider("stripe")!.post<{ id: string }>("/v1/charges", {
+        idempotencyKey: `charge_${orderId}`,
+        body: { amount, currency },
+      });
+      return { provider: "stripe", chargeId: data.id };
+    } catch (err) {
+      if (!(err instanceof MeridianError) || !["provider", "network"].includes(err.category)) throw err;
+    }
+  }
 
-console.log(meta.trace.retries);         // how many retries it took
-console.log(meta.trace.circuitBreaker);  // "CLOSED" | "OPEN" | "HALF_OPEN"
+  const { data } = await meridian.provider("razorpay")!.post<{ id: string }>("/v1/orders", {
+    body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+  });
+  return { provider: "razorpay", chargeId: data.id };
+}
 
 // Pagination works the same regardless of provider
 for await (const page of meridian.provider("stripe")!.paginate("/v1/customers")) {
@@ -78,43 +81,24 @@ for await (const page of meridian.provider("stripe")!.paginate("/v1/customers"))
 }
 ```
 
+The same pattern extends to Cashfree, PayU, or any other payment provider you add — each gets its own `provider()` entry and a branch in `charge()`'s routing.
+
 ## Production Example
 
-Checkout flow that survives a Stripe outage by falling over to Razorpay, then Cashfree:
+A checkout endpoint that survives a Stripe outage by falling over to Razorpay:
 
 ```typescript
-import { Meridian } from "meridianjs";
-
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    stripe:   { baseUrl: "https://api.stripe.com",   auth: { type: "bearer", token: process.env.STRIPE_KEY! },   retry: { attempts: 2 } },
-    razorpay: { baseUrl: "https://api.razorpay.com", auth: { type: "basic",  username: process.env.RZP_KEY!, password: process.env.RZP_SECRET! }, retry: { attempts: 2 } },
-    cashfree: { baseUrl: "https://api.cashfree.com", auth: { type: "bearer", token: process.env.CASHFREE_KEY! }, retry: { attempts: 2 } },
-  },
-  services: {
-    payments: { providers: ["stripe", "razorpay", "cashfree"], strategy: "failover" },
-  },
-});
-
 // POST /checkout
 export async function handleCheckout(req: Request): Promise<Response> {
   const { amount, currency, userId } = await req.json();
 
-  const { data, meta } = await meridian.service("payments")!.post("/v1/charges", {
-    body: { amount, currency, metadata: { userId } },
-  });
-
-  // Which provider actually handled it?
-  const health = meridian.health();
-  // { stripe: { status: "down", circuitBreaker: "OPEN" }, razorpay: { status: "healthy", ... } }
+  const result = await charge(amount, currency, userId);
 
   return Response.json({
-    chargeId: data.id,
-    provider: meta.trace.provider,   // "razorpay" — Stripe was down
-    latency: meta.trace.latency,
-    retries: meta.trace.retries,
-    health,
+    chargeId: result.chargeId,
+    provider: result.provider,   // "razorpay" if Stripe's circuit was open
+    health:   meridian.health(),
+    // { stripe: { status: "down", circuitBreaker: "OPEN" }, razorpay: { status: "healthy", ... } }
   });
 }
 

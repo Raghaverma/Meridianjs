@@ -19,14 +19,14 @@ They operate at different altitudes. You can use both together: LangChain for or
 |---|---|---|
 | Prompt templates, chains, agents, memory | ✅ Core focus | ❌ Out of scope |
 | RAG / vector store integrations | ✅ | ❌ |
-| LLM provider failover | Partial — manual fallback chains (`with_fallbacks`), one provider per call | ✅ Built-in `failover` / `round-robin` / `lowest-latency` / `cheapest` / `weighted` / `geo` strategies |
+| LLM provider failover | Partial — manual fallback chains (`with_fallbacks`), one provider per call | ✅ `meridianjs/ai` middleware (`wrapLanguageModel`) — real failover, no request translation since the AI SDK already normalizes providers |
 | Circuit breakers | ❌ | ✅ Automatic, per-provider |
 | Retry with backoff | Partial (per-integration, inconsistent) | ✅ Uniform exponential backoff, idempotency-safe |
 | Schema drift detection | ❌ | ✅ `meridian.schema.check()` |
 | Rate limit normalization | ❌ | ✅ `meta.rateLimit` |
 | Cost tracking | Partial (per-integration callbacks) | ✅ `meridian.cost()` across all providers |
 | Tracing / observability | LangSmith (LLM-specific, hosted) | Provider-agnostic `meta.trace`, OTel/Prometheus, works for LLM *and* non-LLM calls |
-| Non-LLM providers (payments, KYC, communications, logistics, etc.) | ❌ | ✅ 45 adapters total |
+| Non-LLM providers (payments, KYC, communications, logistics, etc.) | ❌ | ✅ 46 adapters total |
 | Policy enforcement (PII blocking, redaction, region rules) | ❌ | ✅ Built-in policy engine |
 
 ## What this looks like in code
@@ -45,37 +45,32 @@ const model = primary.withFallbacks({ fallbacks: [fallback] });
 const result = await model.invoke("Summarize this contract.");
 ```
 
-**With Meridian underneath**, the same failover gets circuit breakers (so a known-down provider is skipped instantly instead of retried), normalized errors, rate limit tracking, and — critically — the *same* reliability guarantees apply when your app also calls Stripe, Twilio, or your KYC provider:
+**With Meridian's `meridianjs/ai` middleware underneath**, the same failover gets a circuit breaker (so a known-down provider is skipped instantly instead of retried), normalized errors, and observability — and unlike `service("llm")`, it actually fails over a completion call safely, because providers only bill for output returned (see [docs/ai-sdk.md](../ai-sdk.md)):
 
 ```typescript
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: { auth: { apiKey: process.env.OPENAI_KEY! } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_KEY! } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic"], strategy: "failover" },
-  },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({ fallbacks: [anthropic("claude-opus-4-5")] }),
 });
 
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
-});
+const { text, response } = await generateText({ model, prompt: "Summarize this contract." });
 
-// meta.trace.circuitBreaker — OpenAI marked OPEN after repeated failures,
-// so this request skipped straight to Anthropic instead of waiting on a timeout.
+// response.modelId — OpenAI's circuit opened after repeated failures, so this
+// request skipped straight to Anthropic instead of waiting on a timeout.
 ```
 
 ## Use them together
 
-A common pattern: keep LangChain for prompt orchestration and agent logic, and route the underlying HTTP calls through Meridian's `service("llm")` so that:
+A common pattern: keep LangChain for prompt orchestration and agent logic, and pass it a model wrapped with `meridianjs/ai` instead of a raw `ChatOpenAI`/`ChatAnthropic` instance (LangChain's `@langchain/community` model wrappers can take an AI SDK model where supported), so that:
 
 - A degraded provider is detected and routed around automatically (circuit breaker), not just retried until your app's timeout.
-- Every LLM call gets the same `meta.trace`, cost tracking, and policy enforcement (e.g. `blockPII`) as the rest of your stack — payments, comms, KYC.
-- Schema drift in a provider's response format is caught by `meridian.schema.check()` before it silently breaks a chain step.
+- Every LLM call gets the same observability interface (`ObservabilityAdapter`) as the rest of your stack — payments, comms, KYC — even though the AI calls themselves go through a different code path (`meridianjs/ai`, not `service()`).
+- For everything that *isn't* an LLM call — payments, comms, KYC — `meridian.service()` still applies the same reliability mechanics, with the idempotent-methods-only failover rule documented in [docs/failover/index.md](../failover/index.md).
 
 ## The short version
 

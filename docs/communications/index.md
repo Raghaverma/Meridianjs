@@ -47,17 +47,17 @@ const meridian = await Meridian.create({
   providers: {
     twilio: {
       baseUrl: "https://api.twilio.com",
-      auth: { type: "basic", username: process.env.TWILIO_SID!, password: process.env.TWILIO_TOKEN! },
+      auth: { username: process.env.TWILIO_SID!, password: process.env.TWILIO_TOKEN! },
       retry: { attempts: 2, backoff: "exponential" },
     },
     msg91: {
       baseUrl: "https://api.msg91.com",
-      auth: { type: "bearer", token: process.env.MSG91_KEY! },
+      auth: { token: process.env.MSG91_KEY! },
       retry: { attempts: 2 },
     },
     sendgrid: {
       baseUrl: "https://api.sendgrid.com",
-      auth: { type: "bearer", token: process.env.SENDGRID_KEY! },
+      auth: { token: process.env.SENDGRID_KEY! },
       retry: { attempts: 3, backoff: "exponential" },
     },
   },
@@ -89,17 +89,17 @@ const meridian = await Meridian.create({
   providers: {
     twilio: {
       baseUrl: "https://api.twilio.com",
-      auth: { type: "basic", username: process.env.TWILIO_SID!, password: process.env.TWILIO_TOKEN! },
+      auth: { username: process.env.TWILIO_SID!, password: process.env.TWILIO_TOKEN! },
       retry: { attempts: 2, backoff: "exponential" },
     },
     msg91: {
       baseUrl: "https://api.msg91.com",
-      auth: { type: "bearer", token: process.env.MSG91_KEY! },
+      auth: { token: process.env.MSG91_KEY! },
       retry: { attempts: 2 },
     },
     sendgrid: {
       baseUrl: "https://api.sendgrid.com",
-      auth: { type: "bearer", token: process.env.SENDGRID_KEY! },
+      auth: { token: process.env.SENDGRID_KEY! },
       retry: { attempts: 3 },
     },
   },

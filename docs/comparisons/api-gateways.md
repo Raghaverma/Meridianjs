@@ -27,7 +27,7 @@ Meridian manages **traffic out of your application to third-party APIs**: the ca
 | Deployment | Separate infrastructure (proxy, load balancer, managed service) | npm package — runs in-process inside your application |
 | Authenticates *your* API's consumers | ✅ | ❌ (not its job) |
 | Normalizes *third-party* response/error shapes | ❌ | ✅ — `MeridianError`, `meta.rateLimit`, `meta.pagination` |
-| Multi-vendor failover (e.g. OpenAI → Anthropic, Stripe → Razorpay) | ❌ | ✅ |
+| Multi-vendor failover (OpenAI → Anthropic automatic via `meridianjs/ai`; Stripe → Razorpay via your own routing + Meridian's per-provider retry/breaker) | ❌ | ✅ |
 | Circuit breakers on upstream vendors | ❌ (gateways breaker your services, not third-party APIs you call) | ✅ |
 | Schema drift detection on vendor responses | ❌ | ✅ |
 | Rate limiting | ✅ — limits inbound clients hitting you | ✅ — but for outbound calls *you* make to vendors, respecting *their* limits |
@@ -61,15 +61,21 @@ const meridian = await Meridian.create({
     stripe: { auth: { apiKey: process.env.STRIPE_KEY! } },
     razorpay: { auth: { username: process.env.RAZORPAY_KEY!, password: process.env.RAZORPAY_SECRET! } },
   },
-  services: {
-    payments: { providers: ["stripe", "razorpay"], strategy: "geo", regions: { "us-east-1": ["stripe"], "ap-south-1": ["razorpay"] } },
-  },
 });
 
 // Your backend's own API gateway has already authenticated this inbound request.
-// This outbound call to a payment provider gets retries, circuit breaking,
-// failover, and normalized errors — with zero gateway infrastructure involved.
-const { data, meta } = await meridian.service("payments")!.post("/charges", { body: { amount: 2000 } });
+// This outbound call to a payment provider gets retries, circuit breaking, and
+// normalized errors — with zero gateway infrastructure involved. Stripe and
+// Razorpay don't share a request shape, so geo selection (and any failover
+// across them) is a one-line branch, not a service() config — see
+// docs/failover/index.md for why a write is never auto-failed-over for you.
+const provider = region === "ap-south-1" ? "razorpay" : "stripe";
+const { data } =
+  provider === "stripe"
+    ? await meridian.provider("stripe")!.post("/v1/charges", { body: { amount: 2000 } })
+    : await meridian.provider("razorpay")!.post("/v1/orders", {
+        body: { amount: 2000, currency: "INR", receipt: `receipt_${orderId}` },
+      });
 ```
 
 ## The short version

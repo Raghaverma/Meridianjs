@@ -1,6 +1,6 @@
 # LLMs
 
-Route completions across OpenAI, Anthropic, and Gemini with automatic failover so a single provider outage doesn't take down your product.
+Route completions across OpenAI, Anthropic, and Gemini with automatic failover so a single provider outage doesn't take down your product — via Meridian's Vercel AI SDK middleware, `meridianjs/ai`.
 
 ## Problem
 
@@ -39,48 +39,34 @@ async function complete(prompt: string) {
 
 ## With Meridian
 
+Why `meridianjs/ai` rather than Meridian's general `service()` abstraction: OpenAI, Anthropic, and Gemini don't share a request/response shape at the HTTP level, and `service()` only auto-fails-over idempotent methods anyway — a chat completion is a `POST`, and a different provider has no way to know whether the original call already produced output. The [Vercel AI SDK](https://ai-sdk.dev) solves the shape problem by normalizing every provider into one `doGenerate`/`doStream` interface; `meridianjs/ai` wraps that with retries, a circuit breaker, and failover. See [docs/ai-sdk.md](../ai-sdk.md) for the full reference, including why failover is safe here even though it's a write.
+
+```bash
+npm install meridianjs ai @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
+```
+
 ```typescript
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: {
-      baseUrl: "https://api.openai.com",
-      auth: { type: "bearer", token: process.env.OPENAI_KEY! },
-      retry: { attempts: 2, backoff: "exponential" },
-      rateLimit: { requestsPerMinute: 500 },
-    },
-    anthropic: {
-      baseUrl: "https://api.anthropic.com",
-      auth: { type: "bearer", token: process.env.ANTHROPIC_KEY! },
-      retry: { attempts: 2, backoff: "exponential" },
-    },
-    gemini: {
-      baseUrl: "https://generativelanguage.googleapis.com",
-      auth: { type: "bearer", token: process.env.GEMINI_KEY! },
-      retry: { attempts: 2 },
-    },
-  },
-  services: {
-    llm: {
-      providers: ["openai", "anthropic", "gemini"],
-      strategy: "failover",
-    },
-  },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5"), google("gemini-2.5-pro")],
+    retry: { maxRetries: 2, baseDelay: 200 },
+  }),
 });
 
-// One call — Meridian tries openai, then anthropic, then gemini
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: {
-    model: "gpt-4o",
-    messages: [{ role: "user", content: "Summarize this contract." }],
-  },
+// One call — tries openai, then anthropic, then gemini
+const { text, response } = await generateText({
+  model,
+  prompt: "Summarize this contract.",
 });
 
-console.log(meta.trace.provider);        // which provider responded
-console.log(meta.trace.retries);         // retries taken
-console.log(meta.rateLimit.remaining);   // remaining quota on that provider
+console.log(response.modelId); // which model actually responded
 ```
 
 ## Production Example
@@ -88,49 +74,45 @@ console.log(meta.rateLimit.remaining);   // remaining quota on that provider
 A `/chat` endpoint that stays up even when OpenAI is fully down:
 
 ```typescript
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { AnalyticsCollector } from "meridianjs";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai:    { baseUrl: "https://api.openai.com",                         auth: { type: "bearer", token: process.env.OPENAI_KEY! },    retry: { attempts: 2 } },
-    anthropic: { baseUrl: "https://api.anthropic.com",                      auth: { type: "bearer", token: process.env.ANTHROPIC_KEY! }, retry: { attempts: 2 } },
-    gemini:    { baseUrl: "https://generativelanguage.googleapis.com",       auth: { type: "bearer", token: process.env.GEMINI_KEY! },    retry: { attempts: 2 } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic", "gemini"], strategy: "failover" },
-  },
+const analytics = new AnalyticsCollector();
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5"), google("gemini-2.5-pro")],
+    observability: [analytics],
+  }),
 });
 
 // POST /chat
 export async function handleChat(req: Request): Promise<Response> {
   const { messages, sessionId } = await req.json();
 
-  const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-    body: { model: "gpt-4o", messages },
-  });
+  const { text, response } = await generateText({ model, messages });
 
-  // If OpenAI circuit-broke, meta.trace.provider === "anthropic" or "gemini"
-  if (meta.trace.provider !== "openai") {
-    console.warn(`[${sessionId}] LLM failover: used ${meta.trace.provider} (latency: ${meta.trace.latency}ms)`);
+  // If OpenAI's circuit opened, response.modelId reflects anthropic or gemini
+  if (!response.modelId?.startsWith("gpt-")) {
+    console.warn(`[${sessionId}] LLM failover: used ${response.modelId}`);
   }
 
-  return Response.json({
-    reply:    data.choices[0].message.content,
-    provider: meta.trace.provider,
-    latency:  meta.trace.latency,
-  });
+  return Response.json({ reply: text, model: response.modelId });
 }
 
 // Health dashboard data — call from your monitoring endpoint
-export async function getLLMHealth() {
+export function getLLMHealth() {
   return {
-    health:    meridian.health(),
-    // { openai: { status: "down", circuitBreaker: "OPEN", successRate: "0%" },
-    //   anthropic: { status: "healthy", circuitBreaker: "CLOSED", successRate: "99.8%" } }
-    analytics: meridian.analytics(),
+    analytics: analytics.get(),
     // { openai: { requests: 0, errorRate: "100%", avgLatency: 30000 },
     //   anthropic: { requests: 8412, errorRate: "0.2%", avgLatency: 820 } }
+    health: analytics.getHealth(),
+    // { openai: { status: "down", successRate: "0%" },
+    //   anthropic: { status: "healthy", successRate: "99.8%" } }
   };
 }
 ```

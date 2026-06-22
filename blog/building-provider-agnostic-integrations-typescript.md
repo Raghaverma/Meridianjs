@@ -87,24 +87,31 @@ Now your business logic calls a service, not a vendor:
 // Before: hardcoded to OpenAI
 const res = await openai.chat.completions.create({ model: "gpt-4o", ... });
 
-// After: provider-agnostic
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize: ..." }] },
-});
+// After: provider-agnostic — GET is idempotent, so it's safe to fail over
+const { data, meta } = await meridian.service("llm")!.get("/v1/models");
 // meta.provider tells you which provider actually answered
 ```
+
+> A chat completion is a `POST`, and Meridian's service layer never auto-fails-over
+> a write — a different provider has no way to know whether the original attempt
+> already happened. For OpenAI/Anthropic chat completions specifically, use
+> [`meridianjs/ai`](../docs/ai-sdk.md) instead: the Vercel AI SDK already normalizes
+> both providers into one interface, so failover (even on a completion call) is both
+> possible and safe there, because providers only bill for output actually returned.
 
 ```typescript
 // Before: hardcoded to Stripe
 const pi = await stripe.paymentIntents.create({ amount, currency: "usd" });
 
-// After: provider-agnostic
-const { data, meta } = await meridian.service("payments")!.post("/v1/payment_intents", {
-  body: { amount, currency: "usd" },
-});
+// After: provider-agnostic where providers share a shape (e.g. a read like
+// listing customers). A charge is a POST, and Stripe/Razorpay use different
+// endpoints and fields (/v1/payment_intents vs /v1/orders), so weighted
+// routing between them is one small dispatch function, not a single
+// endpoint string — see the caveat below.
+const { data } = await meridian.provider("stripe")!.get("/v1/customers");
 ```
 
-The call site doesn't know or care whether OpenAI or Anthropic answered. It doesn't know whether Stripe or Razorpay processed the payment. That knowledge lives in configuration, not in code.
+The call site doesn't know or care whether OpenAI or Anthropic answered for an LLM call. For payments specifically, your dispatch function is the thing that doesn't care *which provider's branch ran* — both still get the same retry/circuit-breaker/error normalization. See [docs/failover/index.md](../docs/failover/index.md).
 
 ## Operational Benefits You Get For Free
 
@@ -164,6 +171,12 @@ This data is available without a third-party APM agent, without custom middlewar
 ```
 
 The service layer is the only place that knows about providers. Everything above it is vendor-neutral.
+
+One caveat that applies regardless of strategy: failover only ever happens for idempotent
+methods (`GET`/`PUT`/`DELETE`). A `payments` service split with `weighted` still sends each
+*new* charge to whichever provider the weights pick — but if that provider is down mid-charge,
+the request fails with a clear error instead of silently retrying on the other one, which could
+double-charge the customer. See [docs/failover/index.md](../docs/failover/index.md).
 
 ## When NOT to Use This Pattern
 

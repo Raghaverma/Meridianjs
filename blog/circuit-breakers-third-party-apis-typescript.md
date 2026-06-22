@@ -187,19 +187,29 @@ All instances share the same circuit state. When one instance observes 5 failure
 
 ## Circuit breakers + failover
 
-A circuit breaker alone protects your app from a slow upstream. Combined with failover, it routes around it:
+A circuit breaker alone protects your app from a slow upstream. Combined with application-level routing, it lets you skip a dead provider without waiting for a timeout — but only for idempotent calls (`GET`/`PUT`/`DELETE`), or for non-idempotent calls you route yourself. Meridian's `service()` strategies (`failover` included) never auto-retry a `POST` on a different provider — a different provider has no way to know whether the original write already happened, so replaying it risks a duplicate side effect. For something like Stripe/Razorpay payments, check the breaker yourself before deciding which provider to call:
 
 ```typescript
-services: {
-  payments: {
-    providers: ["stripe", "razorpay"],
-    strategy: "failover",
-    failoverOn: ["provider", "network"],  // not rate_limit — that we retry
-  },
+import { MeridianError } from "meridianjs";
+
+async function charge(amount: number, currency: string, orderId: string) {
+  if (meridian.getCircuitStatus("stripe")?.state !== "OPEN") {
+    try {
+      return await meridian.provider("stripe")!.post("/v1/charges", {
+        idempotencyKey: `charge_${orderId}`,
+        body: { amount, currency, source: "tok_visa" },
+      });
+    } catch (err) {
+      if (!(err instanceof MeridianError) || !["provider", "network"].includes(err.category)) throw err;
+    }
+  }
+  return await meridian.provider("razorpay")!.post("/v1/orders", {
+    body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+  });
 }
 ```
 
-When the Stripe circuit opens, the `payments` service routes to Razorpay immediately — no timeout, no waiting for a probe. When the circuit closes, traffic returns to Stripe.
+When Stripe's circuit opens, the `getCircuitStatus` check above fails fast — no timeout, no waiting for a probe — and routes to Razorpay immediately. When the circuit closes, `charge()` starts trying Stripe again on its own. See [docs/failover/index.md](../docs/failover/index.md) for the full idempotency rule, and [docs/ai-sdk.md](../docs/ai-sdk.md) for the one case (LLM calls via the Vercel AI SDK) where failing over a write actually is safe and automatic.
 
 ---
 

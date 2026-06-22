@@ -1,14 +1,14 @@
 # Migrating from OpenRouter to Meridian
 
-OpenRouter gives you one endpoint, one API key, and one bill for many LLM providers, with `model: "<provider>/<model>"` picking the backend and an optional `models: [...]` list for fallback. Meridian gives you the same routing/fallback behavior, but **in-process, with your own provider API keys, and no extra network hop** — and the same pattern extends to payments, KYC, and communications providers in the same app.
+OpenRouter gives you one endpoint, one API key, and one bill for many LLM providers, with `model: "<provider>/<model>"` picking the backend and an optional `models: [...]` list for fallback. Meridian's `meridianjs/ai` middleware gives you the same fallback behavior, but **in-process, with your own provider API keys, and no extra network hop** — by wrapping the [Vercel AI SDK](https://ai-sdk.dev), which already normalizes every provider into one interface, the same way OpenRouter does server-side.
 
-This guide maps OpenRouter's request shape onto Meridian's `service("llm")`.
+This guide maps OpenRouter's request shape onto `meridianjs/ai`.
 
 ## 1. Install and initialize
 
 ```diff
 - // no SDK needed — OpenRouter is called via fetch
-+ npm install meridianjs
++ npm install meridianjs ai @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
 ```
 
 ```typescript
@@ -29,46 +29,43 @@ const { choices } = await res.json();
 
 ```typescript
 // After — your own keys for each provider you actually use
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: { auth: { apiKey: process.env.OPENAI_API_KEY } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic"], strategy: "failover" },
-  },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({ fallbacks: [anthropic("claude-opus-4-5")] }),
 });
 
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
+const { text, response } = await generateText({
+  model,
+  prompt: "Summarize this contract.",
 });
-const { choices } = data;
-console.log(meta.trace.provider); // which provider actually served this
+console.log(response.modelId); // which provider actually served this
 ```
 
 ## 2. Mapping `model: "<provider>/<model>"`
 
-OpenRouter encodes the provider in the model string. With Meridian, the provider is selected by **routing** (which providers are in the `service`, and in what order/strategy), and the `model` field in the request body is just whatever that provider's API expects:
+OpenRouter encodes the provider in the model string. With `meridianjs/ai`, you import the provider's AI SDK package directly and construct the model object — the provider is part of the import, not a routing decision made at request time:
 
-| OpenRouter | Meridian |
+| OpenRouter | `meridianjs/ai` |
 |---|---|
-| `model: "openai/gpt-4o"` | `providers: { openai: {...} }`, body `{ model: "gpt-4o" }` |
-| `model: "anthropic/claude-opus-4-5"` | `providers: { anthropic: {...} }`, body `{ model: "claude-opus-4-5" }` |
-| `model: "google/gemini-2.0-flash"` | `providers: { gemini: {...} }`, body `{ model: "gemini-2.0-flash" }` |
+| `model: "openai/gpt-4o"` | `openai("gpt-4o")` from `@ai-sdk/openai` |
+| `model: "anthropic/claude-opus-4-5"` | `anthropic("claude-opus-4-5")` from `@ai-sdk/anthropic` |
+| `model: "google/gemini-2.5-pro"` | `google("gemini-2.5-pro")` from `@ai-sdk/google` |
 
-If you need to call a *specific* provider directly rather than going through routing, use `meridian.provider("openai")` instead of `meridian.service("llm")` — same call shape, just bypasses routing.
+If you need to call a *specific* provider without any fallback, just `wrapLanguageModel({ model: openai("gpt-4o"), middleware: meridianReliability() })` with no `fallbacks` — you still get retries and a circuit breaker, with no routing.
 
 ## 3. Mapping fallback lists
 
-OpenRouter's `models: [...]` (with `route: "fallback"`) tries models in order until one succeeds. Meridian's `service("llm")` does the same across providers, plus circuit breakers (a provider that's already failing gets skipped instantly instead of retried until timeout):
+OpenRouter's `models: [...]` (with `route: "fallback"`) tries models in order until one succeeds. `meridianReliability()`'s `fallbacks` option does the same, plus a circuit breaker per model (a model that's already failing gets skipped instantly instead of retried until timeout):
 
 ```typescript
 // Before
 body: JSON.stringify({
-  models: ["openai/gpt-4o", "anthropic/claude-opus-4-5", "google/gemini-2.0-flash"],
+  models: ["openai/gpt-4o", "anthropic/claude-opus-4-5", "google/gemini-2.5-pro"],
   route: "fallback",
   messages: [{ role: "user", content: "Summarize this contract." }],
 })
@@ -76,44 +73,58 @@ body: JSON.stringify({
 
 ```typescript
 // After
-services: {
-  llm: {
-    providers: ["openai", "anthropic", "gemini"],
-    strategy: "failover", // also: "round-robin" | "lowest-latency" | "cheapest" | "weighted" | "geo"
-  },
-},
-```
+import { anthropic } from "@ai-sdk/anthropic";
+import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-```typescript
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5"), google("gemini-2.5-pro")],
+  }),
 });
+
+const { text } = await generateText({ model, prompt: "Summarize this contract." });
 ```
 
-If you were using OpenRouter primarily for **cost-based routing**, Meridian's `"cheapest"` strategy with a `costs` map does the same thing — see the [multi-provider-llm example](../../examples/multi-provider-llm/index.ts) for `embeddings` routed by `strategy: "cheapest"`.
+This is also why `meridianjs/ai` exists as a separate path from Meridian's general `service()` abstraction: OpenAI, Anthropic, and Gemini don't share a request/response shape, and `service()` only auto-fails-over idempotent methods (never a chat completion, which is a `POST`) — see [docs/failover/index.md](../failover/index.md). The AI SDK's normalization is what makes failover possible *and* safe here.
 
 ## 4. Headers you can drop
 
-OpenRouter-specific headers (`HTTP-Referer`, `X-Title` for leaderboard attribution, the single `Authorization: Bearer OPENROUTER_KEY`) go away entirely — each provider is authenticated with its own key in `providers.<name>.auth`, handled by Meridian.
+OpenRouter-specific headers (`HTTP-Referer`, `X-Title` for leaderboard attribution, the single `Authorization: Bearer OPENROUTER_KEY`) go away entirely — each provider is authenticated with its own key, passed to its AI SDK package (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` env vars, read automatically by `@ai-sdk/openai`/`@ai-sdk/anthropic`).
 
-## 5. Cost tracking
+## 5. Cost and usage tracking
 
-OpenRouter reports cost per request via its response `usage` field and a separate `/generation` endpoint. Meridian tracks cost across all configured providers via `meridian.cost()`:
+OpenRouter reports cost per request via its response `usage` field and a separate `/generation` endpoint. The AI SDK's `generateText`/`streamText` results already include token usage (`result.usage.inputTokens`/`outputTokens`/`totalTokens`) — multiply by your provider's published per-token price for cost. For aggregate stats across models, pass an `ObservabilityAdapter`:
 
 ```typescript
-const report = meridian.cost("USD");
-// { openai: { requests: 412, estimatedCost: 6.18 }, anthropic: { requests: 38, estimatedCost: 0.91 }, ... }
+import { AnalyticsCollector } from "meridianjs";
+
+const analytics = new AnalyticsCollector();
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5")],
+    observability: [analytics],
+  }),
+});
+
+// later
+console.log(analytics.get());
+// { openai: { requests: 412, avgLatency: 320 }, anthropic: { requests: 38, avgLatency: 410 } }
 ```
 
 ## 6. What changes operationally
 
-| | OpenRouter | Meridian |
+| | OpenRouter | Meridian (`meridianjs/ai`) |
 |---|---|---|
 | Where requests go | Your app → OpenRouter → provider | Your app → provider, directly |
 | API keys | One OpenRouter key | Your own key per provider |
 | Billing | Consolidated through OpenRouter (with markup) | Direct to each provider |
 | Availability dependency | Your app + OpenRouter + provider | Your app + provider |
-| Non-LLM providers (payments, KYC, comms) | Not covered — separate SDKs needed | Same `provider()`/`service()` pattern, same observability |
+| Non-LLM providers (payments, KYC, comms) | Not covered — separate SDKs needed | Meridian's `provider()`/`service()` (a different API — see [docs/failover/index.md](../failover/index.md) for why payments failover looks different from LLM failover) |
 
 ## When to keep OpenRouter
 
@@ -122,8 +133,9 @@ If you specifically want access to a long tail of niche/open-source models witho
 ## Checklist
 
 - [ ] Create accounts/API keys directly with the providers you actually use (OpenAI, Anthropic, Gemini, ...)
-- [ ] Replace the single OpenRouter `fetch` call with `meridian.provider(name)` or `meridian.service("llm")`
-- [ ] Convert `model: "<provider>/<model>"` into `providers: { <provider>: {...} }` + body `{ model: "<model>" }`
-- [ ] Convert `models: [...] + route: "fallback"` into `services.llm.providers` + `strategy: "failover"`
+- [ ] Install `ai` + each provider's AI SDK package (`@ai-sdk/openai`, `@ai-sdk/anthropic`, ...)
+- [ ] Replace the single OpenRouter `fetch` call with `wrapLanguageModel({ model, middleware: meridianReliability() })` + `generateText`/`streamText`
+- [ ] Convert `model: "<provider>/<model>"` into an import from that provider's AI SDK package
+- [ ] Convert `models: [...] + route: "fallback"` into `meridianReliability({ fallbacks: [...] })`
 - [ ] Drop OpenRouter-specific headers (`HTTP-Referer`, `X-Title`)
-- [ ] Replace OpenRouter cost dashboards with `meridian.cost()` / `meridian.analytics()`
+- [ ] Replace OpenRouter's cost dashboard with `result.usage` + an `AnalyticsCollector` observability adapter

@@ -41,9 +41,9 @@ import { Meridian } from "meridianjs";
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
-    stripe:   { baseUrl: "https://api.stripe.com",   auth: { type: "bearer", token: process.env.STRIPE_KEY! } },
-    sendgrid: { baseUrl: "https://api.sendgrid.com", auth: { type: "bearer", token: process.env.SENDGRID_KEY! } },
-    github:   { baseUrl: "https://api.github.com",   auth: { type: "bearer", token: process.env.GITHUB_TOKEN! } },
+    stripe:   { baseUrl: "https://api.stripe.com",   auth: { token: process.env.STRIPE_KEY! } },
+    sendgrid: { baseUrl: "https://api.sendgrid.com", auth: { token: process.env.SENDGRID_KEY! } },
+    github:   { baseUrl: "https://api.github.com",   auth: { token: process.env.GITHUB_TOKEN! } },
   },
 });
 
@@ -90,9 +90,9 @@ import { Meridian } from "meridianjs";
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
-    stripe:   { baseUrl: "https://api.stripe.com",   auth: { type: "bearer", token: process.env.STRIPE_KEY! },   retry: { attempts: 2 } },
-    sendgrid: { baseUrl: "https://api.sendgrid.com", auth: { type: "bearer", token: process.env.SENDGRID_KEY! }, retry: { attempts: 3 } },
-    github:   { baseUrl: "https://api.github.com",   auth: { type: "bearer", token: process.env.GITHUB_TOKEN! }, retry: { attempts: 2 } },
+    stripe:   { baseUrl: "https://api.stripe.com",   auth: { token: process.env.STRIPE_KEY! },   retry: { attempts: 2 } },
+    sendgrid: { baseUrl: "https://api.sendgrid.com", auth: { token: process.env.SENDGRID_KEY! }, retry: { attempts: 3 } },
+    github:   { baseUrl: "https://api.github.com",   auth: { token: process.env.GITHUB_TOKEN! }, retry: { attempts: 2 } },
   },
 });
 

@@ -9,7 +9,7 @@ Most teams want Path B. Read [Meridian vs. LangChain](../comparisons/langchain.m
 
 ## Path A: Replace LangChain's LLM client with Meridian
 
-If your LangChain usage looks like this — a chat model plus a manual fallback chain, with no prompt templates, agents, or memory — Meridian replaces it directly:
+If your LangChain usage looks like this — a chat model plus a manual fallback chain, with no prompt templates, agents, or memory — `meridianjs/ai` replaces it directly. It wraps the [Vercel AI SDK](https://ai-sdk.dev) rather than Meridian's general `service()` abstraction, because OpenAI and Anthropic don't share a request/response shape and a chat completion is a `POST` — `service()` never auto-fails-over a write (see [docs/failover/index.md](../failover/index.md)). The AI SDK's normalization is what makes failover both possible and safe here.
 
 ```typescript
 // Before
@@ -26,94 +26,81 @@ console.log(result.content);
 
 ```typescript
 // After
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: { auth: { apiKey: process.env.OPENAI_API_KEY } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic"], strategy: "failover" },
-  },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({ fallbacks: [anthropic("claude-opus-4-5")] }),
 });
 
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
-});
-console.log(data.choices[0].message.content);
+const { text, response } = await generateText({ model, prompt: "Summarize this contract." });
+console.log(text);
 ```
 
 The differences from `withFallbacks`:
 
-| | LangChain `withFallbacks` | Meridian `service("llm")` |
+| | LangChain `withFallbacks` | `meridianjs/ai` |
 |---|---|---|
 | Trigger for fallback | Any error from the primary model | Configurable (`failoverOn: ["rate_limit", "network", "provider"]`) |
-| Already-known-bad provider | Retried until it errors again | Circuit breaker skips it instantly (`meta.trace.circuitBreaker`) |
-| Error shape | Each integration's native error | One `MeridianError` with `category`/`retryable`/`retryAfter` |
-| Cost/rate-limit tracking | Per-integration callbacks | `meta.rateLimit`, `meridian.cost()`, `meridian.analytics()` across all providers |
-| Non-LLM providers | Not applicable | Same pattern for `service("payments")`, `provider("twilio")`, etc. |
+| Already-known-bad provider | Retried until it errors again | Circuit breaker skips it instantly |
+| Error shape | Each integration's native error | One `MeridianError` with `category`/`retryable` |
+| Cost/usage tracking | Per-integration callbacks | `result.usage` per call; aggregate via an `AnalyticsCollector` passed as `observability` |
+| Non-LLM providers | Not applicable | Meridian's `provider()`/`service()` (a different API — see [docs/failover/index.md](../failover/index.md)) |
 
 If your code also used `PromptTemplate`, `RunnableSequence`, output parsers, or memory, those are LangChain-specific conveniences with no Meridian equivalent — Meridian doesn't do prompt orchestration. Re-implement that logic directly (string templates / your own parsing), or use Path B and keep LangChain for that part.
 
 ## Path B: Keep LangChain, swap the transport
 
-If you have real chains, agents, or RAG pipelines, don't rip those out. Instead, give LangChain a custom chat model whose `_generate` delegates to `meridian.service("llm")`. Your prompts, chains, and agents are unaffected — but every model call now gets Meridian's circuit breakers, retries, normalized errors, rate-limit tracking, and policy enforcement.
+If you have real chains, agents, or RAG pipelines, don't rip those out. Instead, give LangChain a custom chat model whose `_generate` delegates to a `meridianjs/ai`-wrapped model. Your prompts, chains, and agents are unaffected — but every model call now gets a circuit breaker, retries, and normalized errors.
 
 ```typescript
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, type BaseMessage } from "@langchain/core/messages";
-import { ChatGenerationChunk, type ChatResult } from "@langchain/core/outputs";
-import { Meridian } from "meridianjs";
-
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: { auth: { apiKey: process.env.OPENAI_API_KEY } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic"], strategy: "failover" },
-  },
-});
+import { type ChatResult } from "@langchain/core/outputs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
 class MeridianChatModel extends BaseChatModel {
-  constructor(private model: string) {
-    super({});
-  }
+  private model = wrapLanguageModel({
+    model: openai("gpt-4o"),
+    middleware: meridianReliability({ fallbacks: [anthropic("claude-opus-4-5")] }),
+  });
 
   _llmType() {
     return "meridian";
   }
 
   async _generate(messages: BaseMessage[]): Promise<ChatResult> {
-    const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-      body: {
-        model: this.model,
-        messages: messages.map((m) => ({ role: m._getType() === "human" ? "user" : "assistant", content: m.content })),
-      },
+    const { text, response } = await generateText({
+      model: this.model,
+      messages: messages.map((m) => ({
+        role: m._getType() === "human" ? ("user" as const) : ("assistant" as const),
+        content: String(m.content),
+      })),
     });
 
-    const content = data.choices[0].message.content;
     return {
-      generations: [{ text: content, message: new AIMessage(content) }],
-      llmOutput: { provider: meta.trace.provider, latency: meta.trace.latency },
+      generations: [{ text, message: new AIMessage(text) }],
+      llmOutput: { modelId: response.modelId },
     };
   }
 }
 
 // Drop this into any existing chain in place of ChatOpenAI / ChatAnthropic
-const model = new MeridianChatModel("gpt-4o");
+const model = new MeridianChatModel();
 ```
 
-> LangChain.js's `BaseChatModel` interface evolves between versions — check your installed `@langchain/core` version's docs for the exact `_generate` signature (especially streaming via `_streamResponseChunks`, which can be implemented the same way using `meridian.service("llm")!.stream(...)`).
+> LangChain.js's `BaseChatModel` interface evolves between versions — check your installed `@langchain/core` version's docs for the exact `_generate` signature (especially streaming via `_streamResponseChunks`, which can be implemented the same way using `streamText({ model: this.model, ... })`).
 
 With this in place:
 
-- `meta.trace.circuitBreaker` tells you when OpenAI was skipped in favor of Anthropic — visible in `llmOutput` for LangSmith/your own tracing.
-- `meridian.schema.check()` can validate that OpenAI's response shape hasn't drifted before it reaches your chain's output parser.
-- `policies: [blockPII(["openai", "anthropic"])]` enforces PII redaction on every chain step that hits an LLM, not just the ones you remember to wrap.
+- `llmOutput.modelId` tells you when OpenAI was skipped in favor of Anthropic — visible for LangSmith/your own tracing.
+- Pass `observability: [analytics]` to `meridianReliability()` (an `AnalyticsCollector` from `meridianjs`) to get aggregate stats across every chain step that hits an LLM.
 
 ## What stays in LangChain
 
@@ -123,7 +110,7 @@ With this in place:
 ## Checklist
 
 - [ ] Decide: Path A (replace LangChain's LLM client entirely) or Path B (keep LangChain, swap transport)
-- [ ] Configure `providers` + `services.llm` in Meridian for the models you currently call via LangChain integrations
-- [ ] Path A: replace `model.invoke(...)` / `withFallbacks` with `meridian.service("llm").post(...)`
-- [ ] Path B: implement a `MeridianChatModel extends BaseChatModel` and substitute it for `ChatOpenAI`/`ChatAnthropic` in existing chains
-- [ ] Optional: add `policies: [blockPII([...])]` and `meridian.schema.check()` for guardrails LangChain doesn't provide
+- [ ] `npm install ai @ai-sdk/openai @ai-sdk/anthropic` (and any other providers you use) alongside `meridianjs`
+- [ ] Path A: replace `model.invoke(...)` / `withFallbacks` with `wrapLanguageModel({ model, middleware: meridianReliability({ fallbacks }) })` + `generateText`
+- [ ] Path B: implement a `MeridianChatModel extends BaseChatModel` whose `_generate` delegates to that wrapped model, and substitute it for `ChatOpenAI`/`ChatAnthropic` in existing chains
+- [ ] Optional: pass an `AnalyticsCollector` as `observability` to `meridianReliability()` for aggregate stats LangChain doesn't provide out of the box

@@ -4,6 +4,23 @@
 
 ---
 
+## v0.3.4 to v0.4.0
+
+Two new, additive features — no breaking changes, no migration steps required.
+
+### Added
+
+| Feature | What it is | Docs |
+|---|---|---|
+| **Meridian Studio** | Local dashboard for provider health, costs, circuit states, failovers, replay timelines, and schema drift. `await meridian.studio()` (in-process, live) or `meridian studio` (CLI, disk-only). | [docs/studio.md](studio.md) |
+| **`meridianjs/ai`** | Vercel AI SDK middleware (`meridianReliability()`, used with `wrapLanguageModel`). Real failover between language models — no request/response translation needed, because the AI SDK already normalizes every provider. Adds `ai` and `@ai-sdk/provider` as optional peer dependencies. | [docs/ai-sdk.md](ai-sdk.md) |
+
+### Also fixed
+
+The README's flagship example and `demos/failover.ts` previously claimed `meridian.service("llm")!.post(...)` automatically fails over from OpenAI to Anthropic. It doesn't — `POST`/`PATCH` failover was correctly disabled back in v0.3.0 (see the `#2` entry below) to avoid duplicate side effects, but the docs/demo hadn't caught up. Both now demonstrate the real, current behavior: `GET` fails over automatically; `POST` surfaces its error instead of risking a duplicate charge or duplicate LLM call. If you copied that example, switch to `meridianjs/ai` for real LLM failover, or see [docs/failover/index.md](failover/index.md) for the idempotent-only rule and how to route writes yourself.
+
+---
+
 ## v0.3.3 to v0.3.4
 
 Version alignment release — no API or behaviour changes. The Rust client (`Cargo.toml`) and Python client (`pyproject.toml`) are now versioned in sync with the engine. No migration steps required.

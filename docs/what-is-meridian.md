@@ -22,7 +22,7 @@ This document exists to answer one question precisely: **what category of tool i
 
 A wrapper converts one provider's HTTP API into a typed client — `stripe.customers.create(...)` instead of `fetch("https://api.stripe.com/...")`. That's necessary, but it's table stakes. A wrapper around OpenAI doesn't know anything about Stripe, doesn't retry consistently, and has no concept of "if this provider is down, try a different one."
 
-Meridian *contains* 45 adapters that do this wrapping — but the adapters are the substrate, not the product. The product is what happens *uniformly across all 45* when something goes wrong.
+Meridian *contains* 46 adapters that do this wrapping — but the adapters are the substrate, not the product. The product is what happens *uniformly across all 46* when something goes wrong.
 
 ### Not an API Gateway ❌
 

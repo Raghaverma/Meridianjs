@@ -11,7 +11,8 @@ Raw SDKs aren't bad. They're just missing everything that happens *between* "the
 | Error shapes | Different per provider (`error.code`, `error.type`, HTTP status, nested bodies...) | One `MeridianError` — always `category`, `retryable`, `retryAfter` |
 | Retries | Manual, usually missing or copy-pasted | Built-in exponential backoff, idempotency-safe |
 | Circuit breakers | Manual, rarely implemented | Automatic, per-provider, opens after N failures |
-| Provider failover | Hand-written `try { openai } catch { anthropic }` per call site | `service("llm")` with `failover` / `round-robin` / `lowest-latency` / `weighted` / `geo` strategies |
+| LLM provider failover | Hand-written `try { openai } catch { anthropic }` per call site | `meridianjs/ai` middleware (`wrapLanguageModel`) — real failover, no request translation |
+| Other provider routing (payments, comms, ...) | Hand-written per call site | `service()` with `failover` / `round-robin` / `lowest-latency` / `weighted` / `geo` strategies — for idempotent methods; see [docs/failover/index.md](../failover/index.md) for the write-safety rule |
 | Rate limit parsing | Per-provider headers (`x-ratelimit-remaining` vs `Retry-After` vs ...) | `meta.rateLimit` — normalized across all providers |
 | Pagination | cursor / offset / link-header — different per provider | `meta.pagination` + `for await (const page of provider.paginate(...))` |
 | Schema drift | Silent — you find out when production breaks | `meridian.schema.check()` flags `FIELD_REMOVED` / `TYPE_CHANGED` before deploy |
@@ -56,32 +57,25 @@ async function complete(prompt: string) {
 }
 ```
 
-**With Meridian** — one call, normalized errors, automatic failover:
+**With Meridian** — one call, normalized errors, automatic failover, via the Vercel AI SDK middleware (OpenAI and Anthropic don't share a request shape, and a chat completion is a `POST`, so this goes through `meridianjs/ai` rather than the general `service()` abstraction — see [docs/ai-sdk.md](../ai-sdk.md)):
 
 ```typescript
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai: { auth: { apiKey: process.env.OPENAI_KEY! } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_KEY! } },
-  },
-  services: {
-    llm: { providers: ["openai", "anthropic"], strategy: "failover" },
-  },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({ fallbacks: [anthropic("claude-opus-4-5")] }),
 });
 
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: prompt }] },
-});
+const { text, response } = await generateText({ model, prompt });
 
-meta.provider           // "openai" or "anthropic" — whichever served the request
-meta.trace.retries      // how many retries happened
-meta.trace.circuitBreaker // CLOSED | OPEN | HALF_OPEN
+response.modelId  // which model served the request
 ```
 
-The same `service(...)` / `provider(...)` / `meta.trace` shape applies whether you're calling Stripe, Razorpay, Twilio, or any of the other 43 adapters — so this isn't a pattern you learn once for LLMs and re-learn for payments.
+For everything that isn't an LLM call — Stripe, Razorpay, Twilio, or any of the other 43 adapters — the same `service(...)` / `provider(...)` / `meta.trace` shape applies via Meridian's general HTTP layer, with the idempotent-methods-only failover rule in [docs/failover/index.md](../failover/index.md).
 
 ## When raw SDKs are still the right call
 

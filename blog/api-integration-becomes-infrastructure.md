@@ -118,7 +118,7 @@ The question isn't whether you'll build this. The question is whether you build 
 ## What intentional reliability infrastructure looks like
 
 ```typescript
-import { Meridian, blockPII, RedisStateStorage } from "meridianjs";
+import { Meridian, blockPII, denyCountries, requireFields, RedisStateStorage } from "meridianjs";
 
 const meridian = await Meridian.create({
   // Distributed state: circuit breaker shared across all instances
@@ -127,7 +127,7 @@ const meridian = await Meridian.create({
 
   providers: {
     stripe:    { auth: { apiKey: process.env.STRIPE_KEY },    retry: { maxRetries: 3, jitter: true }, circuitBreaker: { failureThreshold: 5, timeout: 30_000 } },
-    razorpay:  { auth: { keyId: process.env.RAZORPAY_ID },    retry: { maxRetries: 3, jitter: true }, circuitBreaker: { failureThreshold: 5, timeout: 30_000 } },
+    razorpay:  { auth: { username: process.env.RAZORPAY_ID, password: process.env.RAZORPAY_SECRET }, retry: { maxRetries: 3, jitter: true }, circuitBreaker: { failureThreshold: 5, timeout: 30_000 } },
     openai:    { auth: { apiKey: process.env.OPENAI_KEY },    retry: { maxRetries: 2, jitter: true }, circuitBreaker: { failureThreshold: 3, timeout: 60_000 } },
     anthropic: { auth: { apiKey: process.env.ANTHROPIC_KEY }, retry: { maxRetries: 2, jitter: true }, circuitBreaker: { failureThreshold: 3, timeout: 60_000 } },
     sendgrid:  { auth: { apiKey: process.env.SENDGRID_KEY },  retry: { maxRetries: 4, jitter: true }, circuitBreaker: { failureThreshold: 5, timeout: 30_000 } },
@@ -146,8 +146,9 @@ const meridian = await Meridian.create({
     denyCountries(["KP", "IR", "CU"]),          // sanctions compliance
   ],
 
-  // Observability: every request, every provider, normalised
-  observability: new DatadogObservability(datadogClient),
+  // Observability: every request, every provider, normalised — exported to
+  // Datadog via the OTel Agent (see docs/opentelemetry.md for exporter setup)
+  telemetry: { provider: "opentelemetry" },
 });
 ```
 
@@ -157,9 +158,9 @@ This is declared once. Every provider gets the same retry behaviour, the same er
 
 ## The shift in how you think about providers
 
-The key change is moving from `provider.stripe.createCharge()` to `service.payments.post("/v1/charges")`.
+The key change is moving from one-off `provider.stripe.createCharge()` calls to a `payments` service Meridian routes for you — when the providers behind it share a request/response shape. Stripe and Razorpay don't (`/v1/charges` vs `/v1/orders`, different body fields), and a `POST` never auto-fails-over regardless — a different provider has no way to know whether the original write already happened. For that pair specifically, "the service decides" becomes "your routing function decides, using `meridian.getCircuitStatus()` and `meridian.provider()` directly" — still one `MeridianError` type and one retry/circuit-breaker config per provider, just not one endpoint string. See [docs/failover/index.md](../docs/failover/index.md).
 
-Your application doesn't know which payment processor handled the request. It sees a `NormalizedResponse` with `meta.provider`, `meta.trace`, and `meta.rateLimit` — same shape, regardless of vendor. The service abstraction makes the provider an implementation detail.
+Where providers *do* share a shape (most read/list endpoints, or same-vendor regional failover), the service abstraction is exactly this seamless: your application sees a `NormalizedResponse` with `meta.provider`, `meta.trace`, and `meta.rateLimit` — same shape, regardless of vendor — and the service makes the provider an implementation detail.
 
 This has a downstream effect on your architecture:
 

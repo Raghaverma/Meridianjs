@@ -48,71 +48,79 @@ Install Meridian.js:
 npm install meridianjs
 ```
 
-Configure both providers under a single `payments` service:
-
 ```typescript
-import { Meridian } from "meridianjs";
+import { Meridian, MeridianError, blockPII } from "meridianjs";
 
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
     stripe:   { auth: { apiKey: process.env.STRIPE_SECRET_KEY } },
-    razorpay: { auth: { apiKey: process.env.RAZORPAY_KEY_ID } },
+    razorpay: { auth: { username: process.env.RAZORPAY_KEY_ID, password: process.env.RAZORPAY_KEY_SECRET } },
   },
-  services: {
-    payments: {
-      providers: ["stripe", "razorpay"],
-      strategy: "weighted",
-      weights: { stripe: 70, razorpay: 30 },
-    },
-  },
+  policies: [blockPII(["stripe", "razorpay"])],
 });
 ```
 
-Your application code now calls a service, not a specific SDK:
+Note there's no `services: { payments: {...} }` config here. Meridian's `service()` abstraction works when every configured provider shares one endpoint and body shape — true for things like two SMS senders, not true for Stripe vs Razorpay: `/v1/payment_intents` with `source` vs `/v1/orders` with `receipt`. There's no single call that's valid for both, so unifying them means calling each directly and writing a small amount of routing yourself. What you still get from Meridian on *each* call: retry, a circuit breaker, normalized errors, and analytics — identically, regardless of which provider you're calling.
 
 ```typescript
-// One call that routes to Stripe or Razorpay based on weights
-const { data, meta } = await meridian.service("payments")!.post("/v1/payment_intents", {
-  body: {
-    amount: 50000,
-    currency: "inr",
-  },
-});
-
-console.log(meta.provider); // "stripe" or "razorpay" — you can log this per transaction
-```
-
-You can still call a specific provider directly when you need to — for instance, when processing a Razorpay webhook that must be verified with Razorpay's signature:
-
-```typescript
-// Direct provider access when you need it
+// Direct provider access — Meridian still normalizes errors/retries/breaker state per call
 const { data } = await meridian.provider("stripe")!.get("/v1/customers");
 const { data } = await meridian.provider("razorpay")!.get("/v1/payments");
 ```
 
 ## Weighted Routing: 70% Stripe, 30% Razorpay
 
-The `weighted` strategy sends 70 of every 100 payment requests to Stripe, 30 to Razorpay. This is preferable to geography-based routing when you lack reliable geolocation at the payment step, or when you want to keep Razorpay warm with real traffic before shifting more volume.
-
-Adjust weights as your confidence grows — no code change, just config:
+A small dispatch function picks the provider, then calls it with its own shape:
 
 ```typescript
-weights: { stripe: 50, razorpay: 50 }  // balanced split
-weights: { stripe: 20, razorpay: 80 }  // Razorpay-primary for INR cost savings
+function pickProvider(weights: Record<string, number>): "stripe" | "razorpay" {
+  const roll = Math.random() * 100;
+  return roll < weights.stripe! ? "stripe" : "razorpay";
+}
+
+async function charge(amount: number, currency: string, orderId: string) {
+  const provider = pickProvider({ stripe: 70, razorpay: 30 });
+  const { data, meta } =
+    provider === "stripe"
+      ? await meridian.provider("stripe")!.post("/v1/payment_intents", { body: { amount, currency } })
+      : await meridian.provider("razorpay")!.post("/v1/orders", {
+          body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+        });
+  return { provider, data, meta };
+}
+```
+
+Adjust weights as your confidence grows — no code change beyond the numbers passed to `pickProvider`:
+
+```typescript
+pickProvider({ stripe: 50, razorpay: 50 })  // balanced split
+pickProvider({ stripe: 20, razorpay: 80 })  // Razorpay-primary for INR cost savings
 ```
 
 ## Automatic Failover
 
-When one provider is down, the weighted strategy continues routing to it until its circuit breaker opens. For payments, you want failover behavior instead — any degradation on the primary should immediately route to the backup:
+For payments, you want degradation on the primary to route to the backup immediately, instead of continuing to split traffic to a provider that's down. Check the breaker before committing to Stripe:
 
 ```typescript
-services: {
-  payments: {
-    providers: ["stripe", "razorpay"],
-    strategy: "failover",   // Stripe first, Razorpay only if Stripe fails
-  },
-},
+async function chargeWithFailover(amount: number, currency: string, orderId: string) {
+  if (meridian.getCircuitStatus("stripe")?.state !== "OPEN") {
+    try {
+      const { data } = await meridian.provider("stripe")!.post("/v1/payment_intents", {
+        idempotencyKey: `charge_${orderId}`,
+        body: { amount, currency },
+      });
+      return { provider: "stripe", data };
+    } catch (err) {
+      if (!(err instanceof MeridianError) || !["provider", "network"].includes(err.category)) throw err;
+    }
+  }
+
+  const { data } = await meridian.provider("razorpay")!.post("/v1/orders", {
+    body: { amount, currency: currency.toUpperCase(), receipt: `receipt_${orderId}` },
+  });
+  return { provider: "razorpay", data };
+}
 ```
 
 Check the health of both providers at any time:
@@ -125,58 +133,28 @@ const health = meridian.health();
 // }
 ```
 
-When Razorpay's circuit breaker is `OPEN`, Meridian routes 100% of traffic to Stripe automatically — no manual intervention, no on-call page required. When Razorpay recovers, the circuit breaker closes and traffic resumes its normal distribution.
+When Stripe's circuit breaker is `OPEN`, the `meridian.getCircuitStatus("stripe")?.state !== "OPEN"` check above fails fast (under 1ms, no network call) and `chargeWithFailover` routes straight to Razorpay. When Stripe recovers, the breaker closes and the function starts trying Stripe again automatically — the routing code itself never changes, only the breaker's internal state does. A different provider has no way to know whether your first attempt actually went through, so this only ever applies before a charge succeeds, never as a blind retry of one that might have.
 
 ## Normalized Errors
 
 One of the less-glamorous benefits: a single error type regardless of which provider failed.
 
 ```typescript
-import { MeridianError } from "meridianjs";
-
 try {
-  const { data } = await meridian.service("payments")!.post("/v1/payment_intents", {
+  await meridian.provider("stripe")!.post("/v1/payment_intents", {
     body: { amount: 50000, currency: "inr" },
   });
 } catch (err) {
   if (err instanceof MeridianError) {
-    console.log(err.provider);   // "stripe" or "razorpay"
-    console.log(err.code);       // normalized error code
-    console.log(err.message);    // human-readable
+    console.log(err.provider);    // "stripe"
+    console.log(err.category);    // normalized category — "auth" | "rate_limit" | "network" | "provider" | "validation"
+    console.log(err.message);     // human-readable
   }
 }
 ```
 
-Your error handling logic doesn't need a `if provider === "stripe" ... else if provider === "razorpay"` branch. One catch block handles both.
+Your error handling logic doesn't need an `if provider === "stripe" ... else if provider === "razorpay"` branch on the *shape* of the error — `category`/`retryable`/`provider` are the same fields no matter which adapter threw. You still branch on `err.provider` to decide which endpoint to retry against, same as the routing functions above.
 
-## Production Setup for a Fintech Startup
-
-A production-ready config adds PII protection and separates standard payments from high-value transactions:
-
-```typescript
-import { Meridian, blockPII } from "meridianjs";
-
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    stripe:   { auth: { apiKey: process.env.STRIPE_SECRET_KEY } },
-    razorpay: { auth: { apiKey: process.env.RAZORPAY_KEY_ID } },
-  },
-  services: {
-    payments: {
-      providers: ["stripe", "razorpay"],
-      strategy: "weighted",
-      weights: { stripe: 70, razorpay: 30 },
-    },
-    payments_critical: {
-      providers: ["stripe", "razorpay"],
-      strategy: "failover",   // high-value: reliability over distribution
-    },
-  },
-  policies: [blockPII(["stripe", "razorpay"])],
-});
-```
-
-This pattern extends cleanly to other Indian payment providers as you need them — Cashfree for payouts, PayU for EMI flows, PhonePe for UPI-first experiences, Juspay for smart routing. Each addition is a config block, not a new SDK integration. Your payment business logic never changes.
+This pattern extends cleanly to other Indian payment providers as you need them — Cashfree for payouts, PayU for EMI flows, PhonePe for UPI-first experiences, Juspay for smart routing. Each addition gets the same retry/circuit-breaker/error-normalization for free; your dispatch function grows by one branch.
 
 `npm install meridianjs` — full docs and provider guides at [npmjs.com/package/meridianjs](https://www.npmjs.com/package/meridianjs).

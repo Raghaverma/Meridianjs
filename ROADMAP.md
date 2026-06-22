@@ -4,24 +4,36 @@ Future direction for the Meridian SDK — covering Indian and international prov
 
 ---
 
-## Execution Roadmap (v0.3 cycle)
+## Execution Roadmap (v0.3 cycle) ✅ DELIVERED
 
-The next milestone is proving Meridian can act as the control plane for third-party APIs, not just an SDK with reliability features. Priorities, in order:
+The milestone was proving Meridian can act as the control plane for third-party APIs, not just an SDK with reliability features. All shipped in v0.3.0 unless noted:
 
-1. **Adapter auto-generation** — `npx meridian add <provider>`: download the OpenAPI spec, generate the adapter, contract tests, pagination handler, retry classification, and normalization mappings. Generated code carries explicit `TODO(meridian-generator)` markers and a completeness score for everything inferred rather than known, so gaps are visible instead of discovered in production.
-2. **OpenTelemetry auto-instrumentation** — `telemetry: { provider: "opentelemetry" }` binds the existing OTel observability adapter to `@opentelemetry/api` (optional peer dep) with one line; documented exporter recipes for Datadog, Grafana, Honeycomb, and New Relic.
-3. **Reliability replay** — promote the debug recorder to first-class named sessions persisted under `.meridian/recordings/`; `meridian replay <name>` re-renders the outage locally: retries, failovers, breaker transitions, latency spikes.
-4. **Adaptive routing** — `strategy: "adaptive"` for services, scoring providers on success rate + latency + circuit-breaker state with explicit, configurable weights and deterministic tie-breaking. Cost/quota-aware routing deliberately deferred.
-5. **Migration tooling** — `npx meridian migrate <provider>`: scan a codebase for direct SDK/HTTP usage of a provider and report what maps cleanly to Meridian and what needs attention. Scanner first; no auto-rewrite.
-6. **Local contract registry** — `meridian registry snapshot/check/report`: versioned schema snapshots with drift history under `.meridian/registry/`, designed to be committed to git and enforced in CI. Hosted registry deferred until the local workflow proves out.
-7. **Hosted registry** — deferred (separate product decision).
-8. **WASM policy plugins** — `policies: [wasm("./policy.wasm")]` so teams can write policies in Rust/Go/Zig without arbitrary code execution. Parked until requested.
+1. ✅ **Adapter auto-generation** — `npx meridian add <provider>`: downloads the OpenAPI spec, generates the adapter, contract tests, pagination handler, retry classification, and normalization mappings. Generated code carries explicit `TODO(meridian-generator)` markers and a completeness score for everything inferred rather than known.
+2. ✅ **OpenTelemetry auto-instrumentation** — `telemetry: { provider: "opentelemetry" }` binds the OTel observability adapter to `@opentelemetry/api` (optional peer dep) with one line; exporter recipes for Datadog, Grafana, Honeycomb, and New Relic in [docs/opentelemetry.md](docs/opentelemetry.md).
+3. ✅ **Reliability replay** — named sessions persisted under `.meridian/recordings/`; `meridian replay <name>` re-renders the outage locally: retries, failovers, breaker transitions, latency spikes. See [docs/reliability-replay.md](docs/reliability-replay.md).
+4. ✅ **Adaptive routing** — `strategy: "adaptive"` for services, scoring providers on success rate + latency + circuit-breaker state with explicit, configurable weights and deterministic tie-breaking. Cost/quota-aware routing deliberately deferred (see v0.4 below — partially addressed for AI calls specifically).
+5. ✅ **Migration tooling** — `npx meridian migrate <provider>`: scans a codebase for direct SDK/HTTP usage and reports what maps cleanly to Meridian. Scanner only; no auto-rewrite.
+6. ✅ **Local contract registry** — `meridian registry snapshot/check/report`: versioned schema snapshots with drift history under `.meridian/registry/`, committed to git, enforced in CI. See [docs/registry.md](docs/registry.md).
+7. **Hosted registry** — still deferred (separate product decision).
+8. **WASM policy plugins** — still parked until requested.
 
 The shared `.meridian/` directory convention (already used by `FileSystemSchemaStorage` for schemas) extends to `recordings/` and `registry/` so replay and the registry use one on-disk layout.
 
 ---
 
-## Current State (v0.2.3)
+## Execution Roadmap (v0.4 cycle) ✅ DELIVERED
+
+The v0.3 cycle proved Meridian could generate, replay, and register contracts for itself. The v0.4 milestone was twofold: make that reliability data *visible* without a separate tool, and extend real (not just claimed) failover into the one domain where it's both possible and safe without per-provider request translation — LLM calls via the Vercel AI SDK.
+
+1. ✅ **Meridian Studio** — local dashboard for provider health, costs, circuit states, failovers, replay timelines, and schema drift. `await meridian.studio()` (in-process, live) or `meridian studio` (CLI, disk-only). The dashboard itself ships as a separate app, not part of this package. See [docs/studio.md](docs/studio.md).
+2. ✅ **`meridianjs/ai`** — Vercel AI SDK middleware (`meridianReliability()`, used with `wrapLanguageModel`). Real OpenAI↔Anthropic↔(any AI SDK provider) failover, retries, and circuit breaking — no request/response translation needed, because the AI SDK already normalizes every provider into one interface. See [docs/ai-sdk.md](docs/ai-sdk.md).
+3. ✅ **`check-release-facts.mjs`** — CI-enforced consistency between the registry/test suite and every hardcoded count in README.md/SECURITY.md, so documentation can't silently drift from reality (the kind of drift that caused the v0.3.4→v0.4.0 doc audit in the first place).
+
+---
+
+## Current State (v0.4.0)
+
+The adapter table below is a **historical snapshot from v0.2.3**, kept for the per-provider implementation notes further down this file. For the current, authoritative provider list, run `npm run providers:list` or see [README.md#providers](README.md#providers) — **46 adapters** as of v0.4.0.
 
 ### Built-in Adapters
 
@@ -433,6 +445,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 ---
 
 ## Version Targets
+
+> This table predates the v0.2–v0.4 releases and its quarter targets no longer
+> line up with what actually shipped in each version — kept for historical
+> context on original planning intent, not as a current schedule. For what
+> actually shipped in each release, see [CHANGELOG.md](CHANGELOG.md) (current:
+> v0.4.0).
 
 | Version | Target | Focus |
 |---|---|---|

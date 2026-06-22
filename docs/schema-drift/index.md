@@ -25,7 +25,7 @@ import { Meridian } from "meridianjs";
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
-    stripe: { baseUrl: "https://api.stripe.com", auth: { type: "bearer", token: process.env.STRIPE_KEY! } },
+    stripe: { baseUrl: "https://api.stripe.com", auth: { token: process.env.STRIPE_KEY! } },
   },
 });
 
@@ -65,7 +65,7 @@ import { Meridian } from "meridianjs";
 const meridian = await Meridian.create({
   localUnsafe: true,
   providers: {
-    stripe: { baseUrl: "https://api.stripe.com", auth: { type: "bearer", token: process.env.STRIPE_KEY! } },
+    stripe: { baseUrl: "https://api.stripe.com", auth: { token: process.env.STRIPE_KEY! } },
   },
 });
 

@@ -49,6 +49,7 @@ function checkAllOccurrences(file, label, pattern, expected) {
   }
 }
 
+checkAllOccurrences("README.md", "version badge", /version-(\d+\.\d+\.\d+)-blue/g, version);
 checkAllOccurrences("README.md", "adapters badge", /adapters-(\d+)-blueviolet/g, providerCount);
 checkAllOccurrences(
   "README.md",
@@ -76,6 +77,18 @@ checkAllOccurrences(
   "supported version",
   /\| (\d+\.\d+\.x)\s*\| :white_check_mark: \|/g,
   supportedRange,
+);
+checkAllOccurrences(
+  "docs/what-is-meridian.md",
+  "adapters count",
+  /contains\*? (\d+) adapters/g,
+  providerCount,
+);
+checkAllOccurrences(
+  "docs/what-is-meridian.md",
+  "adapters count (across all)",
+  /across all (\d+)\*/g,
+  providerCount,
 );
 
 if (failures.length > 0) {

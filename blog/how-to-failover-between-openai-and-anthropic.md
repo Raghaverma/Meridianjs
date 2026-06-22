@@ -3,6 +3,7 @@ title: "How to Automatically Fail Over Between OpenAI and Anthropic in Node.js"
 description: "Stop letting OpenAI outages crash your app. Set up automatic LLM provider failover with Meridian.js in under 10 minutes."
 tags: openai, anthropic, nodejs, typescript, reliability
 date: 2026-06-05
+updated: 2026-06-23
 ---
 
 # How to Automatically Fail Over Between OpenAI and Anthropic in Node.js
@@ -52,122 +53,81 @@ This looks reasonable until you think through what it's missing:
 
 The more providers you add, the worse this gets. Two providers doubles the code; three triples it.
 
-## The Right Fix: Provider-Agnostic Service Abstraction
+## The Right Fix: Wrap the Model, Not the Call
 
-Install Meridian.js:
+You might reach for a generic HTTP-level "service" abstraction here — call one endpoint, let a router pick the provider underneath. That works when providers share a request/response shape (two payment gateways, two SMS senders). It does **not** work for chat completions: OpenAI and Anthropic disagree on required fields, message format, and response shape, so there's nothing generic to route to. And a chat completion is a write — a naive router that blindly retries a failed write on a different provider risks running (and billing) the same generation twice.
+
+The actual fix for this specific problem is the [Vercel AI SDK](https://ai-sdk.dev): it already normalizes every provider into one `doGenerate`/`doStream` interface, so there's no schema-translation problem left to solve. Meridian's `meridianjs/ai` middleware wraps that normalized interface with retries, a circuit breaker, and failover:
 
 ```bash
-npm install meridianjs
+npm install meridianjs ai @ai-sdk/openai @ai-sdk/anthropic
 ```
-
-Then configure your LLM service with both providers:
 
 ```typescript
-import { Meridian } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 
-const meridian = await Meridian.create({
-  localUnsafe: true,
-  providers: {
-    openai:    { auth: { apiKey: process.env.OPENAI_API_KEY } },
-    anthropic: { auth: { apiKey: process.env.ANTHROPIC_API_KEY } },
-  },
-  services: {
-    llm: {
-      providers: ["openai", "anthropic"],
-      strategy: "failover",
-    },
-  },
-});
-```
-
-Now your call site looks like this:
-
-```typescript
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: {
-    model: "gpt-4o",
-    messages: [{ role: "user", content: "Summarize this contract." }],
-  },
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5")],
+    retry: { maxRetries: 2, baseDelay: 200 },
+  }),
 });
 
-console.log(data);              // response body
-console.log(meta.provider);    // "openai" or "anthropic"
+const { text, response } = await generateText({ model, prompt: "Summarize this contract." });
+
+console.log(text);              // the completion
+console.log(response.modelId);  // which model actually answered
 ```
 
-The service layer handles retries on the primary provider before promoting to failover. A transient rate limit doesn't trigger a provider switch — a genuine outage does. The circuit breaker tracks error rates per provider and stops attempting a degraded one automatically.
+The middleware retries the primary model first (a transient rate limit doesn't trigger failover — a genuine outage does), then moves to Anthropic only once retries are exhausted. The circuit breaker tracks failures per model and stops calling a degraded one until it recovers.
+
+This is also why failover here is safe even though chat completions are writes: providers bill only for completions actually returned, so a call that errors before producing output can't be double-charged by retrying it or trying a different model. That's a real distinction from Meridian's HTTP service layer (used for REST APIs like payments), which never auto-fails-over a `POST` — see [docs/failover/index.md](https://github.com/Raghaverma/meridianjs/blob/main/docs/failover/index.md) for why.
 
 ## Verifying Failover Actually Happened
 
-The `meta` object is your audit trail:
+`response.modelId` is your audit trail — log it on every call:
 
 ```typescript
-const { data, meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-  body: { model: "gpt-4o", messages: [{ role: "user", content: "Hello" }] },
-});
-
-console.log({
-  provider:       meta.provider,                  // which provider answered
-  latency:        meta.trace.latency,             // ms for this request
-  retries:        meta.trace.retries,             // how many retries before success
-  circuitBreaker: meta.trace.circuitBreaker,      // "OPEN" | "CLOSED" | "HALF_OPEN"
-});
+const { text, response } = await generateText({ model, prompt: message });
+console.log({ provider: response.modelId });
 ```
 
-In your logging pipeline, emit `meta.provider` on every LLM call. When OpenAI is down, you'll see `meta.provider === "anthropic"` spike in your logs — without a single user-facing error. That's the signal that failover is working.
+When OpenAI is down, you'll see Anthropic's model ID spike in your logs — without a single user-facing error. That's the signal that failover is working.
 
-You can also pull aggregate health at any time:
+For aggregate stats, pass an `ObservabilityAdapter` — the same interface Meridian's HTTP layer uses:
 
 ```typescript
-const health = meridian.health();
+import { AnalyticsCollector } from "meridianjs";
+import { meridianReliability } from "meridianjs/ai";
+
+const analytics = new AnalyticsCollector();
+const middleware = meridianReliability({
+  fallbacks: [anthropic("claude-opus-4-5")],
+  observability: [analytics],
+});
+
+// later
+console.log(analytics.get());
 // {
-//   openai:    { status: "degraded", successRate: "71.2%", circuitBreaker: "OPEN" },
-//   anthropic: { status: "healthy",  successRate: "99.8%", circuitBreaker: "CLOSED" }
+//   openai:    { requests: 1000, errorRate: "0.5%", avgLatency: 320 },
+//   anthropic: { requests: 12,   errorRate: "0.0%", avgLatency: 410 }
 // }
 ```
 
-When `circuitBreaker` is `"OPEN"` for a provider, Meridian stops routing to it until it recovers — no wasted latency on requests destined to fail.
+A spike in the Anthropic row's `requests` count, with `openai`'s error rate climbing alongside it, is exactly what an outage looks like in these numbers.
 
-## Beyond Failover: Lowest-Latency and Weighted Routing
+## What This Doesn't Cover
 
-Failover is just one strategy. If you're optimizing for response time rather than reliability alone, switch to `latency`:
-
-```typescript
-services: {
-  llm: {
-    providers: ["openai", "anthropic"],
-    strategy: "latency",   // always routes to whichever is faster right now
-  },
-},
-```
-
-Or use `weighted` to split traffic by ratio — useful for A/B testing models:
-
-```typescript
-services: {
-  llm: {
-    providers: ["openai", "anthropic"],
-    strategy: "weighted",
-    weights: { openai: 80, anthropic: 20 },
-  },
-},
-```
-
-Check analytics to see how each provider is performing over time:
-
-```typescript
-const stats = meridian.analytics();
-// {
-//   openai:    { requests: 1000, errorRate: "0.5%", avgLatency: 320, p95Latency: 650 },
-//   anthropic: { requests: 200,  errorRate: "0.1%", avgLatency: 280, p95Latency: 510 }
-// }
-```
-
-You get this data without instrumenting anything extra — it's tracked at the service layer automatically.
+To be precise about scope: `meridianReliability()` fails over **between models**, not between arbitrary strategies — there's no weighted-split or lowest-latency mode here (that's an HTTP-layer concept, for REST APIs with a shared request shape). It also doesn't retry mid-stream — only a `streamText()` call that fails before any token is emitted gets failed over; a connection that drops after streaming has started surfaces the error as-is, since silently retrying would duplicate output already sent to the caller. See [docs/ai-sdk.md](https://github.com/Raghaverma/meridianjs/blob/main/docs/ai-sdk.md) for the full picture.
 
 ## Ship It
 
 The next OpenAI outage will happen. The only question is whether your app handles it gracefully or you spend 40 minutes wiring up a manual fallback under pressure.
 
-Setting this up takes one config block and ten minutes. The return is that LLM provider downtime stops being a production incident.
+Setting this up takes one `wrapLanguageModel` call and ten minutes. The return is that LLM provider downtime stops being a production incident.
 
-`npm install meridianjs` — full docs at [npmjs.com/package/meridianjs](https://www.npmjs.com/package/meridianjs).
+`npm install meridianjs ai @ai-sdk/openai @ai-sdk/anthropic` — full docs at [npmjs.com/package/meridianjs](https://www.npmjs.com/package/meridianjs).

@@ -149,16 +149,17 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          registry-url: https://registry.npmjs.org
+      # No registry-url here: it makes setup-node write an empty _authToken line to
+      # .npmrc, which makes npm skip OIDC trusted publishing and fall back to OTP auth.
       - run: npm ci
+      # Trusted Publishing (OIDC) requires npm CLI >= 11.5.1; Node 20 ships an older bundled npm.
+      - run: npm install -g npm@latest
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist-release
           path: dist/
       - name: Publish
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 # ─── Build and push Docker image to GHCR ─────────────────────────────────────
 # Publishes ghcr.io/<owner>/meridian-proxy:v<version> and :latest.

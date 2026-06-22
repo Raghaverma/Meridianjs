@@ -1,35 +1,20 @@
-import { Meridian, MeridianError, blockPII } from "meridianjs";
+import { anthropic } from "@ai-sdk/anthropic";
+import { openai } from "@ai-sdk/openai";
+import { generateText, wrapLanguageModel } from "ai";
+import { meridianReliability } from "meridianjs/ai";
 import { type NextRequest, NextResponse } from "next/server";
 
-// Meridian is initialised once and reused across requests (module-level singleton).
-// In production, remove `localUnsafe: true` and provide proper auth via environment.
-let meridian: Awaited<ReturnType<typeof Meridian.create>> | null = null;
-
-async function getMeridian() {
-  if (meridian) return meridian;
-
-  meridian = await Meridian.create({
-    localUnsafe: true,
-    providers: {
-      openai: {
-        auth: { apiKey: process.env.OPENAI_API_KEY ?? "" },
-      },
-      anthropic: {
-        auth: { apiKey: process.env.ANTHROPIC_API_KEY ?? "" },
-      },
-    },
-    services: {
-      llm: {
-        providers: ["openai", "anthropic"],
-        strategy: "failover",
-        failoverOn: ["rate_limit", "network", "provider"],
-      },
-    },
-    policies: [blockPII(["openai", "anthropic"])],
-  });
-
-  return meridian;
-}
+// Built once and reused across requests (module-level singleton). The AI SDK
+// already normalizes OpenAI and Anthropic into one doGenerate/doStream
+// interface, so meridianReliability() doesn't need to translate anything —
+// it just retries, circuit-breaks, and fails over between the two.
+const model = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: meridianReliability({
+    fallbacks: [anthropic("claude-opus-4-5")],
+    retry: { maxRetries: 2, baseDelay: 200 },
+  }),
+});
 
 export async function POST(req: NextRequest) {
   let body: { message?: string };
@@ -45,61 +30,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "`message` is required" }, { status: 400 });
   }
 
-  const m = await getMeridian();
-  const llm = m.service("llm");
-
-  if (!llm) {
-    return NextResponse.json({ error: "LLM service not configured" }, { status: 500 });
-  }
-
   try {
-    const { data, meta } = await llm.post<{
-      choices: Array<{ message: { content: string } }>;
-    }>("/v1/chat/completions", {
-      body: {
-        model: "gpt-4o",
-        messages: [{ role: "user", content: message }],
-        max_tokens: 512,
-      },
-    });
+    const { text, response } = await generateText({ model, prompt: message });
 
-    console.log(`[meridian] provider=${meta.provider}  latency=${meta.trace.latency}ms  retries=${meta.trace.retries}`);
-
-    const reply = (data as { choices?: Array<{ message?: { content?: string } }> })
-      ?.choices?.[0]?.message?.content ?? "";
-
+    // response.modelId reflects whichever provider actually generated this
+    // response — OpenAI's adapter populates it from the real API response, so
+    // does Anthropic's. If OpenAI was down, this is Anthropic's model ID.
     return NextResponse.json(
-      { reply, provider: meta.provider },
-      {
-        headers: {
-          "x-meridian-provider": meta.provider,
-          "x-meridian-latency": String(meta.trace.latency),
-        },
-      },
+      { reply: text },
+      { headers: { "x-meridian-provider": response.modelId ?? "unknown" } },
     );
   } catch (err) {
-    if (err instanceof MeridianError) {
-      const status =
-        err.category === "auth"
-          ? 401
-          : err.category === "rate_limit"
-            ? 429
-            : err.category === "validation"
-              ? 422
-              : 502;
-
-      return NextResponse.json(
-        {
-          error: err.message,
-          category: err.category,
-          provider: err.provider,
-          retryable: err.retryable,
-        },
-        { status },
-      );
-    }
-
-    console.error("[meridian] unexpected error", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    // Every fallback failed too — meridianReliability already retried each
+    // model per its own circuit breaker before giving up.
+    console.error("[meridian] generation failed on every provider", err);
+    return NextResponse.json({ error: "All providers failed" }, { status: 502 });
   }
 }
