@@ -8,7 +8,7 @@ Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.3.4-blue)](CHANGELOG.md)
-[![tests](https://img.shields.io/badge/tests-2094%20passing-brightgreen)](https://vitest.dev)
+[![tests](https://img.shields.io/badge/tests-2104%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-46-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-874-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
@@ -95,6 +95,7 @@ Errors are always a `MeridianError` with `.category`, `.retryable`, and `.retryA
 - **[Schema drift detection](docs/schema-drift/index.md)** — snapshot provider contracts and gate CI on breaking changes
 - **[Contract registry](docs/registry.md)** — versioned snapshots under `.meridian/registry/`, designed to be committed to git
 - **[Reliability replay](docs/reliability-replay.md)** — record outage timelines and re-render them locally for post-mortems
+- **[Studio](docs/studio.md)** — local dashboard for health, costs, circuit states, failovers, replay timelines, and schema drift; `await meridian.studio()` or `meridian studio` from the CLI
 - **[Policy engine](docs/policies/index.md)** — `blockPII`, `redact`, `denyCountries`, `allowedProviders`, `readOnly` run before every request; no network round-trip on block
 - **[India / fintech](docs/fintech.md)** — 13 Indian payment adapters, UPI helpers, Aadhaar/PAN/VPA redaction, DPDPA compliance mode
 

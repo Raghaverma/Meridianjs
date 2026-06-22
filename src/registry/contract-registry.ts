@@ -189,6 +189,20 @@ export class ContractRegistry {
     return this.readHistory(provider, endpoint);
   }
 
+  /** Providers with at least one tracked endpoint, across the whole registry. */
+  async listProviders(): Promise<string[]> {
+    try {
+      const entries = await readdir(this.baseDir, { withFileTypes: true });
+      return entries
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+        .sort();
+    } catch (err) {
+      if (err instanceof Error && "code" in err && err.code === "ENOENT") return [];
+      throw err;
+    }
+  }
+
   /** Endpoints tracked for a provider (decoded from their latest snapshots). */
   async list(provider: string): Promise<string[]> {
     const dir = join(this.baseDir, provider);

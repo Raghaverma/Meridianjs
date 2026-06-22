@@ -9,6 +9,9 @@
  *   migrate <provider>    Scan a codebase for direct SDK/HTTP usage of a provider
  *   replay <name>         Replay a recorded reliability session
  *   registry <action>     Contract registry: snapshot | check | report | list
+ *   studio                Start the Meridian Studio HTTP API (disk-only;
+ *                         pair with the Meridian Studio dashboard app, or
+ *                         call `await meridian.studio()` in-process for live data)
  *
  * Run `meridian help <command>` for per-command flags.
  */
@@ -21,6 +24,7 @@ import { formatMigrationReport, scanForMigration } from "../migrate/scanner.js";
 import { ContractRegistry } from "../registry/contract-registry.js";
 import { renderTimeline, replaySession } from "../replay/replayer.js";
 import { ReliabilityStore } from "../replay/store.js";
+import { createStudioServer, type StudioServerOptions } from "../studio/server.js";
 
 interface ParsedArgs {
   positional: string[];
@@ -69,6 +73,10 @@ Commands:
                           .meridian/recordings ("meridian replay --list")
   registry <action>       snapshot | check | report | list — versioned response
                           schemas with drift history in .meridian/registry
+  studio                  Start the Meridian Studio HTTP API: --port --host
+                          --token --origin --registry-dir --recordings-dir
+                          (disk-only here; call meridian.studio() in-process
+                          for live health/cost/circuit-breaker data)
   help                    Show this message
 `;
 
@@ -277,6 +285,30 @@ async function runRegistry(argv: string[]): Promise<number> {
   }
 }
 
+async function runStudio(argv: string[]): Promise<number> {
+  const { flags } = parseArgs(argv, new Set());
+
+  const opts: StudioServerOptions = {};
+  if (typeof flags.port === "string") opts.port = Number.parseInt(flags.port, 10);
+  if (typeof flags.host === "string") opts.host = flags.host;
+  if (typeof flags.token === "string") opts.authToken = flags.token;
+  if (typeof flags.origin === "string") opts.allowedOrigin = flags.origin;
+  if (typeof flags["registry-dir"] === "string") opts.registryDir = flags["registry-dir"];
+  if (typeof flags["recordings-dir"] === "string") opts.recordingsDir = flags["recordings-dir"];
+
+  const handle = await createStudioServer(opts);
+  out(`Meridian Studio API listening at ${handle.url}`);
+  out("");
+  out("This is a disk-only server — replay sessions and schema-drift history");
+  out("are available now. Live health/cost/circuit-breaker/recording-control");
+  out("endpoints need a running app: call `await meridian.studio({ ... })`");
+  out("there instead of (or alongside) this CLI command.");
+  out("");
+  out("Open the dashboard (a separate app — see docs/studio.md for setup):");
+  out(`  set the API URL to ${handle.url} on its connect screen.`);
+  return 0;
+}
+
 async function main(): Promise<number> {
   const [command, ...rest] = process.argv.slice(2);
 
@@ -293,6 +325,8 @@ async function main(): Promise<number> {
         return await runReplay(rest);
       case "registry":
         return await runRegistry(rest);
+      case "studio":
+        return await runStudio(rest);
       case "help":
       case "--help":
       case undefined:

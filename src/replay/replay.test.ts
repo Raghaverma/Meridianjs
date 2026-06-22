@@ -298,9 +298,11 @@ describe("Meridian record/replay integration", () => {
 
     const name = meridian.startRecording("ci-incident");
     expect(name).toBe("ci-incident");
+    expect(meridian.recordingStatus()).toEqual({ active: true, sessionName: "ci-incident" });
     await meridian.provider("github")!.get("/ok");
     await meridian.provider("github")!.get("/flaky"); // 503 once, then retried to 200
     const session = await meridian.stopRecording({ dir });
+    expect(meridian.recordingStatus()).toEqual({ active: false, sessionName: null });
 
     expect(session.events.filter((e) => e.type === "request")).toHaveLength(2);
     const flaky = session.events.find((e) => e.type === "response" && e.endpoint === "/flaky");

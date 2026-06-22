@@ -85,6 +85,11 @@ import { IdempotencyResolver } from "./strategies/idempotency.js";
 import { RateLimiter } from "./strategies/rate-limit.js";
 import { RetryStrategy } from "./strategies/retry.js";
 import { SharedCooldownManager } from "./strategies/shared-cooldown.js";
+import {
+  createStudioServer,
+  type StudioServerHandle,
+  type StudioServerOptions,
+} from "./studio/server.js";
 import type { TransactionResult, TransactionStep } from "./transactions/saga.js";
 import { runTransaction } from "./transactions/saga.js";
 import { FileSystemSchemaStorage } from "./validation/schema-storage.js";
@@ -851,6 +856,25 @@ export class Meridian {
       name ?? `session-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")}`;
     this.reliabilityRecorder.start(sessionName);
     return sessionName;
+  }
+
+  /** Whether a reliability recording is currently active, and under what name. */
+  recordingStatus(): { active: boolean; sessionName: string | null } {
+    return {
+      active: this.reliabilityRecorder.recording,
+      sessionName: this.reliabilityRecorder.sessionName,
+    };
+  }
+
+  /**
+   * Starts the Meridian Studio HTTP API in-process, attached to this instance —
+   * health, cost, circuit-breaker, and recording-control endpoints serve live
+   * data. Pair it with the Meridian Studio dashboard (a separate app — see
+   * docs/studio.md) for a UI, or query the JSON endpoints directly.
+   */
+  async studio(opts: Omit<StudioServerOptions, "meridian"> = {}): Promise<StudioServerHandle> {
+    this.ensureStarted();
+    return createStudioServer({ ...opts, meridian: this });
   }
 
   /**

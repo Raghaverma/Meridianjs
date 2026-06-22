@@ -109,4 +109,13 @@ describe("ContractRegistry", () => {
     expect((await registry.report("nobody")).endpoints).toEqual([]);
     expect(await registry.history("nobody", "/x")).toEqual([]);
   });
+
+  it("lists every provider with at least one tracked endpoint", async () => {
+    expect(await registry.listProviders()).toEqual([]);
+
+    await registry.snapshot("stripe", "/v1/charges", V1);
+    await registry.snapshot("github", "/repos", { id: 1 });
+
+    expect(await registry.listProviders()).toEqual(["github", "stripe"]);
+  });
 });
