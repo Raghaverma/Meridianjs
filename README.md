@@ -8,7 +8,7 @@ Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.3.4-blue)](CHANGELOG.md)
-[![tests](https://img.shields.io/badge/tests-2104%20passing-brightgreen)](https://vitest.dev)
+[![tests](https://img.shields.io/badge/tests-2119%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-46-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-874-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
@@ -92,6 +92,7 @@ Errors are always a `MeridianError` with `.category`, `.retryable`, and `.retryA
 - **[Rate limiting](docs/rate-limits.md)** — token-bucket per provider with adaptive backoff; shared cooldown across all replicas via `RedisStateStorage` so a 429 on one process backs off the whole fleet
 - **[Circuit breaker](docs/circuit-breaker.md)** — per-provider; wraps the retry loop so 3 retries count as one logical failure, not three
 - **[Transactions](docs/transactions/index.md)** — multi-provider sagas with compensating rollbacks
+- **[Vercel AI SDK middleware](docs/ai-sdk.md)** — `meridianjs/ai`: retries, circuit breaking, and failover across language models via `wrapLanguageModel`, no request translation needed
 
 ### Observability & compliance
 - **[OpenTelemetry](docs/opentelemetry.md)** — one-line auto-instrumentation; exporter recipes for Datadog, Grafana, Honeycomb, New Relic
