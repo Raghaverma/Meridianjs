@@ -1,6 +1,6 @@
 # Meridian — Python client
 
-A thin gRPC client for the Meridian engine — the recommended way to use Meridian from Python. Point it at the Docker proxy and get all 47 providers, retries, circuit breaking, rate limiting, and normalized errors with no Python reimplementation required.
+A thin gRPC client for the Meridian engine — the recommended way to use Meridian from Python. Point it at the Docker proxy and get all 46 providers, retries, circuit breaking, rate limiting, and normalized errors with no Python reimplementation required.
 
 ```bash
 pip install meridian          # grpcio + protobuf only — no httpx required

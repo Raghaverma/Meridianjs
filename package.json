@@ -51,6 +51,7 @@
     "lint:ci": "biome ci .",
     "format": "biome format --write .",
     "providers:list": "node scripts/list-providers.mjs --pretty",
+    "check:release-facts": "node scripts/check-release-facts.mjs",
     "prepublishOnly": "npm run build",
     "proxy": "node dist/proxy/cli.js",
     "proxy:build": "npm run build && npm run proxy",

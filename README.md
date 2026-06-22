@@ -9,8 +9,8 @@ Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.3.4-blue)](CHANGELOG.md)
 [![tests](https://img.shields.io/badge/tests-2094%20passing-brightgreen)](https://vitest.dev)
-[![adapters](https://img.shields.io/badge/adapters-47-blueviolet)](#providers)
-[![contracts](https://img.shields.io/badge/contract%20tests-1637-brightgreen)](#providers)
+[![adapters](https://img.shields.io/badge/adapters-46-blueviolet)](#providers)
+[![contracts](https://img.shields.io/badge/contract%20tests-874-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
@@ -99,7 +99,7 @@ Errors are always a `MeridianError` with `.category`, `.retryable`, and `.retryA
 - **[India / fintech](docs/fintech.md)** — 13 Indian payment adapters, UPI helpers, Aadhaar/PAN/VPA redaction, DPDPA compliance mode
 
 ### Language support
-- **[Polyglot](docs/polyglot.md)** — `docker compose up -d` starts the gRPC engine; pre-built clients for **Go**, **Rust**, and **Python** get all 47 providers with no Node.js on the host
+- **[Polyglot](docs/polyglot.md)** — `docker compose up -d` starts the gRPC engine; pre-built clients for **Go**, **Rust**, and **Python** get all 46 providers with no Node.js on the host
 - **[CLI](docs/quickstart.md#cli)** — `meridian add <provider> --openapi ./spec.json` generates a fully-tested adapter from an OpenAPI spec
 - **[Pagination](docs/pagination.md)** — cursor, offset, and link-header strategies; `meta.pagination` is always the same shape
 
@@ -115,7 +115,7 @@ docker compose up -d    # gRPC engine on 127.0.0.1:4242
 ```
 
 ```go
-// Go — same normalized shape for all 47 providers
+// Go — same normalized shape for all 46 providers
 c, _ := meridian.Dial(ctx, "127.0.0.1:4242", meridian.WithToken(token))
 resp, _ := c.Get(ctx, "stripe", "/v1/customers")
 ```
@@ -144,7 +144,7 @@ See [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 ## Providers
 
-**47 adapters**, each passing the same 19 contract invariants (1637 contract tests). Verify any one locally: `npm run test:contracts stripe`.
+**46 adapters**, each passing the same 19 contract invariants (874 contract tests). Verify any one locally: `npm run test:contracts stripe`.
 
 | Category | Providers |
 |---|---|

@@ -48,6 +48,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      # Catches doc drift: provider/test counts and supported-version table
+      # hardcoded in README.md/SECURITY.md must match the actual registry/suite.
+      - run: npm run check:release-facts
       # `biome ci` is the strict, write-free CI mode: lint + format + import order.
       - run: npm run lint:ci
 
