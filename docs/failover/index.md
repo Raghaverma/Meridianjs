@@ -90,6 +90,21 @@ services: {
 }
 ```
 
+## Writes are never replayed on another provider
+
+Every strategy above only fails over for **idempotent** methods — `GET`, `PUT`,
+`DELETE`. A failed `POST`/`PATCH` (a charge, a chat completion, anything with a
+side effect) surfaces its error immediately instead of retrying on the next
+provider: the second provider never saw the first attempt, so it can't know
+whether the side effect already happened. Silently replaying it risks a
+duplicate charge or a duplicate LLM call billed twice.
+
+This means a `weighted`/`geo` payments service still splits *new* charges
+across providers as configured — but if the provider selected for a given
+charge is down, that charge fails with a clear, categorized error rather than
+silently retrying against the other provider. Decide the safe recovery
+yourself (idempotency key + manual retry, queue for reconciliation, etc.).
+
 ## Production Example
 
 Payments service using weighted 70/30 India vs global, with geo override:

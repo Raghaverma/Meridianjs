@@ -2,8 +2,15 @@
  * demo:failover
  *
  * Scenario: OpenAI is down. Your application calls service("llm") — it never
- * calls "openai" or "anthropic" directly. Meridian detects the failure and
- * routes the request to Anthropic instead, in the same call.
+ * calls "openai" or "anthropic" directly.
+ *
+ * Two requests, two outcomes, both by design:
+ *   - GET  (idempotent) → Meridian fails over to Anthropic automatically.
+ *   - POST (a write)    → Meridian refuses to fail over. Replaying a write on
+ *     a provider that never saw it could double the side effect (e.g. a
+ *     second LLM call billed twice, or worse for a payments provider). The
+ *     original error surfaces instead, with full retry/circuit context, so
+ *     you decide the safe recovery — see docs/failover/index.md.
  *
  * Run: npm run demo:failover
  */
@@ -17,22 +24,28 @@ import { banner, color, NarrativeObservability, section, sleep } from "./_shared
 const NO_RETRY = { maxRetries: 0 };
 const NO_BREAKER = { failureThreshold: 1_000_000, volumeThreshold: 1_000_000 };
 
-async function main() {
-  const net = new MockNetwork();
-  net.install();
-
-  const openai = net.register("openai-demo.mock", new MockAdapter("openai")).onRequest({}, () => {
+function outage(provider: string) {
+  return () => {
     throw new MeridianError(
       "service unavailable",
       "provider",
-      "openai",
+      provider,
       false,
       "",
       undefined,
       undefined,
       503,
     );
-  });
+  };
+}
+
+async function main() {
+  const net = new MockNetwork();
+  net.install();
+
+  const openai = net
+    .register("openai-demo.mock", new MockAdapter("openai"))
+    .onRequest({}, outage("openai"));
 
   const anthropic = net
     .register("anthropic-demo.mock", new MockAdapter("anthropic"))
@@ -62,23 +75,40 @@ async function main() {
     },
   });
 
-  section('service("llm").post("/v1/chat/completions")');
+  section('GET — service("llm").get("/v1/models") — idempotent, safe to retry elsewhere');
   await sleep(150);
 
   const start = performance.now();
-  const { meta } = await meridian.service("llm")!.post("/v1/chat/completions", {
-    body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
-  });
+  const { meta } = await meridian.service("llm")!.get("/v1/models");
   const elapsed = performance.now() - start;
 
-  section("Result");
-  console.log(`  Served by      : ${color.cyan(meta.provider)}`);
+  console.log(`\n  Served by      : ${color.cyan(meta.provider)}`);
   console.log(`  Recovery time  : ${color.bold(`${elapsed.toFixed(0)}ms`)}`);
-  console.log(`  Retries        : ${meta.trace?.retries ?? 0}`);
-  console.log(`  Circuit state  : ${meta.trace?.circuitBreaker}`);
   console.log(
-    `\n${color.green("✓")} Your application got a successful response. It never saw the OpenAI outage.\n`,
+    `  ${color.green("✓")} Your application got a successful response. It never saw the OpenAI outage.\n`,
   );
+
+  section('POST — service("llm").post("/v1/chat/completions") — a write, NOT failed over');
+  await sleep(150);
+
+  try {
+    await meridian.service("llm")!.post("/v1/chat/completions", {
+      body: { model: "gpt-4o", messages: [{ role: "user", content: "Summarize this contract." }] },
+    });
+    console.log(
+      `\n  ${color.red("✗")} Unexpected: this write should not have succeeded against a down provider.`,
+    );
+    process.exitCode = 1;
+  } catch (err) {
+    const e = err as MeridianError;
+    console.log(
+      `\n  ${color.yellow("⚠")}  Refused to fail over — category: ${e.category}, provider: ${e.provider}`,
+    );
+    console.log(
+      `  ${color.dim("Anthropic never saw this request, so it can't have run it twice.")} ` +
+        `${color.dim("Your app decides the retry — see docs/failover/index.md.")}\n`,
+    );
+  }
 
   net.restore();
 }

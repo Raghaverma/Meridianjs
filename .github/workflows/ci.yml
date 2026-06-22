@@ -95,6 +95,27 @@ jobs:
           path: coverage/
           retention-days: 7
 
+# ─── Level 1: Flagship demos ─────────────────────────────────────────────────
+# These are the exact scenarios shown in README/docs (failover, circuit
+# breaker, schema drift, adaptive routing). They must exit 0 — a broken demo
+# means a broken claim shipping in the docs.
+  demos:
+    name: Demos — ${{ matrix.demo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        demo: [failover, circuit-breaker, schema-drift, service-routing]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run "demo:${{ matrix.demo }}"
+
 # ─── Level 1: Build ──────────────────────────────────────────────────────────
   build:
     name: Build

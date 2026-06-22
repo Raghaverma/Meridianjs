@@ -2,9 +2,9 @@
 
 # Meridian
 
-**One contract. Every API.**
+**Reliability middleware for third-party APIs.**
 
-Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"..."}}`. Razorpay returns something else entirely. Meridian normalizes all of it — errors, rate limits, pagination, retries — so your application never has to care which provider is behind a call.
+Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"..."}}`. Razorpay returns something else entirely. Meridian normalizes all of it — errors, rate limits, pagination, retries — so your application never has to care which provider is behind a call. When a provider goes down, idempotent requests (`GET`/`PUT`/`DELETE`) fail over to a healthy one automatically; writes are never silently replayed, since the next provider has no way to know whether the original attempt already happened.
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.3.4-blue)](CHANGELOG.md)
@@ -52,16 +52,19 @@ const meridian = await Meridian.create({
 // Define a service — your app calls "llm", never "openai" or "anthropic" directly.
 const llm = meridian.service("llm", ["openai", "anthropic"]);
 
-// OpenAI goes down at 2am. Meridian fails over to Anthropic in ~27ms.
-// Your app doesn't change. Your on-call doesn't wake up.
-const { data, meta } = await llm.post("/v1/chat/completions", { body: { ... } });
+// OpenAI goes down at 2am. GET is idempotent, so Meridian fails over to
+// Anthropic automatically — no risk of double-running the request.
+const { data, meta } = await llm.get("/v1/models");
 
 meta.rateLimit.remaining   // always normalized — same field, every provider
 meta.pagination?.hasNext   // same
 meta.trace.latency         // ms, always present
 meta.trace.retries         // how many retries were needed
 meta.trace.circuitBreaker  // CLOSED | OPEN | HALF_OPEN
+meta.trace.provider        // which provider actually served this request
 ```
+
+Writes (`POST`/`PATCH`) are never silently replayed on another provider — a failed write surfaces its error immediately instead of risking a duplicate charge or a duplicate LLM call billed twice. See [failover strategies](docs/failover/index.md) for the full picture, including what changes once you add an idempotency key.
 
 Errors are always a `MeridianError` with `.category`, `.retryable`, and `.retryAfter` — no more parsing provider-specific shapes to decide whether to retry.
 
