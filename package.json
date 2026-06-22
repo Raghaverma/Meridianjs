@@ -1,6 +1,6 @@
 {
   "name": "meridianjs",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Reliability middleware for third-party APIs in TypeScript — circuit breakers, automatic failover, rate-limit coordination, schema-drift detection, and incident replay.",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",

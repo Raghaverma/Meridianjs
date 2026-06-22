@@ -24,7 +24,7 @@ from .contract import (
     ResponseMeta,
 )
 
-__version__ = "0.3.4"
+__version__ = "0.4.0"
 
 __all__ = [
     "Meridian",

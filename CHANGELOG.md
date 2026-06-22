@@ -8,6 +8,27 @@ All notable changes to Meridian are documented here.
 
 ---
 
+## [0.4.0] — 2026-06-22
+
+### Added
+
+- **Meridian Studio** — a local dashboard for provider health, costs, circuit states, failovers, replay timelines, and schema drift. `await meridian.studio({ port, authToken })` starts the API server in-process with live data; `meridian studio` starts it standalone (disk-only — replay sessions and schema-drift history work without a running app). The dashboard itself ships as a separate app, not part of this package. New supporting methods: `Meridian.recordingStatus()`, `ContractRegistry.listProviders()`. See [docs/studio.md](docs/studio.md).
+- **`meridianjs/ai`** — Vercel AI SDK middleware. `meridianReliability()` is a `LanguageModelV3Middleware` (use with `wrapLanguageModel`) that wraps language-model calls with retries, circuit breaking, and failover across models, plus the same `ObservabilityAdapter` interface used for HTTP calls. No request/response translation needed — the AI SDK already normalizes every provider into one `doGenerate`/`doStream` interface. Defaults `failoverOn` to `["rate_limit", "network", "provider"]`, excluding `auth`/`validation` (a bad key is a config problem, not an outage — matches `ServiceClient`'s existing default). `ai`/`@ai-sdk/provider` are new optional peer dependencies. See [docs/ai-sdk.md](docs/ai-sdk.md).
+- **`scripts/check-release-facts.mjs`** — verifies the provider count, contract-test count, total test count, and SECURITY.md's supported-version range against the real registry/test suite; wired into CI (`npm run check:release-facts`) so docs can't silently drift from reality again.
+- All four `demo:*` scripts (`failover`, `circuit-breaker`, `schema-drift`, `service-routing`) are now a mandatory CI gate — none were previously run in CI.
+
+### Fixed
+
+- **The flagship README/demo failover example didn't work.** POST/PATCH failover was correctly disabled back in 0.3.3 to prevent duplicate side effects, but the README's quick-start and `demo:failover` still called `.post()` and claimed automatic OpenAI→Anthropic failover — so `npm run demo:failover` crashed with an unhandled `MeridianError`, and anyone following the README hit the same wall. `demo:failover` now demonstrates the real, current behavior: a `GET` fails over to Anthropic automatically (idempotent, safe), while a `POST` is correctly refused failover with a clear error explaining why. `docs/failover/index.md` now states the idempotent-only failover rule explicitly, since its payments example had the same false-safety implication.
+- **README and package.json provider/test counts were stale.** README claimed 47 adapters and 1637 contract tests; the actual registry has 46 adapters and 874 contract tests (19 invariants × 46 providers, verified via `vitest list`). SECURITY.md still listed `0.2.x` as supported. `biome.json`'s `$schema` pointed at an older Biome version than the one installed.
+
+### Changed
+
+- README headline changed from "One contract. Every API." to "Reliability middleware for third-party APIs." — the original implied Meridian translates request/response bodies between different providers' APIs, which it doesn't (and structurally can't, generically, across unrelated business domains — that's what the new `meridianjs/ai` middleware solves for the one domain where it's actually possible, because the AI SDK already did the normalization).
+- npm package `description` and `keywords` expanded for discoverability (`failover`, `resilience`, `fault-tolerance`, `incident-replay`, `schema-drift`, `opentelemetry`, `openai`, `anthropic`, `llm`, `nodejs`, etc.) — previously only 6 generic keywords.
+
+---
+
 ## [0.3.4] — 2026-06-20
 
 ### Changed
