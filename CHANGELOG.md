@@ -6,6 +6,10 @@ All notable changes to Meridian are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **`meridian doctor`** — a read-only, severity-ranked health check. It reads what already lives on disk inside `.meridian/` (the contract registry's drift history and the reliability recordings) plus the runtime, and reports a single ranked list of findings: schemas with breaking changes or that have gone stale, recorded sessions where a circuit breaker opened / most requests failed / retries stormed / latency spiked, and which optional integrations (`ai`, `@grpc/grpc-js`, `@opentelemetry/api`) are installed. No network calls or running app required — the same disk-only contract as `meridian studio`. Exits non-zero on critical findings; `--strict` also fails on warnings (a drop-in CI gate), `--json` emits the full report. See [docs/doctor.md](docs/doctor.md).
+
 ---
 
 ## [0.4.0] — 2026-06-22
