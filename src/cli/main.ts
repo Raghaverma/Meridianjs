@@ -9,6 +9,7 @@
  *   migrate <provider>    Scan a codebase for direct SDK/HTTP usage of a provider
  *   replay <name>         Replay a recorded reliability session
  *   registry <action>     Contract registry: snapshot | check | report | list
+ *   doctor                Audit-ranked health check of .meridian/ + environment
  *   studio                Start the Meridian Studio HTTP API (disk-only;
  *                         pair with the Meridian Studio dashboard app, or
  *                         call `await meridian.studio()` in-process for live data)
@@ -25,6 +26,7 @@ import { ContractRegistry } from "../registry/contract-registry.js";
 import { renderTimeline, replaySession } from "../replay/replayer.js";
 import { ReliabilityStore } from "../replay/store.js";
 import { createStudioServer, type StudioServerOptions } from "../studio/server.js";
+import { type DoctorOptions, diagnose, formatDoctorReport } from "./doctor.js";
 
 interface ParsedArgs {
   positional: string[];
@@ -73,6 +75,10 @@ Commands:
                           .meridian/recordings ("meridian replay --list")
   registry <action>       snapshot | check | report | list — versioned response
                           schemas with drift history in .meridian/registry
+  doctor                  Ranked health check of the registry, recordings, and
+                          runtime: --json --strict --registry-dir --recordings-dir
+                          (exits non-zero on critical findings; --strict also on
+                          warnings, for CI)
   studio                  Start the Meridian Studio HTTP API: --port --host
                           --token --origin --registry-dir --recordings-dir
                           (disk-only here; call meridian.studio() in-process
@@ -285,6 +291,22 @@ async function runRegistry(argv: string[]): Promise<number> {
   }
 }
 
+async function runDoctor(argv: string[]): Promise<number> {
+  const { flags } = parseArgs(argv, new Set(["json", "strict"]));
+
+  const opts: DoctorOptions = {};
+  if (typeof flags["registry-dir"] === "string") opts.registryDir = flags["registry-dir"];
+  if (typeof flags["recordings-dir"] === "string") opts.recordingsDir = flags["recordings-dir"];
+
+  const report = await diagnose(opts);
+  out(flags.json ? JSON.stringify(report, null, 2) : formatDoctorReport(report));
+
+  // Critical findings always fail; --strict escalates warnings too (for CI gates).
+  if (report.counts.critical > 0) return 1;
+  if (flags.strict === true && report.counts.warning > 0) return 1;
+  return 0;
+}
+
 async function runStudio(argv: string[]): Promise<number> {
   const { flags } = parseArgs(argv, new Set());
 
@@ -325,6 +347,8 @@ async function main(): Promise<number> {
         return await runReplay(rest);
       case "registry":
         return await runRegistry(rest);
+      case "doctor":
+        return await runDoctor(rest);
       case "studio":
         return await runStudio(rest);
       case "help":
