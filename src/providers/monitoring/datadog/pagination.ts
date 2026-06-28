@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 /**
  * Datadog's v2 search APIs (Logs, Events, Spans, ...) return a cursor for the

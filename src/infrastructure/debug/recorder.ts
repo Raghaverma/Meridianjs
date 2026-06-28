@@ -6,7 +6,7 @@ import type {
   RequestOptions,
   RequestTrace,
   ResponseContext,
-} from "../core/types.js";
+} from "../../core/types.js";
 
 export interface RequestRecording {
   requestId: string;

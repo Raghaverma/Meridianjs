@@ -21,10 +21,10 @@ import { readFile } from "node:fs/promises";
 import { addProvider, formatAddResult } from "../generator/add.js";
 import { type GeneratorOptions, generate } from "../generator/index.js";
 import { listKnownProviders } from "../generator/registry.js";
+import { ContractRegistry } from "../infrastructure/registry/contract-registry.js";
+import { renderTimeline, replaySession } from "../infrastructure/replay/replayer.js";
+import { ReliabilityStore } from "../infrastructure/replay/store.js";
 import { formatMigrationReport, scanForMigration } from "../migrate/scanner.js";
-import { ContractRegistry } from "../registry/contract-registry.js";
-import { renderTimeline, replaySession } from "../replay/replayer.js";
-import { ReliabilityStore } from "../replay/store.js";
 import { createStudioServer, type StudioServerOptions } from "../studio/server.js";
 import { type DoctorOptions, diagnose, formatDoctorReport } from "./doctor.js";
 

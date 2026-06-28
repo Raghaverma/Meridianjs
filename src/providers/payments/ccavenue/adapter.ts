@@ -5,7 +5,7 @@ import {
   createHmac,
   timingSafeEqual,
 } from "node:crypto";
-import { ResponseNormalizer } from "../../core/normalizer.js";
+import { ResponseNormalizer } from "../../../core/normalizer.js";
 import type {
   AdapterInput,
   AuthConfig,
@@ -17,8 +17,8 @@ import type {
   ProviderAdapter,
   RateLimitInfo,
   RawResponse,
-} from "../../core/types.js";
-import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
+} from "../../../core/types.js";
+import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../../core/types.js";
 import { CcavenuePaginationStrategy } from "./pagination.js";
 
 interface CcavenueErrorBody {

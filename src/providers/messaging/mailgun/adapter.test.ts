@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { AuthConfig, RawResponse } from "../../../core/types.js";
 import { MailgunAdapter } from "./adapter.js";
 
 describe("Mailgun Adapter - Contract Tests", () => {

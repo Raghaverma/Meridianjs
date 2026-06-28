@@ -192,4 +192,4 @@ The `"validation"` category means the retry strategy will not retry a blocked re
 
 - [Policies how-to](policies/index.md) — configuration reference and production examples
 - [RequestPipeline source](../src/core/pipeline.ts) — evaluation loop at line 135
-- [Built-in policies source](../src/policies/index.ts)
+- [Built-in policies source](../src/orchestration/policies/index.ts)

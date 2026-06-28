@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../../core/types.js";
 import { Auth0Adapter } from "./adapter.js";
 
 describe("Auth0 Adapter - Contract Tests", () => {

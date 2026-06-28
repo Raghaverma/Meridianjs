@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 /**
  * Google Maps Places API uses `next_page_token` in the JSON response body.

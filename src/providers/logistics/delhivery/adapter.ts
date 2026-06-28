@@ -1,5 +1,5 @@
-import { parseRetryAfter } from "../../core/header-parser.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
+import { parseRetryAfter } from "../../../core/header-parser.js";
+import { ResponseNormalizer } from "../../../core/normalizer.js";
 import type {
   AdapterInput,
   AuthConfig,
@@ -11,8 +11,8 @@ import type {
   ProviderAdapter,
   RateLimitInfo,
   RawResponse,
-} from "../../core/types.js";
-import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
+} from "../../../core/types.js";
+import { type IdempotencyLevel, MeridianError, SDK_VERSION } from "../../../core/types.js";
 import { DelhiveryPaginationStrategy } from "./pagination.js";
 
 interface DelhiveryErrorBody {

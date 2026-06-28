@@ -432,10 +432,10 @@ Low priority for v1, but increasingly needed as GitHub's v4 API, Shopify, and ot
 
 The fastest path to adding a provider:
 
-1. Create `src/providers/<name>/pagination.ts` — implement `PaginationStrategy`
-2. Create `src/providers/<name>/adapter.ts` — implement `ProviderAdapter`
-3. Create `src/providers/<name>/index.ts` — re-export both
-4. Create `src/providers/<name>/adapter.test.ts` — contract tests (see `github/adapter.test.ts` as the reference)
+1. Create `src/providers/<category>/<name>/pagination.ts` — implement `PaginationStrategy`
+2. Create `src/providers/<category>/<name>/adapter.ts` — implement `ProviderAdapter`
+3. Create `src/providers/<category>/<name>/index.ts` — re-export both
+4. Create `src/providers/<category>/<name>/adapter.test.ts` — contract tests (see `crm/github/adapter.test.ts` as the reference)
 5. Register in `src/index.ts` `BUILTIN_ADAPTER_CLASSES`
 6. Export from `src/public.ts`
 7. Add `provider(name: "<name>")` overload in `src/index.ts`

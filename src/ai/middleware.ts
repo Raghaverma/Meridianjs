@@ -12,9 +12,9 @@ import type {
   RetryConfig,
 } from "../core/types.js";
 import { IdempotencyLevel, MeridianError } from "../core/types.js";
-import { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
-import { IdempotencyResolver } from "../strategies/idempotency.js";
-import { RetryStrategy } from "../strategies/retry.js";
+import { ProviderCircuitBreaker } from "../resilience/circuit-breaker.js";
+import { IdempotencyResolver } from "../resilience/idempotency.js";
+import { RetryStrategy } from "../resilience/retry.js";
 import { type ClassifiedError, classifyAiError } from "./errors.js";
 
 export type { ClassifiedError } from "./errors.js";

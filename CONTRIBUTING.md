@@ -14,11 +14,11 @@ The fastest way to contribute is to implement one of the 17+ registered-but-not-
 
 ### Step-by-step
 
-1. **Create `src/providers/<name>/pagination.ts`**
+1. **Create `src/providers/<category>/<name>/pagination.ts`**
 
    Implement `PaginationStrategy`. Use `StripePaginationStrategy` (cursor-based) or `RazorpayPaginationStrategy` (offset-based) as references depending on what the provider uses.
 
-2. **Create `src/providers/<name>/adapter.ts`**
+2. **Create `src/providers/<category>/<name>/adapter.ts`**
 
    Implement `ProviderAdapter`. Every adapter must implement:
    - `buildRequest` — construct URL, headers (auth), body, query params
@@ -29,18 +29,18 @@ The fastest way to contribute is to implement one of the 17+ registered-but-not-
    - `paginationStrategy` — return your pagination strategy instance
    - `getIdempotencyConfig` — declare which operations support idempotency keys
 
-   Use `src/providers/stripe/adapter.ts` (payment provider) or `src/providers/github/adapter.ts` (token auth) as templates.
+   Use `src/providers/payments/stripe/adapter.ts` (payment provider) or `src/providers/crm/github/adapter.ts` (token auth) as templates.
 
-3. **Create `src/providers/<name>/index.ts`**
+3. **Create `src/providers/<category>/<name>/index.ts`**
 
    ```typescript
    export * from "./adapter.js";
    export * from "./pagination.js";
    ```
 
-4. **Create `src/providers/<name>/adapter.test.ts`**
+4. **Create `src/providers/<category>/<name>/adapter.test.ts`**
 
-   Follow `src/providers/github/adapter.test.ts` exactly. Required test coverage:
+   Follow `src/providers/crm/github/adapter.test.ts` exactly. Required test coverage:
    - `buildRequest`: auth header, query params, JSON body, idempotency key, no body on GET
    - `parseResponse`: normalized shape, pagination extraction
    - `parseError`: all canonical status codes (401, 403, 404, 400, 422, 429, 500, 5xx, network error)
@@ -56,7 +56,7 @@ The fastest way to contribute is to implement one of the 17+ registered-but-not-
 6. **Export from `src/public.ts`**
 
    ```typescript
-   export { YourAdapter } from "./providers/your-provider/adapter.js";
+   export { YourAdapter } from "./providers/<category>/your-provider/adapter.js";
    ```
 
 7. **Update `CHANGELOG.md`** under `[Unreleased]`.

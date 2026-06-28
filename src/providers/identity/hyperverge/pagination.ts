@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class HyperVergePaginationStrategy implements PaginationStrategy {
   // HyperVerge is a transactional KYC API — no cursor-based pagination

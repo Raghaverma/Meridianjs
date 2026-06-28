@@ -1,4 +1,4 @@
-import type { StateStorage } from "../core/types.js";
+import type { StateStorage } from "../../core/types.js";
 
 /** Minimal interface satisfied by ioredis, node-redis, and most Redis clients. */
 export interface RedisLikeClient {

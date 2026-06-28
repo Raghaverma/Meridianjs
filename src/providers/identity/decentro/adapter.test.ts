@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MeridianError, RawResponse } from "../../core/types.js";
+import type { MeridianError, RawResponse } from "../../../core/types.js";
 import { DecentroAdapter } from "./adapter.js";
 
 describe("DecentroAdapter - Contract Tests", () => {

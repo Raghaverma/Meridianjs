@@ -5,7 +5,10 @@ import * as protoLoader from "@grpc/proto-loader";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { BoundaryGrpcServer } from "./grpc-server.js";
 
-const PROTO_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../../proto/meridian.proto");
+const PROTO_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../proto/meridian.proto",
+);
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
   keepCase: true,

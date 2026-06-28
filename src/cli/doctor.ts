@@ -1,8 +1,8 @@
 import { CircuitState } from "../core/types.js";
 import { SDK_VERSION } from "../core/version.generated.js";
-import { ContractRegistry } from "../registry/contract-registry.js";
-import { summarizeSession } from "../replay/replayer.js";
-import { ReliabilityStore } from "../replay/store.js";
+import { ContractRegistry } from "../infrastructure/registry/contract-registry.js";
+import { summarizeSession } from "../infrastructure/replay/replayer.js";
+import { ReliabilityStore } from "../infrastructure/replay/store.js";
 
 /**
  * `meridian doctor` — a read-only, audit-ranked health check.

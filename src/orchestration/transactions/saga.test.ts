@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NormalizedResponse } from "../core/types.js";
-import { MeridianError } from "../core/types.js";
+import type { NormalizedResponse } from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
 import type { TransactionStep } from "./saga.js";
 import { runTransaction, TransactionError } from "./saga.js";
 

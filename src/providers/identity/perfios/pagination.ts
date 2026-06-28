@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class PerfiosPaginationStrategy implements PaginationStrategy {
   // Perfios is a report-retrieval API (bank statement analysis).

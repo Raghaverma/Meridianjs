@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, MeridianError, RawResponse } from "../../core/types.js";
+import type { AuthConfig, MeridianError, RawResponse } from "../../../core/types.js";
 import { OpenAIAdapter } from "./adapter.js";
 
 describe("OpenAI Adapter - Contract Tests", () => {

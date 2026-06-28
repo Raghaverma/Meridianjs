@@ -1,5 +1,5 @@
-import { parseRateLimitHeaders, parseRetryAfter } from "../../core/header-parser.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
+import { parseRateLimitHeaders, parseRetryAfter } from "../../../core/header-parser.js";
+import { ResponseNormalizer } from "../../../core/normalizer.js";
 import type {
   AdapterInput,
   AuthConfig,
@@ -11,8 +11,8 @@ import type {
   ProviderAdapter,
   RateLimitInfo,
   RawResponse,
-} from "../../core/types.js";
-import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
+} from "../../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../../core/types.js";
 import { GitHubPaginationStrategy } from "./pagination.js";
 
 interface GitHubErrorResponse {

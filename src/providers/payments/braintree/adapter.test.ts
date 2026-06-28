@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { AuthConfig, RawResponse } from "../../../core/types.js";
 import { BraintreeAdapter } from "./adapter.js";
 
 describe("Braintree Adapter - Contract Tests", () => {

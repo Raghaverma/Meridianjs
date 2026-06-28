@@ -1,9 +1,12 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { Meridian } from "../index.js";
-import { isLoopbackHost, safeEqual } from "../proxy/shared.js";
-import { ContractRegistry, DEFAULT_REGISTRY_DIR } from "../registry/contract-registry.js";
-import { summarizeSession } from "../replay/replayer.js";
-import { DEFAULT_RECORDINGS_DIR, ReliabilityStore } from "../replay/store.js";
+import {
+  ContractRegistry,
+  DEFAULT_REGISTRY_DIR,
+} from "../infrastructure/registry/contract-registry.js";
+import { summarizeSession } from "../infrastructure/replay/replayer.js";
+import { DEFAULT_RECORDINGS_DIR, ReliabilityStore } from "../infrastructure/replay/store.js";
+import { isLoopbackHost, safeEqual } from "../networking/proxy/shared.js";
 
 export interface StudioServerOptions {
   /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ErrorContext, ResponseContext } from "../core/types.js";
-import { MeridianError } from "../core/types.js";
+import type { ErrorContext, ResponseContext } from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
 import { AnalyticsCollector } from "./collector.js";
 
 const makeResponseCtx = (provider: string, duration: number): ResponseContext => ({

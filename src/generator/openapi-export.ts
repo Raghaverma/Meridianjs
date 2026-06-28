@@ -1,5 +1,5 @@
 import type { Schema } from "../core/types.js";
-import type { SchemaReport } from "../schema/monitor.js";
+import type { SchemaReport } from "../infrastructure/schema/monitor.js";
 
 export type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 

@@ -1,4 +1,4 @@
-import type { StateStorage } from "../core/types.js";
+import type { StateStorage } from "../../core/types.js";
 
 /** Minimal interface satisfied by @upstash/redis Redis client. */
 export interface UpstashRedisClient {

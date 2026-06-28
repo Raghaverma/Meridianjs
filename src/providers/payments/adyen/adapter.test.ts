@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { AuthConfig, RawResponse } from "../../../core/types.js";
 import { AdyenAdapter } from "./adapter.js";
 
 describe("Adyen Adapter - Contract Tests", () => {

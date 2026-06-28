@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class KarzaPaginationStrategy implements PaginationStrategy {
   // Karza is a stateless verification API — no cursor-based pagination

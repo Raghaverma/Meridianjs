@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { ResponseNormalizer } from "../../core/normalizer.js";
+import { ResponseNormalizer } from "../../../core/normalizer.js";
 import type {
   AdapterInput,
   AuthConfig,
@@ -11,8 +11,8 @@ import type {
   ProviderAdapter,
   RateLimitInfo,
   RawResponse,
-} from "../../core/types.js";
-import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../core/types.js";
+} from "../../../core/types.js";
+import { IdempotencyLevel, MeridianError, SDK_VERSION } from "../../../core/types.js";
 import { S3PaginationStrategy } from "./pagination.js";
 import { type SigV4Credentials, signSigV4 } from "./sigv4.js";
 

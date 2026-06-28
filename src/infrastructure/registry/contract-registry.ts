@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Schema, SchemaDrift } from "../core/types.js";
+import type { Schema, SchemaDrift } from "../../core/types.js";
 import { inferSchema } from "../schema/monitor.js";
 import { DriftDetector } from "../validation/drift-detector.js";
 

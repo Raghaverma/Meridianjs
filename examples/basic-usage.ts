@@ -1,7 +1,7 @@
 import { Meridian } from "../src/index.js";
-import { ConsoleObservability } from "../src/observability/console.js";
-import { GitHubAdapter } from "../src/providers/github/index.js";
-import { FileSystemSchemaStorage } from "../src/validation/schema-storage.js";
+import { ConsoleObservability } from "../src/infrastructure/observability/console.js";
+import { GitHubAdapter } from "../src/providers/crm/github/index.js";
+import { FileSystemSchemaStorage } from "../src/infrastructure/validation/schema-storage.js";
 
 async function main() {
   const meridian = await Meridian.create({

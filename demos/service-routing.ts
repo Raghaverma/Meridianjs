@@ -11,7 +11,7 @@
 
 import { MockNetwork } from "../benchmarks/harness.js";
 import { Meridian } from "../src/index.js";
-import { NoOpObservability } from "../src/observability/noop.js";
+import { NoOpObservability } from "../src/infrastructure/observability/noop.js";
 import { MockAdapter } from "../src/testing/mock-adapter.js";
 import { banner, color, section, sleep } from "./_shared.js";
 

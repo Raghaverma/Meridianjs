@@ -1,13 +1,13 @@
-import type { StreamChunk } from "../core/streaming.js";
+import type { StreamChunk } from "../../core/streaming.js";
 import type {
   BatchRequest,
   MeridianErrorCategory,
   NormalizedResponse,
   RequestOptions,
   ServiceConfig,
-} from "../core/types.js";
-import { MeridianError } from "../core/types.js";
-import type { ProviderClient } from "../index.js";
+} from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
+import type { ProviderClient } from "../../index.js";
 
 type RoutableMethod = "get" | "post" | "put" | "patch" | "delete";
 

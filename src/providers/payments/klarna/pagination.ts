@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class KlarnaPaginationStrategy implements PaginationStrategy {
   extractCursor(_response: RawResponse): string | null {

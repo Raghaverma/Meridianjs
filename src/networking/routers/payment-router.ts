@@ -1,6 +1,6 @@
-import type { NormalizedResponse, RequestOptions } from "../core/types.js";
-import { MeridianError } from "../core/types.js";
-import type { ProviderClient } from "../index.js";
+import type { NormalizedResponse, RequestOptions } from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
+import type { ProviderClient } from "../../index.js";
 
 export interface PaymentRouterOptions {
   /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PolicyContext } from "../core/types.js";
+import type { PolicyContext } from "../../core/types.js";
 import {
   allowedProviders,
   blockedProviders,

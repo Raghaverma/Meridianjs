@@ -5,10 +5,6 @@
  * All other modules are internal implementation details.
  */
 
-export type { CostEntry, CostReport } from "./analytics/collector.js";
-export type { HealthEntry, ProviderStats } from "./analytics/index.js";
-// Analytics & health
-export { AnalyticsCollector } from "./analytics/index.js";
 export type { ProviderInfo } from "./capabilities/index.js";
 // Provider capability registry
 export { PROVIDER_CAPABILITIES } from "./capabilities/index.js";
@@ -62,9 +58,6 @@ export type {
 // Idempotency configuration
 // Circuit breaker state
 export { CircuitState, IdempotencyLevel, MeridianError } from "./core/types.js";
-export type { RequestRecording } from "./debug/index.js";
-// Debug recorder
-export { DebugRecorder } from "./debug/index.js";
 export type {
   AddDeps,
   AddOptions,
@@ -92,6 +85,60 @@ export {
 export type { ProviderClient } from "./index.js";
 // Main client
 export { Meridian } from "./index.js";
+export type { CostEntry, CostReport } from "./infrastructure/analytics/collector.js";
+export type { HealthEntry, ProviderStats } from "./infrastructure/analytics/index.js";
+// Analytics & health
+export { AnalyticsCollector } from "./infrastructure/analytics/index.js";
+export type { RequestRecording } from "./infrastructure/debug/index.js";
+// Debug recorder
+export { DebugRecorder } from "./infrastructure/debug/index.js";
+// Built-in observability adapters
+export type { OpenTelemetryAutoOptions, OTelApiLike } from "./infrastructure/observability/auto.js";
+// OpenTelemetry auto-instrumentation (binds to @opentelemetry/api, optional peer dep)
+export { createOpenTelemetryObservability } from "./infrastructure/observability/auto.js";
+export { ConsoleObservability } from "./infrastructure/observability/console.js";
+export { NoOpObservability } from "./infrastructure/observability/noop.js";
+export type { OpenTelemetryConfig } from "./infrastructure/observability/otel.js";
+export { OpenTelemetryObservability } from "./infrastructure/observability/otel.js";
+export type {
+  CheckResult,
+  DriftEvent,
+  EndpointReport,
+  RegistryReport,
+  SnapshotEntry,
+  SnapshotResult,
+} from "./infrastructure/registry/index.js";
+// Local contract registry — `meridian registry snapshot/check/report`
+export { ContractRegistry, DEFAULT_REGISTRY_DIR } from "./infrastructure/registry/index.js";
+export type {
+  BreakerTransition,
+  FailoverHop,
+  ReliabilityEvent,
+  ReliabilitySession,
+  ReplayOptions,
+  ReplaySummary,
+} from "./infrastructure/replay/index.js";
+// Reliability replay — record real pipeline behavior, replay outages locally
+export {
+  DEFAULT_RECORDINGS_DIR,
+  ReliabilityRecorder,
+  ReliabilityStore,
+  renderTimeline,
+  replaySession,
+  summarizeSession,
+} from "./infrastructure/replay/index.js";
+// Schema drift monitor
+export { SchemaMonitor } from "./infrastructure/schema/index.js";
+export type { SchemaReport } from "./infrastructure/schema/monitor.js";
+export type { RedisLikeClient, UpstashRedisClient } from "./infrastructure/state/index.js";
+// State storage implementations
+export {
+  MemoryStateStorage,
+  RedisStateStorage,
+  UpstashStateStorage,
+} from "./infrastructure/state/index.js";
+// Webhook verification
+export { WebhookVerifier } from "./infrastructure/webhooks/index.js";
 export type { MigrationFinding, MigrationReport } from "./migrate/index.js";
 // Migration scanner — `meridian migrate <provider>`
 export {
@@ -99,14 +146,14 @@ export {
   listMigrationProviders,
   scanForMigration,
 } from "./migrate/index.js";
-// Built-in observability adapters
-export type { OpenTelemetryAutoOptions, OTelApiLike } from "./observability/auto.js";
-// OpenTelemetry auto-instrumentation (binds to @opentelemetry/api, optional peer dep)
-export { createOpenTelemetryObservability } from "./observability/auto.js";
-export { ConsoleObservability } from "./observability/console.js";
-export { NoOpObservability } from "./observability/noop.js";
-export type { OpenTelemetryConfig } from "./observability/otel.js";
-export { OpenTelemetryObservability } from "./observability/otel.js";
+export type { GrpcProxyServerOptions, ProxyServerOptions } from "./networking/proxy/index.js";
+// gRPC boundary proxy — language-agnostic access to the Meridian pipeline
+export { BoundaryGrpcServer } from "./networking/proxy/index.js";
+export type { PaymentRouterOptions } from "./networking/routers/index.js";
+// Routers
+export { PaymentRouter } from "./networking/routers/index.js";
+// Service abstraction (failover / round-robin / lowest-latency routing)
+export { ServiceClient } from "./networking/services/index.js";
 export {
   allowedProviders,
   blockedProviders,
@@ -116,108 +163,66 @@ export {
   readOnly,
   redact,
   requireFields,
-} from "./policies/index.js";
-export { AdyenAdapter } from "./providers/adyen/adapter.js";
+} from "./orchestration/policies/index.js";
+export type { TransactionResult, TransactionStep } from "./orchestration/transactions/index.js";
+// Multi-provider transactions
+export { runTransaction, TransactionError } from "./orchestration/transactions/index.js";
 // Built-in provider adapters
-export { AnthropicAdapter } from "./providers/anthropic/adapter.js";
-export { ApolloAdapter } from "./providers/apollo/adapter.js";
-export { Auth0Adapter } from "./providers/auth0/adapter.js";
-export { BilldeskAdapter } from "./providers/billdesk/adapter.js";
-export { BraintreeAdapter } from "./providers/braintree/adapter.js";
-export { CashfreeAdapter } from "./providers/cashfree/adapter.js";
-export { CcavenueAdapter, ccavenueDecrypt, ccavenueEncrypt } from "./providers/ccavenue/adapter.js";
-export { CheckoutAdapter } from "./providers/checkout/adapter.js";
-export { CleartaxAdapter } from "./providers/cleartax/adapter.js";
-export { CohereAdapter } from "./providers/cohere/adapter.js";
-export { DatadogAdapter } from "./providers/datadog/adapter.js";
-export { DecentroAdapter } from "./providers/decentro/adapter.js";
-export { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
-export { DigioAdapter } from "./providers/digio/adapter.js";
-export { ExotelAdapter } from "./providers/exotel/adapter.js";
-export { GeminiAdapter } from "./providers/gemini/adapter.js";
-export { GitHubAdapter } from "./providers/github/adapter.js";
-export { GupshupAdapter } from "./providers/gupshup/adapter.js";
-export { HubSpotAdapter } from "./providers/hubspot/adapter.js";
-export { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
-export { IdfyAdapter } from "./providers/idfy/adapter.js";
-export { JuspayAdapter } from "./providers/juspay/adapter.js";
-export { KarzaAdapter } from "./providers/karza/adapter.js";
-export { KlarnaAdapter } from "./providers/klarna/adapter.js";
-export { MailgunAdapter } from "./providers/mailgun/adapter.js";
-export { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
-export { MistralAdapter } from "./providers/mistral/adapter.js";
-export { MollieAdapter } from "./providers/mollie/adapter.js";
-export { Msg91Adapter } from "./providers/msg91/adapter.js";
-export { OpenAIAdapter } from "./providers/openai/adapter.js";
-export { PayuAdapter } from "./providers/payu/adapter.js";
-export { PerfiosAdapter } from "./providers/perfios/adapter.js";
-export { PhonePeAdapter } from "./providers/phonepe/adapter.js";
-export { RazorpayAdapter } from "./providers/razorpay/adapter.js";
-export { S3Adapter } from "./providers/s3/adapter.js";
-export type { SigV4Credentials } from "./providers/s3/sigv4.js";
-export { signSigV4 } from "./providers/s3/sigv4.js";
-export { SendgridAdapter } from "./providers/sendgrid/adapter.js";
-export { SentryAdapter } from "./providers/sentry/adapter.js";
-export { SetuAdapter } from "./providers/setu/adapter.js";
-export { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
-export { StripeAdapter } from "./providers/stripe/adapter.js";
-export { SupabaseAdapter } from "./providers/supabase/adapter.js";
-export { TwilioAdapter } from "./providers/twilio/adapter.js";
-export { VonageAdapter } from "./providers/vonage/adapter.js";
-export type { GrpcProxyServerOptions, ProxyServerOptions } from "./proxy/index.js";
-// gRPC boundary proxy — language-agnostic access to the Meridian pipeline
-export { BoundaryGrpcServer } from "./proxy/index.js";
-export type {
-  CheckResult,
-  DriftEvent,
-  EndpointReport,
-  RegistryReport,
-  SnapshotEntry,
-  SnapshotResult,
-} from "./registry/index.js";
-// Local contract registry — `meridian registry snapshot/check/report`
-export { ContractRegistry, DEFAULT_REGISTRY_DIR } from "./registry/index.js";
-export type {
-  BreakerTransition,
-  FailoverHop,
-  ReliabilityEvent,
-  ReliabilitySession,
-  ReplayOptions,
-  ReplaySummary,
-} from "./replay/index.js";
-// Reliability replay — record real pipeline behavior, replay outages locally
+export { AnthropicAdapter } from "./providers/ai/anthropic/adapter.js";
+export { CohereAdapter } from "./providers/ai/cohere/adapter.js";
+export { GeminiAdapter } from "./providers/ai/gemini/adapter.js";
+export { MistralAdapter } from "./providers/ai/mistral/adapter.js";
+export { OpenAIAdapter } from "./providers/ai/openai/adapter.js";
+export { GitHubAdapter } from "./providers/crm/github/adapter.js";
+export { HubSpotAdapter } from "./providers/crm/hubspot/adapter.js";
+export { ApolloAdapter } from "./providers/healthcare/apollo/adapter.js";
+export { Auth0Adapter } from "./providers/identity/auth0/adapter.js";
+export { DecentroAdapter } from "./providers/identity/decentro/adapter.js";
+export { DigioAdapter } from "./providers/identity/digio/adapter.js";
+export { HyperVergeAdapter } from "./providers/identity/hyperverge/adapter.js";
+export { IdfyAdapter } from "./providers/identity/idfy/adapter.js";
+export { KarzaAdapter } from "./providers/identity/karza/adapter.js";
+export { PerfiosAdapter } from "./providers/identity/perfios/adapter.js";
+export { SetuAdapter } from "./providers/identity/setu/adapter.js";
+export { DelhiveryAdapter } from "./providers/logistics/delhivery/adapter.js";
+export { ShiprocketAdapter } from "./providers/logistics/shiprocket/adapter.js";
+export { MapmyindiaAdapter } from "./providers/maps/mapmyindia/adapter.js";
+export { ExotelAdapter } from "./providers/messaging/exotel/adapter.js";
+export { GupshupAdapter } from "./providers/messaging/gupshup/adapter.js";
+export { MailgunAdapter } from "./providers/messaging/mailgun/adapter.js";
+export { Msg91Adapter } from "./providers/messaging/msg91/adapter.js";
+export { SendgridAdapter } from "./providers/messaging/sendgrid/adapter.js";
+export { TwilioAdapter } from "./providers/messaging/twilio/adapter.js";
+export { VonageAdapter } from "./providers/messaging/vonage/adapter.js";
+export { DatadogAdapter } from "./providers/monitoring/datadog/adapter.js";
+export { SentryAdapter } from "./providers/monitoring/sentry/adapter.js";
+export { AdyenAdapter } from "./providers/payments/adyen/adapter.js";
+export { BilldeskAdapter } from "./providers/payments/billdesk/adapter.js";
+export { BraintreeAdapter } from "./providers/payments/braintree/adapter.js";
+export { CashfreeAdapter } from "./providers/payments/cashfree/adapter.js";
 export {
-  DEFAULT_RECORDINGS_DIR,
-  ReliabilityRecorder,
-  ReliabilityStore,
-  renderTimeline,
-  replaySession,
-  summarizeSession,
-} from "./replay/index.js";
-export type { PaymentRouterOptions } from "./routers/index.js";
-// Routers
-export { PaymentRouter } from "./routers/index.js";
-
-// Schema drift monitor
-export { SchemaMonitor } from "./schema/index.js";
-export type { SchemaReport } from "./schema/monitor.js";
-// Service abstraction (failover / round-robin / lowest-latency routing)
-export { ServiceClient } from "./services/index.js";
-export type { RedisLikeClient, UpstashRedisClient } from "./state/index.js";
-// State storage implementations
-export { MemoryStateStorage, RedisStateStorage, UpstashStateStorage } from "./state/index.js";
+  CcavenueAdapter,
+  ccavenueDecrypt,
+  ccavenueEncrypt,
+} from "./providers/payments/ccavenue/adapter.js";
+export { CheckoutAdapter } from "./providers/payments/checkout/adapter.js";
+export { JuspayAdapter } from "./providers/payments/juspay/adapter.js";
+export { KlarnaAdapter } from "./providers/payments/klarna/adapter.js";
+export { MollieAdapter } from "./providers/payments/mollie/adapter.js";
+export { PayuAdapter } from "./providers/payments/payu/adapter.js";
+export { PhonePeAdapter } from "./providers/payments/phonepe/adapter.js";
+export { RazorpayAdapter } from "./providers/payments/razorpay/adapter.js";
+export { StripeAdapter } from "./providers/payments/stripe/adapter.js";
+export { S3Adapter } from "./providers/storage/s3/adapter.js";
+export type { SigV4Credentials } from "./providers/storage/s3/sigv4.js";
+export { signSigV4 } from "./providers/storage/s3/sigv4.js";
+export { SupabaseAdapter } from "./providers/storage/supabase/adapter.js";
+export { CleartaxAdapter } from "./providers/tax/cleartax/adapter.js";
 // Distributed 429 cooldown coordination
-export { SharedCooldownManager } from "./strategies/shared-cooldown.js";
+export { SharedCooldownManager } from "./resilience/shared-cooldown.js";
 export type { MockCall, MockHandler, MockResponse } from "./testing/index.js";
 // Testing utilities
 export { Fixtures, MockAdapter } from "./testing/index.js";
-export type { TransactionResult, TransactionStep } from "./transactions/index.js";
-
-// Multi-provider transactions
-export { runTransaction, TransactionError } from "./transactions/index.js";
 export type { UpiDeepLinkOptions } from "./upi/index.js";
-
 // UPI flow helpers
 export { createUpiDeepLink, validateVpa } from "./upi/index.js";
-// Webhook verification
-export { WebhookVerifier } from "./webhooks/index.js";

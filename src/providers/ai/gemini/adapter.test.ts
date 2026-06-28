@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../../core/types.js";
 import { GeminiAdapter } from "./adapter.js";
 
 describe("Gemini Adapter - Contract Tests", () => {

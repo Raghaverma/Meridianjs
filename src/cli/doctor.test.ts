@@ -2,9 +2,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ContractRegistry } from "../registry/contract-registry.js";
-import type { ReliabilitySession } from "../replay/recorder.js";
-import { ReliabilityStore } from "../replay/store.js";
+import { ContractRegistry } from "../infrastructure/registry/contract-registry.js";
+import type { ReliabilitySession } from "../infrastructure/replay/recorder.js";
+import { ReliabilityStore } from "../infrastructure/replay/store.js";
 import { diagnose, formatDoctorReport } from "./doctor.js";
 
 const SEVERITY_RANK = { critical: 0, warning: 1, info: 2, ok: 3 } as const;

@@ -4,7 +4,7 @@ import type {
   ObservabilityAdapter,
   RequestContext,
   ResponseContext,
-} from "../core/types.js";
+} from "../../core/types.js";
 
 export interface OTelTracer {
   startSpan(

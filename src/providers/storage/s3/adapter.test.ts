@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { MeridianError, RawResponse } from "../../core/types.js";
+import type { MeridianError, RawResponse } from "../../../core/types.js";
 import { S3Adapter } from "./adapter.js";
 
 const LIST_OBJECTS_XML = `<?xml version="1.0" encoding="UTF-8"?>

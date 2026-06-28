@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { parseRetryAfter } from "../../core/header-parser.js";
-import { ResponseNormalizer } from "../../core/normalizer.js";
+import { parseRetryAfter } from "../../../core/header-parser.js";
+import { ResponseNormalizer } from "../../../core/normalizer.js";
 import type {
   AdapterInput,
   AuthConfig,
@@ -12,8 +12,8 @@ import type {
   ProviderAdapter,
   RateLimitInfo,
   RawResponse,
-} from "../../core/types.js";
-import { MeridianError, SDK_VERSION } from "../../core/types.js";
+} from "../../../core/types.js";
+import { MeridianError, SDK_VERSION } from "../../../core/types.js";
 import { VonagePaginationStrategy } from "./pagination.js";
 
 export class VonageAdapter implements ProviderAdapter {

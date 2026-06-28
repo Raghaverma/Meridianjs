@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Meridian } from "../index.js";
-import { MockAdapter } from "../testing/mock-adapter.js";
+import { Meridian } from "../../index.js";
+import { MockAdapter } from "../../testing/mock-adapter.js";
 import { createOpenTelemetryObservability, type OTelApiLike } from "./auto.js";
 
 interface RecordedSpan {

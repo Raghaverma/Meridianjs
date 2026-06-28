@@ -171,7 +171,7 @@ describe("Studio HTTP server", () => {
     });
 
     it("reports endpoints and drift history for a provider", async () => {
-      const { ContractRegistry } = await import("../registry/contract-registry.js");
+      const { ContractRegistry } = await import("../infrastructure/registry/contract-registry.js");
       const registry = new ContractRegistry(registryDir);
       await registry.snapshot("stripe", "/v1/charges", { id: "ch_1", amount: 100 });
       await registry.snapshot("stripe", "/v1/charges", { id: "ch_2", amount: 100, captured: true });

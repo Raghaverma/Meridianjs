@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RawResponse } from "../../core/types.js";
+import type { RawResponse } from "../../../core/types.js";
 import { HubSpotAdapter } from "./adapter.js";
 
 describe("HubSpot Adapter - Contract Tests", () => {

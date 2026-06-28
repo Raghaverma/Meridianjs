@@ -1,8 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { sanitizeObject } from "../core/observability-sanitizer.js";
-import { redactPii } from "../core/request-sanitizer.js";
-import type { MeridianConfig, ProviderConfig } from "../core/types.js";
+import { sanitizeObject } from "../../core/observability-sanitizer.js";
+import { redactPii } from "../../core/request-sanitizer.js";
+import type { MeridianConfig, ProviderConfig } from "../../core/types.js";
 
 /**
  * Request headers forwarded upstream. The proxy injects provider credentials

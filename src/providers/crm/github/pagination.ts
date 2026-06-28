@@ -1,5 +1,5 @@
-import { findLinkByRel, parseLinkHeader } from "../../core/header-parser.js";
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import { findLinkByRel, parseLinkHeader } from "../../../core/header-parser.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class GitHubPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {

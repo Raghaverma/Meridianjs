@@ -1,5 +1,5 @@
-import type { NormalizedResponse } from "../core/types.js";
-import { MeridianError } from "../core/types.js";
+import type { NormalizedResponse } from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
 
 export interface TransactionStep<T = unknown> {
   name: string;

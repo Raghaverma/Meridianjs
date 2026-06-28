@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, RawResponse } from "../../core/types.js";
+import type { AuthConfig, RawResponse } from "../../../core/types.js";
 import { MollieAdapter } from "./adapter.js";
 
 describe("Mollie Adapter - Contract Tests", () => {

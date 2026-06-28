@@ -1,5 +1,3 @@
-import type { CostReport } from "./analytics/collector.js";
-import { AnalyticsCollector } from "./analytics/collector.js";
 import { PROVIDER_CAPABILITIES } from "./capabilities/registry.js";
 import { assertValidAdapter } from "./core/adapter-validator.js";
 import { assertSafeEndpoint } from "./core/endpoint-validator.js";
@@ -18,81 +16,83 @@ import type {
   RequestOptions,
 } from "./core/types.js";
 import { CircuitState, IdempotencyLevel, MeridianError } from "./core/types.js";
-import { DebugRecorder } from "./debug/recorder.js";
+import type { CostReport } from "./infrastructure/analytics/collector.js";
+import { AnalyticsCollector } from "./infrastructure/analytics/collector.js";
+import { DebugRecorder } from "./infrastructure/debug/recorder.js";
 import {
   createOpenTelemetryObservability,
   type OpenTelemetryAutoOptions,
   type OTelApiLike,
-} from "./observability/auto.js";
-import { ConsoleObservability } from "./observability/console.js";
-import type { OpenTelemetryObservability } from "./observability/otel.js";
-import { AdyenAdapter } from "./providers/adyen/adapter.js";
-import { AnthropicAdapter } from "./providers/anthropic/adapter.js";
-import { ApolloAdapter } from "./providers/apollo/adapter.js";
-import { Auth0Adapter } from "./providers/auth0/adapter.js";
-import { BilldeskAdapter } from "./providers/billdesk/adapter.js";
-import { BraintreeAdapter } from "./providers/braintree/adapter.js";
-import { CashfreeAdapter } from "./providers/cashfree/adapter.js";
-import { CcavenueAdapter } from "./providers/ccavenue/adapter.js";
-import { CheckoutAdapter } from "./providers/checkout/adapter.js";
-import { CleartaxAdapter } from "./providers/cleartax/adapter.js";
-import { CohereAdapter } from "./providers/cohere/adapter.js";
-import { DatadogAdapter } from "./providers/datadog/adapter.js";
-import { DecentroAdapter } from "./providers/decentro/adapter.js";
-import { DelhiveryAdapter } from "./providers/delhivery/adapter.js";
-import { DigioAdapter } from "./providers/digio/adapter.js";
-import { ExotelAdapter } from "./providers/exotel/adapter.js";
-import { GeminiAdapter } from "./providers/gemini/adapter.js";
-import { GitHubAdapter } from "./providers/github/adapter.js";
-import { GoogleMapsAdapter } from "./providers/googlemaps/adapter.js";
-import { GupshupAdapter } from "./providers/gupshup/adapter.js";
-import { HubSpotAdapter } from "./providers/hubspot/adapter.js";
-import { HunterAdapter } from "./providers/hunter/adapter.js";
-import { HyperVergeAdapter } from "./providers/hyperverge/adapter.js";
-import { IdfyAdapter } from "./providers/idfy/adapter.js";
-import { JuspayAdapter } from "./providers/juspay/adapter.js";
-import { KarzaAdapter } from "./providers/karza/adapter.js";
-import { KlarnaAdapter } from "./providers/klarna/adapter.js";
-import { MailgunAdapter } from "./providers/mailgun/adapter.js";
-import { MapmyindiaAdapter } from "./providers/mapmyindia/adapter.js";
-import { MistralAdapter } from "./providers/mistral/adapter.js";
-import { MollieAdapter } from "./providers/mollie/adapter.js";
-import { Msg91Adapter } from "./providers/msg91/adapter.js";
-import { OpenAIAdapter } from "./providers/openai/adapter.js";
-import { PayuAdapter } from "./providers/payu/adapter.js";
-import { PerfiosAdapter } from "./providers/perfios/adapter.js";
-import { PhonePeAdapter } from "./providers/phonepe/adapter.js";
-import { RazorpayAdapter } from "./providers/razorpay/adapter.js";
-import { S3Adapter } from "./providers/s3/adapter.js";
-import { SendgridAdapter } from "./providers/sendgrid/adapter.js";
-import { SentryAdapter } from "./providers/sentry/adapter.js";
-import { SetuAdapter } from "./providers/setu/adapter.js";
-import { ShiprocketAdapter } from "./providers/shiprocket/adapter.js";
-import { StripeAdapter } from "./providers/stripe/adapter.js";
-import { SupabaseAdapter } from "./providers/supabase/adapter.js";
-import { TwilioAdapter } from "./providers/twilio/adapter.js";
-import { VonageAdapter } from "./providers/vonage/adapter.js";
-import { ContractRegistry } from "./registry/contract-registry.js";
-import type { ReliabilitySession } from "./replay/recorder.js";
-import { ReliabilityRecorder } from "./replay/recorder.js";
-import type { ReplayOptions, ReplaySummary } from "./replay/replayer.js";
-import { replaySession as runReplaySession } from "./replay/replayer.js";
-import { ReliabilityStore } from "./replay/store.js";
-import { SchemaMonitor } from "./schema/monitor.js";
-import { ServiceClient } from "./services/service-client.js";
-import { ProviderCircuitBreaker } from "./strategies/circuit-breaker.js";
-import { IdempotencyResolver } from "./strategies/idempotency.js";
-import { RateLimiter } from "./strategies/rate-limit.js";
-import { RetryStrategy } from "./strategies/retry.js";
-import { SharedCooldownManager } from "./strategies/shared-cooldown.js";
+} from "./infrastructure/observability/auto.js";
+import { ConsoleObservability } from "./infrastructure/observability/console.js";
+import type { OpenTelemetryObservability } from "./infrastructure/observability/otel.js";
+import { ContractRegistry } from "./infrastructure/registry/contract-registry.js";
+import type { ReliabilitySession } from "./infrastructure/replay/recorder.js";
+import { ReliabilityRecorder } from "./infrastructure/replay/recorder.js";
+import type { ReplayOptions, ReplaySummary } from "./infrastructure/replay/replayer.js";
+import { replaySession as runReplaySession } from "./infrastructure/replay/replayer.js";
+import { ReliabilityStore } from "./infrastructure/replay/store.js";
+import { SchemaMonitor } from "./infrastructure/schema/monitor.js";
+import { FileSystemSchemaStorage } from "./infrastructure/validation/schema-storage.js";
+import { ServiceClient } from "./networking/services/service-client.js";
+import type { TransactionResult, TransactionStep } from "./orchestration/transactions/saga.js";
+import { runTransaction } from "./orchestration/transactions/saga.js";
+import { AnthropicAdapter } from "./providers/ai/anthropic/adapter.js";
+import { CohereAdapter } from "./providers/ai/cohere/adapter.js";
+import { GeminiAdapter } from "./providers/ai/gemini/adapter.js";
+import { MistralAdapter } from "./providers/ai/mistral/adapter.js";
+import { OpenAIAdapter } from "./providers/ai/openai/adapter.js";
+import { GitHubAdapter } from "./providers/crm/github/adapter.js";
+import { HubSpotAdapter } from "./providers/crm/hubspot/adapter.js";
+import { HunterAdapter } from "./providers/crm/hunter/adapter.js";
+import { ApolloAdapter } from "./providers/healthcare/apollo/adapter.js";
+import { Auth0Adapter } from "./providers/identity/auth0/adapter.js";
+import { DecentroAdapter } from "./providers/identity/decentro/adapter.js";
+import { DigioAdapter } from "./providers/identity/digio/adapter.js";
+import { HyperVergeAdapter } from "./providers/identity/hyperverge/adapter.js";
+import { IdfyAdapter } from "./providers/identity/idfy/adapter.js";
+import { KarzaAdapter } from "./providers/identity/karza/adapter.js";
+import { PerfiosAdapter } from "./providers/identity/perfios/adapter.js";
+import { SetuAdapter } from "./providers/identity/setu/adapter.js";
+import { DelhiveryAdapter } from "./providers/logistics/delhivery/adapter.js";
+import { ShiprocketAdapter } from "./providers/logistics/shiprocket/adapter.js";
+import { GoogleMapsAdapter } from "./providers/maps/googlemaps/adapter.js";
+import { MapmyindiaAdapter } from "./providers/maps/mapmyindia/adapter.js";
+import { ExotelAdapter } from "./providers/messaging/exotel/adapter.js";
+import { GupshupAdapter } from "./providers/messaging/gupshup/adapter.js";
+import { MailgunAdapter } from "./providers/messaging/mailgun/adapter.js";
+import { Msg91Adapter } from "./providers/messaging/msg91/adapter.js";
+import { SendgridAdapter } from "./providers/messaging/sendgrid/adapter.js";
+import { TwilioAdapter } from "./providers/messaging/twilio/adapter.js";
+import { VonageAdapter } from "./providers/messaging/vonage/adapter.js";
+import { DatadogAdapter } from "./providers/monitoring/datadog/adapter.js";
+import { SentryAdapter } from "./providers/monitoring/sentry/adapter.js";
+import { AdyenAdapter } from "./providers/payments/adyen/adapter.js";
+import { BilldeskAdapter } from "./providers/payments/billdesk/adapter.js";
+import { BraintreeAdapter } from "./providers/payments/braintree/adapter.js";
+import { CashfreeAdapter } from "./providers/payments/cashfree/adapter.js";
+import { CcavenueAdapter } from "./providers/payments/ccavenue/adapter.js";
+import { CheckoutAdapter } from "./providers/payments/checkout/adapter.js";
+import { JuspayAdapter } from "./providers/payments/juspay/adapter.js";
+import { KlarnaAdapter } from "./providers/payments/klarna/adapter.js";
+import { MollieAdapter } from "./providers/payments/mollie/adapter.js";
+import { PayuAdapter } from "./providers/payments/payu/adapter.js";
+import { PhonePeAdapter } from "./providers/payments/phonepe/adapter.js";
+import { RazorpayAdapter } from "./providers/payments/razorpay/adapter.js";
+import { StripeAdapter } from "./providers/payments/stripe/adapter.js";
+import { S3Adapter } from "./providers/storage/s3/adapter.js";
+import { SupabaseAdapter } from "./providers/storage/supabase/adapter.js";
+import { CleartaxAdapter } from "./providers/tax/cleartax/adapter.js";
+import { ProviderCircuitBreaker } from "./resilience/circuit-breaker.js";
+import { IdempotencyResolver } from "./resilience/idempotency.js";
+import { RateLimiter } from "./resilience/rate-limit.js";
+import { RetryStrategy } from "./resilience/retry.js";
+import { SharedCooldownManager } from "./resilience/shared-cooldown.js";
 import {
   createStudioServer,
   type StudioServerHandle,
   type StudioServerOptions,
 } from "./studio/server.js";
-import type { TransactionResult, TransactionStep } from "./transactions/saga.js";
-import { runTransaction } from "./transactions/saga.js";
-import { FileSystemSchemaStorage } from "./validation/schema-storage.js";
 
 export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
   github: GitHubAdapter,
@@ -746,7 +746,7 @@ export class Meridian {
     return this.serviceClients.get(name);
   }
 
-  analytics(): Record<string, import("./analytics/collector.js").ProviderStats> {
+  analytics(): Record<string, import("./infrastructure/analytics/collector.js").ProviderStats> {
     this.ensureStarted();
     return this.analyticsCollector.get();
   }
@@ -1033,6 +1033,6 @@ export class Meridian {
 }
 
 export * from "./core/types.js";
-export * from "./observability/index.js";
-export * from "./strategies/index.js";
-export * from "./validation/index.js";
+export * from "./infrastructure/observability/index.js";
+export * from "./infrastructure/validation/index.js";
+export * from "./resilience/index.js";

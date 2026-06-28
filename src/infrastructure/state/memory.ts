@@ -1,4 +1,4 @@
-import type { StateStorage } from "../core/types.js";
+import type { StateStorage } from "../../core/types.js";
 
 export class MemoryStateStorage implements StateStorage {
   private store = new Map<string, { value: string; expiresAt: number | null }>();

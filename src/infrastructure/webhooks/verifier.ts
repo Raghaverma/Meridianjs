@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import type { ProviderAdapter } from "../core/types.js";
+import type { ProviderAdapter } from "../../core/types.js";
 
 export class WebhookVerifier {
   /**

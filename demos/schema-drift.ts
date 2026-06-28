@@ -10,9 +10,9 @@
  */
 
 import { Meridian } from "../src/index.js";
-import { NoOpObservability } from "../src/observability/noop.js";
+import { NoOpObservability } from "../src/infrastructure/observability/noop.js";
 import { MockAdapter } from "../src/testing/mock-adapter.js";
-import { InMemorySchemaStorage } from "../src/validation/schema-storage.js";
+import { InMemorySchemaStorage } from "../src/infrastructure/validation/schema-storage.js";
 import { banner, color, section, sleep } from "./_shared.js";
 
 async function main() {

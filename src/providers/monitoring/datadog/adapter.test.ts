@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { MeridianError, RawResponse } from "../../core/types.js";
+import type { MeridianError, RawResponse } from "../../../core/types.js";
 import { DatadogAdapter } from "./adapter.js";
 
 describe("DatadogAdapter - Contract Tests", () => {

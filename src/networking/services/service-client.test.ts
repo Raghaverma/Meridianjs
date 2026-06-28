@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { NormalizedResponse } from "../core/types.js";
-import { CircuitState, MeridianError } from "../core/types.js";
-import type { ProviderClient } from "../index.js";
+import type { NormalizedResponse } from "../../core/types.js";
+import { CircuitState, MeridianError } from "../../core/types.js";
+import type { ProviderClient } from "../../index.js";
 import { ServiceClient } from "./service-client.js";
 
 const makeResponse = (data: unknown = {}, latencyMs = 50): NormalizedResponse<unknown> => ({

@@ -1,8 +1,8 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import type { Schema, SchemaMetadata, SchemaStorage } from "../core/types.js";
+import type { Schema, SchemaMetadata, SchemaStorage } from "../../core/types.js";
 
-export type { SchemaStorage } from "../core/types.js";
+export type { SchemaStorage } from "../../core/types.js";
 
 export class FileSystemSchemaStorage implements SchemaStorage {
   private basePath: string;

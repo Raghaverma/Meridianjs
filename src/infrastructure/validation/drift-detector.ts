@@ -1,4 +1,4 @@
-import type { Schema, SchemaDrift } from "../core/types.js";
+import type { Schema, SchemaDrift } from "../../core/types.js";
 
 export class DriftDetector {
   detect(oldSchema: Schema, newSchema: Schema): SchemaDrift[] {

@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class DelhiveryPaginationStrategy implements PaginationStrategy {
   private readonly defaultLimit = 50;

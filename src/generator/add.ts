@@ -18,7 +18,8 @@ export interface AddOptions {
   provider: string;
   /** Explicit OpenAPI source — local path or http(s) URL. Overrides the registry. */
   openapi?: string;
-  /** Output directory. Defaults to src/providers/<provider>. */
+  /** Output directory. Defaults to src/providers/<provider>; pass an explicit
+   * src/providers/<category>/<provider> path when contributing to this repo. */
   output?: string;
   baseUrl?: string;
   auth?: "apiKey" | "bearer" | "basic" | "oauth2";
@@ -74,15 +75,22 @@ function parseSpecDocument(raw: string, source: string): unknown {
 }
 
 async function detectContractImport(outputDir: string): Promise<string> {
-  // Generated inside the meridianjs repo itself (src/providers/<name>) the
-  // contract helper is a relative module; in consumer projects it's the
-  // published subpath export.
-  try {
-    await access(join(outputDir, "..", "..", "testing", "contract.ts"));
-    return "../../testing/contract.js";
-  } catch {
-    return "meridianjs/contract";
+  // Generated inside the meridianjs repo itself (src/providers/<category>/<name>)
+  // the contract helper is a relative module; in consumer projects it's the
+  // published subpath export. Check both nesting depths since --output can
+  // point at either src/providers/<name> or src/providers/<category>/<name>.
+  for (const upDirs of [
+    ["..", "..", ".."],
+    ["..", ".."],
+  ]) {
+    try {
+      await access(join(outputDir, ...upDirs, "testing", "contract.ts"));
+      return `${upDirs.map(() => "..").join("/")}/testing/contract.js`;
+    } catch {
+      // try the next candidate depth
+    }
   }
+  return "meridianjs/contract";
 }
 
 interface ResolvedAspects {

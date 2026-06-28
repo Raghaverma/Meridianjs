@@ -1,4 +1,4 @@
-import type { Schema, SchemaDrift, SchemaMetadata, SchemaStorage } from "../core/types.js";
+import type { Schema, SchemaDrift, SchemaMetadata, SchemaStorage } from "../../core/types.js";
 import { DriftDetector } from "../validation/drift-detector.js";
 
 export interface SchemaReport {

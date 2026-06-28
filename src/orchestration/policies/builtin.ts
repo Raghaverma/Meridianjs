@@ -1,4 +1,4 @@
-import type { Policy, PolicyContext, PolicyDecision } from "../core/types.js";
+import type { Policy, PolicyContext, PolicyDecision } from "../../core/types.js";
 
 const PII_PATTERNS = [
   /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/, // credit card

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { NormalizedResponse } from "../core/types.js";
-import { MeridianError } from "../core/types.js";
-import type { ProviderClient } from "../index.js";
+import type { NormalizedResponse } from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
+import type { ProviderClient } from "../../index.js";
 import { PaymentRouter } from "../routers/payment-router.js";
 import { ServiceClient } from "./service-client.js";
 

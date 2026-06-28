@@ -3,8 +3,8 @@ import type {
   ObservabilityAdapter,
   RequestContext,
   ResponseContext,
-} from "../core/types.js";
-import { MeridianError, type MeridianErrorCategory } from "../core/types.js";
+} from "../../core/types.js";
+import { MeridianError, type MeridianErrorCategory } from "../../core/types.js";
 import type { ReliabilityEvent, ReliabilitySession } from "./recorder.js";
 
 export interface BreakerTransition {

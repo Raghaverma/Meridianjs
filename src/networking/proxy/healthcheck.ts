@@ -17,7 +17,10 @@ import { fileURLToPath } from "node:url";
 import * as grpc from "@grpc/grpc-js";
 import * as protoLoader from "@grpc/proto-loader";
 
-const PROTO_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../../proto/meridian.proto");
+const PROTO_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../proto/meridian.proto",
+);
 
 const port = Number.parseInt(process.env.BOUNDARY_PROXY_PORT ?? "4242", 10);
 // Always dial loopback for the probe: the server binds 0.0.0.0 in-container but

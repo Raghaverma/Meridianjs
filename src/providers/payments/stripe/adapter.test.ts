@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { AuthConfig, MeridianError, RawResponse } from "../../core/types.js";
+import type { AuthConfig, MeridianError, RawResponse } from "../../../core/types.js";
 import { StripeAdapter } from "./adapter.js";
 
 describe("StripeAdapter - Contract Tests", () => {

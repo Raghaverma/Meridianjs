@@ -1,4 +1,4 @@
-import type { PaginationStrategy, RawResponse, RequestOptions } from "../../core/types.js";
+import type { PaginationStrategy, RawResponse, RequestOptions } from "../../../core/types.js";
 
 export class JuspayPaginationStrategy implements PaginationStrategy {
   extractCursor(response: RawResponse): string | null {

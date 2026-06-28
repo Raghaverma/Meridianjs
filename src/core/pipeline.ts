@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import type { ProviderCircuitBreaker } from "../strategies/circuit-breaker.js";
-import type { IdempotencyResolver } from "../strategies/idempotency.js";
-import type { RateLimiter } from "../strategies/rate-limit.js";
-import type { RetryStrategy } from "../strategies/retry.js";
-import type { SharedCooldownManager } from "../strategies/shared-cooldown.js";
+import type { ProviderCircuitBreaker } from "../resilience/circuit-breaker.js";
+import type { IdempotencyResolver } from "../resilience/idempotency.js";
+import type { RateLimiter } from "../resilience/rate-limit.js";
+import type { RetryStrategy } from "../resilience/retry.js";
+import type { SharedCooldownManager } from "../resilience/shared-cooldown.js";
 import { assertSafeEndpoint } from "./endpoint-validator.js";
 import { sanitizeMeridianError } from "./error-sanitizer.js";
 import { sanitizeMetric, sanitizeObject } from "./observability-sanitizer.js";

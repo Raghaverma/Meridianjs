@@ -5,16 +5,16 @@ import { fileURLToPath } from "node:url";
 // stays dependency-free. @grpc/* are optional peer dependencies needed only when
 // you run the Boundary Proxy.
 import type * as grpc from "@grpc/grpc-js";
-import type { StreamChunk } from "../core/streaming.js";
+import type { StreamChunk } from "../../core/streaming.js";
 import type {
   MeridianErrorCategory,
   NormalizedResponse,
   RateLimitInfo,
   RequestOptions,
   ResponseMeta,
-} from "../core/types.js";
-import { MeridianError } from "../core/types.js";
-import { Meridian } from "../index.js";
+} from "../../core/types.js";
+import { MeridianError } from "../../core/types.js";
+import { Meridian } from "../../index.js";
 import {
   buildMeridianConfig,
   DEFAULT_FORWARDED_HEADERS,
@@ -27,7 +27,10 @@ import {
   sanitizeForRecord,
 } from "./shared.js";
 
-const PROTO_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../../proto/meridian.proto");
+const PROTO_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../proto/meridian.proto",
+);
 
 const DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024;
 

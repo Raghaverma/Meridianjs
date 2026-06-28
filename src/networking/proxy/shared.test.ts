@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUILTIN_ADAPTER_CLASSES } from "../index.js";
+import { BUILTIN_ADAPTER_CLASSES } from "../../index.js";
 import { buildMeridianConfig, PROVIDER_CATEGORIES, SUPPORTED_PROVIDERS } from "./shared.js";
 
 describe("Boundary Proxy provider parity", () => {

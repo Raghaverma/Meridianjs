@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { MeridianError, type Metric, type ObservabilityAdapter } from "../core/types.js";
-import { Meridian } from "../index.js";
+import { MeridianError, type Metric, type ObservabilityAdapter } from "../../core/types.js";
+import { Meridian } from "../../index.js";
 
 class MockObservability implements ObservabilityAdapter {
   public requests: any[] = [];
