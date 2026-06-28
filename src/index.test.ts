@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import packageJson from "../package.json";
-import { SDK_VERSION } from "./core/types.js";
+import { MeridianError, SDK_VERSION } from "./core/types.js";
 import { Meridian } from "./index.js";
+import { MockAdapter } from "./testing/mock-adapter.js";
 
 describe("Meridian - Built-in Adapter Auto-Registration", () => {
   it("should auto-register GitHub adapter without explicit adapter parameter", async () => {
@@ -29,6 +30,33 @@ describe("Meridian - Built-in Adapter Auto-Registration", () => {
 
     expect(meridian).toBeDefined();
     expect((meridian as any).github).toBeDefined();
+  });
+});
+
+describe("Meridian - stream() error wrapping", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("wraps a fetch()-level failure (e.g. CRLF-poisoned header rejected by Headers) as a MeridianError, not a raw error", async () => {
+    // Node's Headers/fetch implementation throws synchronously on an invalid
+    // header value (CRLF injection, etc.) before any network I/O happens.
+    // The streaming path builds its own fetch() call outside the pipeline,
+    // so this regression-guards that failure surfacing as a MeridianError
+    // like every other failure path, instead of an unwrapped TypeError.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new TypeError("Headers.append: invalid header value")),
+    );
+
+    const adapter = new MockAdapter("crlf-test");
+    const meridian = await Meridian.create({ localUnsafe: true });
+    await meridian.registerProvider("crlf-test", adapter, { auth: {} });
+
+    const client = meridian.provider("crlf-test");
+    const iterator = client!.stream("/v1/chat")[Symbol.asyncIterator]();
+
+    await expect(iterator.next()).rejects.toBeInstanceOf(MeridianError);
   });
 });
 

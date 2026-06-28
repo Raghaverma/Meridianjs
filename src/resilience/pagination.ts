@@ -32,7 +32,15 @@ export class CursorPaginationStrategy implements PaginationStrategy {
     if (this.totalHeader) {
       const total = response.headers.get(this.totalHeader);
       if (total) {
-        return Number.parseInt(total, 10);
+        // A malformed header yields NaN, which is `!== null` but compares
+        // false against every number — extractCursor's `>= total` check
+        // would then never be true, so a garbage header would never signal
+        // end-of-results and pagination would run to the hard page cap
+        // instead of stopping cleanly. Treat it as "no total" instead.
+        const parsed = Number.parseInt(total, 10);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
       }
     }
 
@@ -159,7 +167,15 @@ export class OffsetPaginationStrategy implements PaginationStrategy {
     if (this.totalHeader) {
       const total = response.headers.get(this.totalHeader);
       if (total) {
-        return Number.parseInt(total, 10);
+        // A malformed header yields NaN, which is `!== null` but compares
+        // false against every number — extractCursor's `>= total` check
+        // would then never be true, so a garbage header would never signal
+        // end-of-results and pagination would run to the hard page cap
+        // instead of stopping cleanly. Treat it as "no total" instead.
+        const parsed = Number.parseInt(total, 10);
+        if (!Number.isNaN(parsed)) {
+          return parsed;
+        }
       }
     }
 

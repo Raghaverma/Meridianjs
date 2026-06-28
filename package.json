@@ -69,6 +69,7 @@
     "benchmark": "MERIDIAN_BENCH_SUITE=1 npx vite-node benchmarks/index.ts",
     "benchmark:reliability": "npx vite-node benchmarks/reliability.ts",
     "benchmark:overhead": "npx vite-node benchmarks/pipeline-overhead.ts",
+    "benchmark:startup": "npm run build && npx vite-node benchmarks/startup.ts",
     "demo:failover": "npx vite-node demos/failover.ts",
     "demo:circuit-breaker": "npx vite-node demos/circuit-breaker.ts",
     "demo:schema-drift": "npx vite-node demos/schema-drift.ts",
@@ -142,6 +143,7 @@
     "@types/node": "^26.0.0",
     "@vitest/coverage-v8": "^4.1.8",
     "ai": "^6.0.208",
+    "fast-check": "^4.8.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }

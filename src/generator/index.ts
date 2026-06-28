@@ -68,7 +68,7 @@ export async function generate(opts: GeneratorOptions): Promise<void> {
     "   index.ts         barrel export",
     "",
     "Next steps:",
-    `  1. Add "${provider}" to BUILTIN_ADAPTER_CLASSES in src/index.ts`,
+    `  1. Add "${provider}" to BUILTIN_ADAPTER_LOADERS in src/index.ts`,
     "  2. Verify the error/rate-limit/pagination field names noted in adapter.ts and pagination.ts against the provider's docs",
     `  3. npm test -- --reporter=verbose src/providers/${provider}/adapter.test.ts`,
   ];

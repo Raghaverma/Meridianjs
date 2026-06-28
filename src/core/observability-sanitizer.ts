@@ -1,3 +1,4 @@
+import { redactSecrets } from "./secret-redactor.js";
 import type { Metric } from "./types.js";
 
 export interface ObservabilitySanitizerOptions {
@@ -15,7 +16,7 @@ export function sanitizeObject(obj: unknown, opts?: ObservabilitySanitizerOption
   const redacted = (opts?.redactedKeys ?? DEFAULT).map((s) => s.toLowerCase());
 
   if (obj === null || obj === undefined) return obj;
-  if (typeof obj === "string") return obj;
+  if (typeof obj === "string") return redactSecrets(obj);
   if (typeof obj !== "object") return obj;
 
   if (Array.isArray(obj)) {
@@ -28,6 +29,8 @@ export function sanitizeObject(obj: unknown, opts?: ObservabilitySanitizerOption
       out[k] = "[REDACTED]";
     } else if (v && typeof v === "object") {
       out[k] = sanitizeObject(v, opts);
+    } else if (typeof v === "string") {
+      out[k] = redactSecrets(v);
     } else {
       out[k] = v;
     }
@@ -42,7 +45,7 @@ export function sanitizeMetric(metric: Metric, opts?: ObservabilitySanitizerOpti
     if (shouldRedact(k, redacted) || shouldRedact(v, redacted)) {
       tags[k] = "[REDACTED]";
     } else {
-      tags[k] = v;
+      tags[k] = redactSecrets(v);
     }
   }
   return { ...metric, tags };

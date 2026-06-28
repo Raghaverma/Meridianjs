@@ -21,7 +21,7 @@ export class TransactionError extends Error {
     public readonly rolledBack: string[],
     public readonly rollbackErrors: Record<string, string>,
     public readonly results: Record<string, NormalizedResponse<unknown>>,
-    public readonly cause: unknown,
+    public override readonly cause: unknown,
   ) {
     super(message);
     this.name = "TransactionError";

@@ -37,52 +37,6 @@ import { FileSystemSchemaStorage } from "./infrastructure/validation/schema-stor
 import { ServiceClient } from "./networking/services/service-client.js";
 import type { TransactionResult, TransactionStep } from "./orchestration/transactions/saga.js";
 import { runTransaction } from "./orchestration/transactions/saga.js";
-import { AnthropicAdapter } from "./providers/ai/anthropic/adapter.js";
-import { CohereAdapter } from "./providers/ai/cohere/adapter.js";
-import { GeminiAdapter } from "./providers/ai/gemini/adapter.js";
-import { MistralAdapter } from "./providers/ai/mistral/adapter.js";
-import { OpenAIAdapter } from "./providers/ai/openai/adapter.js";
-import { GitHubAdapter } from "./providers/crm/github/adapter.js";
-import { HubSpotAdapter } from "./providers/crm/hubspot/adapter.js";
-import { HunterAdapter } from "./providers/crm/hunter/adapter.js";
-import { ApolloAdapter } from "./providers/healthcare/apollo/adapter.js";
-import { Auth0Adapter } from "./providers/identity/auth0/adapter.js";
-import { DecentroAdapter } from "./providers/identity/decentro/adapter.js";
-import { DigioAdapter } from "./providers/identity/digio/adapter.js";
-import { HyperVergeAdapter } from "./providers/identity/hyperverge/adapter.js";
-import { IdfyAdapter } from "./providers/identity/idfy/adapter.js";
-import { KarzaAdapter } from "./providers/identity/karza/adapter.js";
-import { PerfiosAdapter } from "./providers/identity/perfios/adapter.js";
-import { SetuAdapter } from "./providers/identity/setu/adapter.js";
-import { DelhiveryAdapter } from "./providers/logistics/delhivery/adapter.js";
-import { ShiprocketAdapter } from "./providers/logistics/shiprocket/adapter.js";
-import { GoogleMapsAdapter } from "./providers/maps/googlemaps/adapter.js";
-import { MapmyindiaAdapter } from "./providers/maps/mapmyindia/adapter.js";
-import { ExotelAdapter } from "./providers/messaging/exotel/adapter.js";
-import { GupshupAdapter } from "./providers/messaging/gupshup/adapter.js";
-import { MailgunAdapter } from "./providers/messaging/mailgun/adapter.js";
-import { Msg91Adapter } from "./providers/messaging/msg91/adapter.js";
-import { SendgridAdapter } from "./providers/messaging/sendgrid/adapter.js";
-import { TwilioAdapter } from "./providers/messaging/twilio/adapter.js";
-import { VonageAdapter } from "./providers/messaging/vonage/adapter.js";
-import { DatadogAdapter } from "./providers/monitoring/datadog/adapter.js";
-import { SentryAdapter } from "./providers/monitoring/sentry/adapter.js";
-import { AdyenAdapter } from "./providers/payments/adyen/adapter.js";
-import { BilldeskAdapter } from "./providers/payments/billdesk/adapter.js";
-import { BraintreeAdapter } from "./providers/payments/braintree/adapter.js";
-import { CashfreeAdapter } from "./providers/payments/cashfree/adapter.js";
-import { CcavenueAdapter } from "./providers/payments/ccavenue/adapter.js";
-import { CheckoutAdapter } from "./providers/payments/checkout/adapter.js";
-import { JuspayAdapter } from "./providers/payments/juspay/adapter.js";
-import { KlarnaAdapter } from "./providers/payments/klarna/adapter.js";
-import { MollieAdapter } from "./providers/payments/mollie/adapter.js";
-import { PayuAdapter } from "./providers/payments/payu/adapter.js";
-import { PhonePeAdapter } from "./providers/payments/phonepe/adapter.js";
-import { RazorpayAdapter } from "./providers/payments/razorpay/adapter.js";
-import { StripeAdapter } from "./providers/payments/stripe/adapter.js";
-import { S3Adapter } from "./providers/storage/s3/adapter.js";
-import { SupabaseAdapter } from "./providers/storage/supabase/adapter.js";
-import { CleartaxAdapter } from "./providers/tax/cleartax/adapter.js";
 import { ProviderCircuitBreaker } from "./resilience/circuit-breaker.js";
 import { IdempotencyResolver } from "./resilience/idempotency.js";
 import { RateLimiter } from "./resilience/rate-limit.js";
@@ -94,68 +48,85 @@ import {
   type StudioServerOptions,
 } from "./studio/server.js";
 
-export const BUILTIN_ADAPTER_CLASSES: Record<string, new () => ProviderAdapter> = {
-  github: GitHubAdapter,
-  googlemaps: GoogleMapsAdapter,
-  billdesk: BilldeskAdapter,
-  ccavenue: CcavenueAdapter,
-  datadog: DatadogAdapter,
-  anthropic: AnthropicAdapter,
-  openai: OpenAIAdapter,
-  stripe: StripeAdapter,
-  razorpay: RazorpayAdapter,
-  cashfree: CashfreeAdapter,
-  payu: PayuAdapter,
-  juspay: JuspayAdapter,
-  msg91: Msg91Adapter,
-  exotel: ExotelAdapter,
-  gupshup: GupshupAdapter,
-  setu: SetuAdapter,
-  decentro: DecentroAdapter,
-  shiprocket: ShiprocketAdapter,
-  delhivery: DelhiveryAdapter,
-  hyperverge: HyperVergeAdapter,
-  digio: DigioAdapter,
-  karza: KarzaAdapter,
-  idfy: IdfyAdapter,
-  cleartax: CleartaxAdapter,
-  mapmyindia: MapmyindiaAdapter,
-  perfios: PerfiosAdapter,
-  twilio: TwilioAdapter,
-  sendgrid: SendgridAdapter,
-  sentry: SentryAdapter,
-  mailgun: MailgunAdapter,
-  vonage: VonageAdapter,
-  adyen: AdyenAdapter,
-  gemini: GeminiAdapter,
-  auth0: Auth0Adapter,
-  hubspot: HubSpotAdapter,
-  supabase: SupabaseAdapter,
-  braintree: BraintreeAdapter,
-  phonepe: PhonePeAdapter,
-  checkout: CheckoutAdapter,
-  cohere: CohereAdapter,
-  klarna: KlarnaAdapter,
-  mistral: MistralAdapter,
-  mollie: MollieAdapter,
-  apollo: ApolloAdapter,
-  hunter: HunterAdapter,
-  s3: S3Adapter,
+type AdapterLoader = () => Promise<new () => ProviderAdapter>;
+
+// Each entry is a dynamic import so that `import "meridianjs"` only pays for
+// the providers actually configured, not all built-in adapters. Keep one
+// entry per line as `name: loader,` — scripts/list-providers.mjs parses this
+// block with a regex to build the CI contract-test matrix.
+export const BUILTIN_ADAPTER_LOADERS: Record<string, AdapterLoader> = {
+  github: () => import("./providers/crm/github/adapter.js").then((m) => m.GitHubAdapter),
+  googlemaps: () =>
+    import("./providers/maps/googlemaps/adapter.js").then((m) => m.GoogleMapsAdapter),
+  billdesk: () => import("./providers/payments/billdesk/adapter.js").then((m) => m.BilldeskAdapter),
+  ccavenue: () => import("./providers/payments/ccavenue/adapter.js").then((m) => m.CcavenueAdapter),
+  datadog: () => import("./providers/monitoring/datadog/adapter.js").then((m) => m.DatadogAdapter),
+  anthropic: () => import("./providers/ai/anthropic/adapter.js").then((m) => m.AnthropicAdapter),
+  openai: () => import("./providers/ai/openai/adapter.js").then((m) => m.OpenAIAdapter),
+  stripe: () => import("./providers/payments/stripe/adapter.js").then((m) => m.StripeAdapter),
+  razorpay: () => import("./providers/payments/razorpay/adapter.js").then((m) => m.RazorpayAdapter),
+  cashfree: () => import("./providers/payments/cashfree/adapter.js").then((m) => m.CashfreeAdapter),
+  payu: () => import("./providers/payments/payu/adapter.js").then((m) => m.PayuAdapter),
+  juspay: () => import("./providers/payments/juspay/adapter.js").then((m) => m.JuspayAdapter),
+  msg91: () => import("./providers/messaging/msg91/adapter.js").then((m) => m.Msg91Adapter),
+  exotel: () => import("./providers/messaging/exotel/adapter.js").then((m) => m.ExotelAdapter),
+  gupshup: () => import("./providers/messaging/gupshup/adapter.js").then((m) => m.GupshupAdapter),
+  setu: () => import("./providers/identity/setu/adapter.js").then((m) => m.SetuAdapter),
+  decentro: () => import("./providers/identity/decentro/adapter.js").then((m) => m.DecentroAdapter),
+  shiprocket: () =>
+    import("./providers/logistics/shiprocket/adapter.js").then((m) => m.ShiprocketAdapter),
+  delhivery: () =>
+    import("./providers/logistics/delhivery/adapter.js").then((m) => m.DelhiveryAdapter),
+  hyperverge: () =>
+    import("./providers/identity/hyperverge/adapter.js").then((m) => m.HyperVergeAdapter),
+  digio: () => import("./providers/identity/digio/adapter.js").then((m) => m.DigioAdapter),
+  karza: () => import("./providers/identity/karza/adapter.js").then((m) => m.KarzaAdapter),
+  idfy: () => import("./providers/identity/idfy/adapter.js").then((m) => m.IdfyAdapter),
+  cleartax: () => import("./providers/tax/cleartax/adapter.js").then((m) => m.CleartaxAdapter),
+  mapmyindia: () =>
+    import("./providers/maps/mapmyindia/adapter.js").then((m) => m.MapmyindiaAdapter),
+  perfios: () => import("./providers/identity/perfios/adapter.js").then((m) => m.PerfiosAdapter),
+  twilio: () => import("./providers/messaging/twilio/adapter.js").then((m) => m.TwilioAdapter),
+  sendgrid: () =>
+    import("./providers/messaging/sendgrid/adapter.js").then((m) => m.SendgridAdapter),
+  sentry: () => import("./providers/monitoring/sentry/adapter.js").then((m) => m.SentryAdapter),
+  mailgun: () => import("./providers/messaging/mailgun/adapter.js").then((m) => m.MailgunAdapter),
+  vonage: () => import("./providers/messaging/vonage/adapter.js").then((m) => m.VonageAdapter),
+  adyen: () => import("./providers/payments/adyen/adapter.js").then((m) => m.AdyenAdapter),
+  gemini: () => import("./providers/ai/gemini/adapter.js").then((m) => m.GeminiAdapter),
+  auth0: () => import("./providers/identity/auth0/adapter.js").then((m) => m.Auth0Adapter),
+  hubspot: () => import("./providers/crm/hubspot/adapter.js").then((m) => m.HubSpotAdapter),
+  supabase: () => import("./providers/storage/supabase/adapter.js").then((m) => m.SupabaseAdapter),
+  braintree: () =>
+    import("./providers/payments/braintree/adapter.js").then((m) => m.BraintreeAdapter),
+  phonepe: () => import("./providers/payments/phonepe/adapter.js").then((m) => m.PhonePeAdapter),
+  checkout: () => import("./providers/payments/checkout/adapter.js").then((m) => m.CheckoutAdapter),
+  cohere: () => import("./providers/ai/cohere/adapter.js").then((m) => m.CohereAdapter),
+  klarna: () => import("./providers/payments/klarna/adapter.js").then((m) => m.KlarnaAdapter),
+  mistral: () => import("./providers/ai/mistral/adapter.js").then((m) => m.MistralAdapter),
+  mollie: () => import("./providers/payments/mollie/adapter.js").then((m) => m.MollieAdapter),
+  apollo: () => import("./providers/healthcare/apollo/adapter.js").then((m) => m.ApolloAdapter),
+  hunter: () => import("./providers/crm/hunter/adapter.js").then((m) => m.HunterAdapter),
+  s3: () => import("./providers/storage/s3/adapter.js").then((m) => m.S3Adapter),
 };
 
-function getBuiltinAdapter(
+/** Provider names with a built-in adapter, without importing any of them. */
+export const BUILTIN_ADAPTER_NAMES: readonly string[] = Object.keys(BUILTIN_ADAPTER_LOADERS);
+
+async function getBuiltinAdapter(
   name: string,
   cache: Map<string, ProviderAdapter>,
-): ProviderAdapter | null {
+): Promise<ProviderAdapter | null> {
   if (cache.has(name)) {
     return cache.get(name)!;
   }
 
-  const AdapterClass = BUILTIN_ADAPTER_CLASSES[name];
-  if (!AdapterClass) {
+  const loadAdapter = BUILTIN_ADAPTER_LOADERS[name];
+  if (!loadAdapter) {
     return null;
   }
 
+  const AdapterClass = await loadAdapter();
   const adapter = new AdapterClass();
   cache.set(name, adapter);
   return adapter;
@@ -372,7 +343,7 @@ export class Meridian {
     let adapter = providerConfig.adapter ?? this.adapters.get(providerName);
 
     if (!adapter) {
-      const builtinAdapter = getBuiltinAdapter(providerName, this.adapterCache);
+      const builtinAdapter = await getBuiltinAdapter(providerName, this.adapterCache);
       if (builtinAdapter) {
         this.adapters.set(providerName, builtinAdapter);
         adapter = builtinAdapter;
@@ -571,7 +542,30 @@ export class Meridian {
         fetchInit.body = built.body;
       }
 
-      const response = await fetch(built.url, fetchInit);
+      let response: Response;
+      try {
+        response = await fetch(built.url, fetchInit);
+      } catch (error) {
+        // Unlike the pipeline path, this fetch() isn't wrapped by execute()'s
+        // adapter.parseError() fallback — a network failure (DNS, connection
+        // refused) or a synchronous Headers validation error (e.g. CRLF in a
+        // header value) would otherwise escape as a raw, unwrapped error
+        // instead of the MeridianError every other failure path returns.
+        let meridianError: MeridianError;
+        try {
+          meridianError = currentAdapter.parseError(error);
+        } catch {
+          meridianError = new MeridianError(
+            error instanceof Error ? error.message : String(error),
+            "network",
+            providerName,
+            false,
+            "",
+            { originalError: error instanceof Error ? error.message : error },
+          );
+        }
+        throw meridianError;
+      }
 
       if (!response.ok) {
         // Normalize streaming errors to MeridianError like the rest of the SDK.

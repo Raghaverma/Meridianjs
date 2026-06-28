@@ -1,6 +1,7 @@
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import type { RawResponse } from "../core/types.js";
-import { OffsetPaginationStrategy } from "./pagination.js";
+import { CursorPaginationStrategy, OffsetPaginationStrategy } from "./pagination.js";
 
 const raw = (body: unknown, headers: Record<string, string> = {}): RawResponse => {
   const h = new Headers();
@@ -64,5 +65,45 @@ describe("OffsetPaginationStrategy", () => {
 
     const page3 = raw({ items: Array(defaultLimit).fill(1) });
     expect(s.extractCursor(page3)).toBe("300");
+  });
+});
+
+describe("property: extractTotal never returns NaN from a malformed header", () => {
+  // Regression: Number.parseInt("garbage", 10) is NaN, which is `!== null`
+  // but compares false against every number. extractCursor's `>= total`
+  // check would then never be true, so a malformed total header would never
+  // signal end-of-results — pagination would run to the hard page cap
+  // instead of stopping, on any provider response with a bad header.
+  it("OffsetPaginationStrategy.extractTotal is never NaN for any header string", () => {
+    fc.assert(
+      fc.property(fc.string(), (headerValue) => {
+        const s = new OffsetPaginationStrategy("offset", "limit", "X-Total-Count");
+        const response = raw({ offset: 0, limit: 10 }, { "X-Total-Count": headerValue });
+        const total = s.extractTotal(response);
+        expect(Number.isNaN(total)).toBe(false);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("CursorPaginationStrategy.extractTotal is never NaN for any header string", () => {
+    fc.assert(
+      fc.property(fc.string(), (headerValue) => {
+        const s = new CursorPaginationStrategy("X-Cursor", "cursor", "X-Total-Count");
+        const h = new Headers();
+        h.set("X-Total-Count", headerValue);
+        const response: RawResponse = { status: 200, headers: h, body: {} };
+        const total = s.extractTotal(response);
+        expect(Number.isNaN(total)).toBe(false);
+      }),
+      { numRuns: 200 },
+    );
+  });
+
+  it("a malformed total header no longer blocks termination (extractCursor falls back to empty-page detection)", () => {
+    const s = new OffsetPaginationStrategy("offset", "limit", "X-Total-Count");
+    const response = raw({ offset: 0, limit: 10, items: [] }, { "X-Total-Count": "not-a-number" });
+    expect(s.extractCursor(response)).toBeNull();
+    expect(s.hasNext(response)).toBe(false);
   });
 });

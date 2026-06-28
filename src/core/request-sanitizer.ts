@@ -1,3 +1,4 @@
+import { redactSecrets } from "./secret-redactor.js";
 import type { RequestOptions } from "./types.js";
 
 export interface SanitizerOptions {
@@ -82,7 +83,7 @@ export function sanitizeRequestOptions(
       ) {
         headersCopy[k] = "[REDACTED]";
       } else {
-        headersCopy[k] = v;
+        headersCopy[k] = redactSecrets(v);
       }
     }
     sanitized.headers = headersCopy;
@@ -102,7 +103,7 @@ export function sanitizeRequestOptions(
       ) {
         queryCopy[k] = "[REDACTED]";
       } else {
-        queryCopy[k] = v;
+        queryCopy[k] = typeof v === "string" ? redactSecrets(v) : v;
       }
     }
     sanitized.query = queryCopy;
@@ -112,14 +113,13 @@ export function sanitizeRequestOptions(
     if (redacted.includes("body") && !runPatternRedaction) {
       // Non-PII path: blanket-redact body
       sanitized.body = "[REDACTED]";
-    } else if (runPatternRedaction && typeof sanitized.body === "string") {
-      sanitized.body = applyPiiPatterns(sanitized.body, indiaMode);
-    } else if (
-      runPatternRedaction &&
-      typeof sanitized.body === "object" &&
-      sanitized.body !== null
-    ) {
-      sanitized.body = sanitizeValue(sanitized.body, indiaMode);
+    } else if (typeof sanitized.body === "string") {
+      const piiRedacted = runPatternRedaction
+        ? applyPiiPatterns(sanitized.body, indiaMode)
+        : sanitized.body;
+      sanitized.body = redactSecrets(piiRedacted);
+    } else if (typeof sanitized.body === "object" && sanitized.body !== null) {
+      sanitized.body = sanitizeValue(sanitized.body, indiaMode, runPatternRedaction);
     }
   }
 
@@ -136,17 +136,18 @@ export function redactPii(value: unknown, opts?: { indiaMode?: boolean }): unkno
   return sanitizeValue(value, opts?.indiaMode === true);
 }
 
-function sanitizeValue(val: unknown, indiaMode: boolean): unknown {
+function sanitizeValue(val: unknown, indiaMode: boolean, applyPii = true): unknown {
   if (typeof val === "string") {
-    return applyPiiPatterns(val, indiaMode);
+    const piiRedacted = applyPii ? applyPiiPatterns(val, indiaMode) : val;
+    return redactSecrets(piiRedacted);
   }
   if (Array.isArray(val)) {
-    return val.map((item) => sanitizeValue(item, indiaMode));
+    return val.map((item) => sanitizeValue(item, indiaMode, applyPii));
   }
   if (typeof val === "object" && val !== null) {
     const copy: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
-      copy[k] = sanitizeValue(v, indiaMode);
+      copy[k] = sanitizeValue(v, indiaMode, applyPii);
     }
     return copy;
   }
