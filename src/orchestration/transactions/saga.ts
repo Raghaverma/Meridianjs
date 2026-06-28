@@ -1,18 +1,21 @@
 import type { NormalizedResponse } from "../../core/types.js";
 import { MeridianError } from "../../core/types.js";
 
+/** One step of a `Meridian.transaction()` saga — `rollback` runs only if a later step fails. */
 export interface TransactionStep<T = unknown> {
   name: string;
   execute: () => Promise<NormalizedResponse<T>>;
   rollback?: (result: NormalizedResponse<T>) => Promise<void>;
 }
 
+/** Result of a fully-successful `Meridian.transaction()` — every step's `execute` ran, none rolled back. */
 export interface TransactionResult {
   succeeded: string[];
   rolledBack: string[];
   results: Record<string, NormalizedResponse<unknown>>;
 }
 
+/** Thrown by `Meridian.transaction()` when a step fails after others already succeeded — `cause` is the original error. */
 export class TransactionError extends Error {
   constructor(
     message: string,

@@ -182,4 +182,43 @@ describe("ProviderClient.batch", () => {
     expect(results).toHaveLength(12);
     expect(maxInFlight).toBeGreaterThan(2);
   });
+
+  it("stops starting new requests once the caller's signal is aborted, without losing any result slot", async () => {
+    const client = await makeClient();
+    const controller = new AbortController();
+
+    const requests = Array.from({ length: 10 }, (_, i) => ({
+      method: "GET" as const,
+      endpoint: `/slow/${i === 0 ? 20 : 5}`,
+    }));
+
+    // Abort right after the batch starts — concurrencyLimit 1 means only the
+    // first request has begun, so everything from index 1 onward must come
+    // back as a cancellation MeridianError instead of hitting the network.
+    setTimeout(() => controller.abort(), 1);
+
+    const results = await client.batch(requests, 1, controller.signal);
+
+    expect(results).toHaveLength(10);
+    const cancelled = results.filter(
+      (r) => r instanceof MeridianError && r.message.includes("cancelled"),
+    );
+    expect(cancelled.length).toBeGreaterThan(0);
+  });
+
+  it("runs the whole batch normally when the signal is never aborted", async () => {
+    const client = await makeClient();
+    const controller = new AbortController();
+
+    const results = await client.batch(
+      [
+        { method: "GET", endpoint: "/item/a" },
+        { method: "GET", endpoint: "/item/b" },
+      ],
+      10,
+      controller.signal,
+    );
+
+    expect(results.every((r) => !(r instanceof MeridianError))).toBe(true);
+  });
 });

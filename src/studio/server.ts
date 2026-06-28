@@ -8,6 +8,7 @@ import { summarizeSession } from "../infrastructure/replay/replayer.js";
 import { DEFAULT_RECORDINGS_DIR, ReliabilityStore } from "../infrastructure/replay/store.js";
 import { isLoopbackHost, safeEqual } from "../networking/proxy/shared.js";
 
+/** Options for `createStudioServer()` / `Meridian.studio()` — see docs/studio.md. */
 export interface StudioServerOptions {
   /**
    * Attach a live Meridian instance so health/cost/circuit-breaker/recording
@@ -36,8 +37,11 @@ export interface StudioServerOptions {
   recordingsDir?: string;
 }
 
+/** A running Studio server — returned by `createStudioServer()` / `Meridian.studio()`. */
 export interface StudioServerHandle {
+  /** Base URL the server is listening on. */
   readonly url: string;
+  /** Stops the server and releases the port. */
   close(): Promise<void>;
 }
 

@@ -26,8 +26,8 @@
 import { CircuitState, MeridianError, type SchemaDrift } from "../src/core/types.js";
 import { Meridian } from "../src/index.js";
 import { NoOpObservability } from "../src/infrastructure/observability/noop.js";
-import { MockAdapter } from "../src/testing/mock-adapter.js";
 import { InMemorySchemaStorage } from "../src/infrastructure/validation/schema-storage.js";
+import { MockAdapter } from "../src/testing/mock-adapter.js";
 import { MockNetwork, now, timed } from "./harness.js";
 
 // NoOp suppresses the default Console observability; the giant token bucket

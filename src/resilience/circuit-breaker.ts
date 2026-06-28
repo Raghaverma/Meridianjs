@@ -32,6 +32,15 @@ interface CircuitResult {
   timestamp: number;
 }
 
+// recentResults is pruned by age (rollingWindowMs), not count. For sustained
+// high-throughput traffic completing faster than the window elapses — e.g.
+// thousands of requests/sec against a default 60s window — nothing ages out
+// and the array grows proportionally to throughput × window with no upper
+// bound. Capping at the most recent N results bounds memory regardless of
+// RPS; well above any default volumeThreshold, so normal error-rate
+// calculations are unaffected.
+const MAX_RECENT_RESULTS = 1000;
+
 export class ProviderCircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
   private failures = 0;
@@ -132,6 +141,10 @@ export class ProviderCircuitBreaker {
 
     const windowStart = Date.now() - this.config.rollingWindowMs;
     this.recentResults = this.recentResults.filter((r) => r.timestamp >= windowStart);
+
+    if (this.recentResults.length > MAX_RECENT_RESULTS) {
+      this.recentResults = this.recentResults.slice(-MAX_RECENT_RESULTS);
+    }
   }
 
   getStatus(): CircuitBreakerStatus {

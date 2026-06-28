@@ -110,9 +110,10 @@ export class ServiceClient {
   async batch<T = unknown>(
     requests: BatchRequest[],
     concurrencyLimit = 10,
+    signal?: AbortSignal,
   ): Promise<Array<NormalizedResponse<T> | MeridianError>> {
     const idx = this.selectIndex();
-    return this.providers[idx]!.batch<T>(requests, concurrencyLimit);
+    return this.providers[idx]!.batch<T>(requests, concurrencyLimit, signal);
   }
 
   private selectIndex(): number {

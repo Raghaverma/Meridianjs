@@ -1,5 +1,11 @@
 import type { StateStorage } from "../core/types.js";
 
+/**
+ * Shares a provider's 429 cooldown across every process via `StateStorage`
+ * (e.g. Redis), so a rate limit hit by one instance is respected by all of
+ * them — without this, each process's in-memory `RateLimiter` only knows
+ * about its own traffic.
+ */
 export class SharedCooldownManager {
   constructor(
     private readonly storage: StateStorage,

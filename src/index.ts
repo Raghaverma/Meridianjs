@@ -146,15 +146,30 @@ export interface ProviderClient {
   batch<T = unknown>(
     requests: Array<BatchRequest>,
     concurrencyLimit?: number,
+    signal?: AbortSignal,
   ): Promise<Array<NormalizedResponse<T> | MeridianError>>;
 }
 
+/**
+ * Reliability middleware for third-party API clients — normalizes responses,
+ * retries, circuit-breaks, rate-limits, and fails over across providers
+ * behind one client interface. Construct via `Meridian.create()`, not `new`;
+ * every provider configured (or registered) gets a `ProviderClient`
+ * (`get`/`post`/`put`/`patch`/`delete`/`paginate`/`stream`/`batch`) exposed
+ * as `meridian.<providerName>` and reachable via `meridian.provider(name)`.
+ */
 export class Meridian {
   private config: MeridianConfig;
   private pipelines: Map<string, RequestPipeline> = new Map();
   private circuitBreakers: Map<string, ProviderCircuitBreaker> = new Map();
   private observability: ObservabilityAdapter[];
   private adapters: Map<string, ProviderAdapter> = new Map();
+  // Invalidated (set to null) whenever `adapters` changes. providers()/
+  // findProviders() are introspection calls some callers (e.g. Studio) hit
+  // more than once per request — rebuilding a Set + array from every
+  // adapter's capabilities() each time is wasted work once the adapter set
+  // is stable, which is true almost all the time after start().
+  private providersCache: Array<{ name: string; capabilities: string[] }> | null = null;
   private started = false;
   private adapterCache: Map<string, ProviderAdapter> = new Map();
   private serviceClients: Map<string, ServiceClient> = new Map();
@@ -226,6 +241,13 @@ export class Meridian {
     ];
   }
 
+  /**
+   * The only supported way to construct a Meridian instance — the
+   * constructor is private. Validates config, initializes every configured
+   * provider (resolving its adapter, lazily importing the matching built-in
+   * one if none is given), and resolves once everything is ready to serve
+   * requests.
+   */
   static async create(config: MeridianConfig, adapters?: Map<string, ProviderAdapter>) {
     const b = new Meridian(config, adapters);
     await b.start();
@@ -359,6 +381,7 @@ export class Meridian {
     await assertValidAdapter(adapter, providerName);
 
     this.adapters.set(providerName, adapter);
+    this.providersCache = null;
 
     const circuitBreakerConfig = {
       ...this.config.defaults?.circuitBreaker,
@@ -478,9 +501,12 @@ export class Meridian {
         }
 
         if (seenCursors.has(cursor)) {
-          throw new Error(
+          throw new MeridianError(
             `Pagination cycle detected: cursor "${cursor}" was encountered twice. ` +
               `This indicates a malformed pagination implementation. Stopping at page ${pageCount}.`,
+            "provider",
+            providerName,
+            false,
           );
         }
         seenCursors.add(cursor);
@@ -491,8 +517,11 @@ export class Meridian {
       }
 
       if (pageCount >= maxPages) {
-        throw new Error(
+        throw new MeridianError(
           `Pagination limit reached: ${maxPages} pages. This may indicate an infinite pagination loop. Consider using a more specific query.`,
+          "provider",
+          providerName,
+          false,
         );
       }
     };
@@ -540,6 +569,9 @@ export class Meridian {
       };
       if (built.body !== undefined) {
         fetchInit.body = built.body;
+      }
+      if (options.signal !== undefined) {
+        fetchInit.signal = options.signal;
       }
 
       let response: Response;
@@ -653,6 +685,7 @@ export class Meridian {
       batch: async <T = unknown>(
         requests: Array<BatchRequest>,
         concurrencyLimit = 10,
+        signal?: AbortSignal,
       ): Promise<Array<NormalizedResponse<T> | MeridianError>> => {
         meridian.ensureStarted();
         const currentAdapter = meridian.adapters.get(providerName);
@@ -660,7 +693,21 @@ export class Meridian {
           throw new Error(`Adapter not found for provider: ${providerName}`);
         }
 
-        const tasks = requests.map((req) => async () => {
+        const tasks = requests.map((req, batchIndex) => async () => {
+          // Checked at invocation time, not upfront, so an abort mid-batch
+          // stops the worker pool from *starting* further requests — already
+          // in-flight ones still complete naturally (cancel those too via
+          // req.options.signal on the individual request).
+          if (signal?.aborted) {
+            return new MeridianError(
+              "Batch cancelled by caller signal before this request started",
+              "network",
+              providerName,
+              false,
+              "",
+              { batchIndex },
+            );
+          }
           try {
             return await makeRequest<T>(req.method, req.endpoint, req.options);
           } catch (err) {
@@ -676,12 +723,19 @@ export class Meridian {
     };
   }
 
+  /** Live circuit-breaker state for `provider` (CLOSED/OPEN/HALF_OPEN, failure/success counts), or `null` if unconfigured. */
   getCircuitStatus(provider: string): CircuitBreakerStatus | null {
     this.ensureStarted();
     const circuitBreaker = this.circuitBreakers.get(provider);
     return circuitBreaker?.getStatus() ?? null;
   }
 
+  /**
+   * Returns the `ProviderClient` for a configured or registered provider, or
+   * `undefined` if `name` wasn't set up. Built-in provider names are
+   * overloaded for autocomplete; any other string is also accepted (for
+   * adapters added via `registerProvider()`).
+   */
   provider(name: "anthropic"): ProviderClient | undefined;
   provider(name: "openai"): ProviderClient | undefined;
   provider(name: "stripe"): ProviderClient | undefined;
@@ -735,16 +789,23 @@ export class Meridian {
     return (this as any)[name] as ProviderClient | undefined;
   }
 
+  /** Returns the named multi-provider `ServiceClient` (failover/round-robin/etc. routing) from `config.services`. */
   service(name: string): ServiceClient | undefined {
     this.ensureStarted();
     return this.serviceClients.get(name);
   }
 
+  /** Per-provider request/error counts and latency stats, accumulated since this instance started. */
   analytics(): Record<string, import("./infrastructure/analytics/collector.js").ProviderStats> {
     this.ensureStarted();
     return this.analyticsCollector.get();
   }
 
+  /**
+   * Per-provider health derived from analytics + live circuit-breaker state:
+   * `down` if the breaker is OPEN, `degraded` if HALF_OPEN, otherwise the
+   * analytics-derived status.
+   */
   health(): Record<
     string,
     {
@@ -779,21 +840,29 @@ export class Meridian {
     return result;
   }
 
+  /** Estimated spend per provider, computed from request counts × `config.providerCosts`. */
   cost(currency = "USD"): CostReport {
     this.ensureStarted();
     const costs = (this.config.providerCosts as Record<string, number> | undefined) ?? {};
     return this.analyticsCollector.getCost(costs, currency);
   }
 
+  /** Every configured/registered provider with its merged capability tags (registry-declared + adapter-declared). */
   providers(): Array<{ name: string; capabilities: string[] }> {
     this.ensureStarted();
-    return [...this.adapters.entries()].map(([name, adapter]) => {
+    if (this.providersCache) {
+      return this.providersCache;
+    }
+    const computed = [...this.adapters.entries()].map(([name, adapter]) => {
       const registry = PROVIDER_CAPABILITIES[name] ?? [];
       const declared = adapter.capabilities?.() ?? [];
       return { name, capabilities: [...new Set([...registry, ...declared])] };
     });
+    this.providersCache = computed;
+    return computed;
   }
 
+  /** `providers()` filtered to those declaring the given capability tag. */
   findProviders(filter: { capability: string }): Array<{ name: string; capabilities: string[] }> {
     this.ensureStarted();
     return this.providers().filter((p) => p.capabilities.includes(filter.capability));
@@ -902,11 +971,19 @@ export class Meridian {
     return runReplaySession(session, replayOptions);
   }
 
+  /** Runs a multi-step, multi-provider saga: each step's `rollback` runs, in reverse order, if a later step fails. */
   async transaction(steps: TransactionStep[]): Promise<TransactionResult> {
     this.ensureStarted();
     return runTransaction(steps);
   }
 
+  /**
+   * Adds a provider after construction — a custom `ProviderAdapter`, or a
+   * built-in one you instantiated yourself (e.g. via a
+   * `meridianjs/providers/<category>` import) instead of letting Meridian
+   * auto-resolve it from a bare provider name. Available immediately as
+   * `meridian.<name>` / `meridian.provider(name)`.
+   */
   async registerProvider(
     name: string,
     adapter: ProviderAdapter,
@@ -915,6 +992,7 @@ export class Meridian {
     this.ensureStarted();
 
     this.adapters.set(name, adapter);
+    this.providersCache = null;
 
     if (!this.config.providers) {
       this.config.providers = {};

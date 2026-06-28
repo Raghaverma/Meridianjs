@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { MemoryStateStorage } from "../infrastructure/state/memory.js";
 import { SharedCooldownManager } from "./shared-cooldown.js";
 

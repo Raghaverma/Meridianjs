@@ -8,7 +8,7 @@ Stripe returns `{"error":{"type":"..."}}`. OpenAI returns `{"error":{"message":"
 
 [![npm](https://img.shields.io/npm/v/meridianjs?color=0070f3)](https://www.npmjs.com/package/meridianjs)
 [![version](https://img.shields.io/badge/version-0.5.0-blue)](CHANGELOG.md)
-[![tests](https://img.shields.io/badge/tests-2158%20passing-brightgreen)](https://vitest.dev)
+[![tests](https://img.shields.io/badge/tests-2169%20passing-brightgreen)](https://vitest.dev)
 [![adapters](https://img.shields.io/badge/adapters-46-blueviolet)](#providers)
 [![contracts](https://img.shields.io/badge/contract%20tests-874-brightgreen)](#providers)
 [![types](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org)
