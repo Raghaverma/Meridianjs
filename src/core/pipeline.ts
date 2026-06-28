@@ -318,7 +318,14 @@ export class RequestPipeline {
 
       let meridianError: MeridianError;
       try {
-        const adapterError = this.config.adapter.parseError(error);
+        // An error already classified upstream (timeout, caller-aborted
+        // signal) carries its own category/message/retryable flag. Routing
+        // it back through adapter.parseError() would re-sniff it as a raw
+        // HTTP failure — GitHubAdapter's parseError, for example, matches
+        // the word "timeout" in the message and rewrites it to a generic
+        // "Network request failed" string, discarding the specific reason.
+        const adapterError =
+          error instanceof MeridianError ? error : this.config.adapter.parseError(error);
 
         meridianError = sanitizeMeridianError(adapterError, this.config.provider, requestId);
       } catch (parseError) {
@@ -423,7 +430,7 @@ export class RequestPipeline {
     options: RequestOptions,
     authToken: AuthToken,
   ): Promise<RawResponse> {
-    const timeout = this.config.timeout ?? 30000;
+    const timeout = options.timeout ?? this.config.timeout ?? 30000;
 
     const builtRequest = this.config.adapter.buildRequest({
       endpoint,
@@ -433,6 +440,25 @@ export class RequestPipeline {
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    // Combine the internal timeout signal with the caller's own AbortSignal
+    // (if given) without relying on AbortSignal.any, which isn't available on
+    // every Node 20.x patch this package supports — track which side fired so
+    // the catch block below can report "aborted by caller" vs "timed out".
+    const callerSignal = options.signal;
+    let abortedByCaller = false;
+    const onCallerAbort = () => {
+      abortedByCaller = true;
+      controller.abort();
+    };
+    if (callerSignal) {
+      if (callerSignal.aborted) {
+        abortedByCaller = true;
+        controller.abort();
+      } else {
+        callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+      }
+    }
 
     const fetchOptions: RequestInit = {
       method: builtRequest.method,
@@ -478,6 +504,19 @@ export class RequestPipeline {
       } as RawResponse;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
+        if (abortedByCaller) {
+          throw new MeridianError(
+            "Request aborted by caller signal",
+            "network",
+            this.config.provider,
+            false,
+            "",
+            {
+              url: builtRequest.url,
+              method: builtRequest.method,
+            },
+          );
+        }
         throw new MeridianError(
           `Request timeout after ${timeout}ms`,
           "network",
@@ -496,6 +535,7 @@ export class RequestPipeline {
       throw error;
     } finally {
       clearTimeout(timeoutId);
+      callerSignal?.removeEventListener("abort", onCallerAbort);
     }
   }
 }

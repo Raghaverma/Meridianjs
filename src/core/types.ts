@@ -165,6 +165,8 @@ export interface RequestOptions {
   query?: Record<string, string | number | boolean>;
   idempotencyKey?: string;
   timeout?: number;
+  /** Caller-driven cancellation — aborts the in-flight request independently of the timeout. */
+  signal?: AbortSignal;
   identity?: string | undefined;
 }
 

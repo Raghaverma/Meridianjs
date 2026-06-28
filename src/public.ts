@@ -22,9 +22,12 @@ export type { StreamChunk } from "./core/streaming.js";
 // Pagination strategy interface for custom adapters
 // Policy engine
 export type {
+  AdapterInput,
   AuthConfig,
   AuthToken,
   BatchRequest,
+  BuiltRequest,
+  CircuitBreakerConfig,
   CircuitBreakerStatus,
   ErrorContext,
   IdempotencyConfig,
@@ -41,12 +44,15 @@ export type {
   PolicyDecision,
   ProviderAdapter,
   ProviderConfig,
+  RateLimitConfig,
   RateLimitInfo,
+  RawResponse,
   RequestContext,
   RequestOptions,
   RequestTrace,
   ResponseContext,
   ResponseMeta,
+  RetryConfig,
   Schema,
   SchemaDrift,
   SchemaMetadata,
@@ -96,10 +102,13 @@ export { DebugRecorder } from "./infrastructure/debug/index.js";
 export type { OpenTelemetryAutoOptions, OTelApiLike } from "./infrastructure/observability/auto.js";
 // OpenTelemetry auto-instrumentation (binds to @opentelemetry/api, optional peer dep)
 export { createOpenTelemetryObservability } from "./infrastructure/observability/auto.js";
+export type { ConsoleObservabilityConfig } from "./infrastructure/observability/console.js";
 export { ConsoleObservability } from "./infrastructure/observability/console.js";
 export { NoOpObservability } from "./infrastructure/observability/noop.js";
 export type { OpenTelemetryConfig } from "./infrastructure/observability/otel.js";
 export { OpenTelemetryObservability } from "./infrastructure/observability/otel.js";
+export type { PrometheusConfig } from "./infrastructure/observability/prometheus.js";
+export { PrometheusObservability } from "./infrastructure/observability/prometheus.js";
 export type {
   CheckResult,
   DriftEvent,
@@ -167,59 +176,16 @@ export {
 export type { TransactionResult, TransactionStep } from "./orchestration/transactions/index.js";
 // Multi-provider transactions
 export { runTransaction, TransactionError } from "./orchestration/transactions/index.js";
-// Built-in provider adapters
-export { AnthropicAdapter } from "./providers/ai/anthropic/adapter.js";
-export { CohereAdapter } from "./providers/ai/cohere/adapter.js";
-export { GeminiAdapter } from "./providers/ai/gemini/adapter.js";
-export { MistralAdapter } from "./providers/ai/mistral/adapter.js";
-export { OpenAIAdapter } from "./providers/ai/openai/adapter.js";
-export { GitHubAdapter } from "./providers/crm/github/adapter.js";
-export { HubSpotAdapter } from "./providers/crm/hubspot/adapter.js";
-export { ApolloAdapter } from "./providers/healthcare/apollo/adapter.js";
-export { Auth0Adapter } from "./providers/identity/auth0/adapter.js";
-export { DecentroAdapter } from "./providers/identity/decentro/adapter.js";
-export { DigioAdapter } from "./providers/identity/digio/adapter.js";
-export { HyperVergeAdapter } from "./providers/identity/hyperverge/adapter.js";
-export { IdfyAdapter } from "./providers/identity/idfy/adapter.js";
-export { KarzaAdapter } from "./providers/identity/karza/adapter.js";
-export { PerfiosAdapter } from "./providers/identity/perfios/adapter.js";
-export { SetuAdapter } from "./providers/identity/setu/adapter.js";
-export { DelhiveryAdapter } from "./providers/logistics/delhivery/adapter.js";
-export { ShiprocketAdapter } from "./providers/logistics/shiprocket/adapter.js";
-export { MapmyindiaAdapter } from "./providers/maps/mapmyindia/adapter.js";
-export { ExotelAdapter } from "./providers/messaging/exotel/adapter.js";
-export { GupshupAdapter } from "./providers/messaging/gupshup/adapter.js";
-export { MailgunAdapter } from "./providers/messaging/mailgun/adapter.js";
-export { Msg91Adapter } from "./providers/messaging/msg91/adapter.js";
-export { SendgridAdapter } from "./providers/messaging/sendgrid/adapter.js";
-export { TwilioAdapter } from "./providers/messaging/twilio/adapter.js";
-export { VonageAdapter } from "./providers/messaging/vonage/adapter.js";
-export { DatadogAdapter } from "./providers/monitoring/datadog/adapter.js";
-export { SentryAdapter } from "./providers/monitoring/sentry/adapter.js";
-export { AdyenAdapter } from "./providers/payments/adyen/adapter.js";
-export { BilldeskAdapter } from "./providers/payments/billdesk/adapter.js";
-export { BraintreeAdapter } from "./providers/payments/braintree/adapter.js";
-export { CashfreeAdapter } from "./providers/payments/cashfree/adapter.js";
-export {
-  CcavenueAdapter,
-  ccavenueDecrypt,
-  ccavenueEncrypt,
-} from "./providers/payments/ccavenue/adapter.js";
-export { CheckoutAdapter } from "./providers/payments/checkout/adapter.js";
-export { JuspayAdapter } from "./providers/payments/juspay/adapter.js";
-export { KlarnaAdapter } from "./providers/payments/klarna/adapter.js";
-export { MollieAdapter } from "./providers/payments/mollie/adapter.js";
-export { PayuAdapter } from "./providers/payments/payu/adapter.js";
-export { PhonePeAdapter } from "./providers/payments/phonepe/adapter.js";
-export { RazorpayAdapter } from "./providers/payments/razorpay/adapter.js";
-export { StripeAdapter } from "./providers/payments/stripe/adapter.js";
-export { S3Adapter } from "./providers/storage/s3/adapter.js";
-export type { SigV4Credentials } from "./providers/storage/s3/sigv4.js";
-export { signSigV4 } from "./providers/storage/s3/sigv4.js";
-export { SupabaseAdapter } from "./providers/storage/supabase/adapter.js";
-export { CleartaxAdapter } from "./providers/tax/cleartax/adapter.js";
+// Built-in provider adapters — import from a category subpath, NOT this
+// barrel. `import "meridianjs"` must stay cheap for plain (non-bundled) Node
+// usage; re-exporting all 46 adapter classes here would force eager loading
+// of every provider module on every import regardless of which one you use.
+//   import { StripeAdapter } from "meridianjs/providers/payments";
+//   import { OpenAIAdapter } from "meridianjs/providers/ai";
+// See docs/adapters.md and the migration notes in CHANGELOG.md.
 // Distributed 429 cooldown coordination
 export { SharedCooldownManager } from "./resilience/shared-cooldown.js";
+export type { StudioServerHandle, StudioServerOptions } from "./studio/server.js";
 export type { MockCall, MockHandler, MockResponse } from "./testing/index.js";
 // Testing utilities
 export { Fixtures, MockAdapter } from "./testing/index.js";

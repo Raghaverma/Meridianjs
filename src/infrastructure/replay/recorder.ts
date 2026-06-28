@@ -42,6 +42,8 @@ export interface ReliabilitySession {
   startedAt: string;
   endedAt?: string;
   events: ReliabilityEvent[];
+  /** Set once `maxEvents` is reached — later events were dropped, not just old ones. */
+  truncated?: boolean;
 }
 
 /**
@@ -52,12 +54,26 @@ export interface ReliabilitySession {
 export class ReliabilityRecorder implements ObservabilityAdapter {
   private session: ReliabilitySession | null = null;
   private startedAtMs = 0;
+  private readonly maxEvents: number;
 
   /**
    * @param breakerState resolves the current circuit-breaker state for a
    * provider, so error events (which carry no trace) still record it.
+   * @param maxEvents caps the in-memory timeline. A session is meant to be a
+   * short, deliberate start()/stop() recording, but nothing stops a caller
+   * from leaving one running indefinitely. Unlike DebugRecorder's log, FIFO-
+   * evicting old events here would corrupt replay/outage-summary analysis by
+   * silently deleting the *middle* of an incident timeline — instead, once
+   * the cap is hit, new events are dropped and the session is marked
+   * `truncated` so replay code knows the data is incomplete rather than lying
+   * about it.
    */
-  constructor(private breakerState?: (provider: string) => string | undefined) {}
+  constructor(
+    private breakerState?: (provider: string) => string | undefined,
+    maxEvents = 50_000,
+  ) {
+    this.maxEvents = maxEvents;
+  }
 
   get recording(): boolean {
     return this.session !== null;
@@ -93,7 +109,12 @@ export class ReliabilityRecorder implements ObservabilityAdapter {
   }
 
   private push(event: ReliabilityEvent): void {
-    this.session?.events.push(event);
+    if (!this.session) return;
+    if (this.session.events.length >= this.maxEvents) {
+      this.session.truncated = true;
+      return;
+    }
+    this.session.events.push(event);
   }
 
   private base(

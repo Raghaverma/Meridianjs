@@ -254,8 +254,12 @@ export class PrometheusObservability implements ObservabilityAdapter {
   }
 
   private normalizeEndpoint(endpoint: string): string {
-    // Normalize endpoint to reduce cardinality
-    // Replace path parameters with placeholders
-    return endpoint.replace(/\/\d+/g, "/:id").replace(/\/[a-f0-9-]{36}/gi, "/:uuid");
+    // Normalize endpoint to reduce cardinality by replacing path parameters
+    // with placeholders. UUID must run first: a UUID segment that happens to
+    // start with a digit (most of them — the leading hex nibble is uniformly
+    // random) would otherwise get partially consumed by the numeric-ID regex
+    // first (e.g. "/3fa85f64-..." -> "/:id" + "fa85f64-..."), leaving a
+    // mangled segment the UUID regex can no longer match.
+    return endpoint.replace(/\/[a-f0-9-]{36}/gi, "/:uuid").replace(/\/\d+/g, "/:id");
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "meridianjs",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Reliability middleware for third-party APIs in TypeScript — circuit breakers, automatic failover, rate-limit coordination, schema-drift detection, and incident replay.",
   "main": "dist/public.js",
   "types": "dist/public.d.ts",
@@ -21,6 +21,50 @@
     "./ai": {
       "types": "./dist/ai/index.d.ts",
       "import": "./dist/ai/index.js"
+    },
+    "./providers/ai": {
+      "types": "./dist/providers/ai/index.d.ts",
+      "import": "./dist/providers/ai/index.js"
+    },
+    "./providers/crm": {
+      "types": "./dist/providers/crm/index.d.ts",
+      "import": "./dist/providers/crm/index.js"
+    },
+    "./providers/healthcare": {
+      "types": "./dist/providers/healthcare/index.d.ts",
+      "import": "./dist/providers/healthcare/index.js"
+    },
+    "./providers/identity": {
+      "types": "./dist/providers/identity/index.d.ts",
+      "import": "./dist/providers/identity/index.js"
+    },
+    "./providers/logistics": {
+      "types": "./dist/providers/logistics/index.d.ts",
+      "import": "./dist/providers/logistics/index.js"
+    },
+    "./providers/maps": {
+      "types": "./dist/providers/maps/index.d.ts",
+      "import": "./dist/providers/maps/index.js"
+    },
+    "./providers/messaging": {
+      "types": "./dist/providers/messaging/index.d.ts",
+      "import": "./dist/providers/messaging/index.js"
+    },
+    "./providers/monitoring": {
+      "types": "./dist/providers/monitoring/index.d.ts",
+      "import": "./dist/providers/monitoring/index.js"
+    },
+    "./providers/payments": {
+      "types": "./dist/providers/payments/index.d.ts",
+      "import": "./dist/providers/payments/index.js"
+    },
+    "./providers/storage": {
+      "types": "./dist/providers/storage/index.d.ts",
+      "import": "./dist/providers/storage/index.js"
+    },
+    "./providers/tax": {
+      "types": "./dist/providers/tax/index.d.ts",
+      "import": "./dist/providers/tax/index.js"
     }
   },
   "typesVersions": {
@@ -33,6 +77,39 @@
       ],
       "ai": [
         "./dist/ai/index.d.ts"
+      ],
+      "providers/ai": [
+        "./dist/providers/ai/index.d.ts"
+      ],
+      "providers/crm": [
+        "./dist/providers/crm/index.d.ts"
+      ],
+      "providers/healthcare": [
+        "./dist/providers/healthcare/index.d.ts"
+      ],
+      "providers/identity": [
+        "./dist/providers/identity/index.d.ts"
+      ],
+      "providers/logistics": [
+        "./dist/providers/logistics/index.d.ts"
+      ],
+      "providers/maps": [
+        "./dist/providers/maps/index.d.ts"
+      ],
+      "providers/messaging": [
+        "./dist/providers/messaging/index.d.ts"
+      ],
+      "providers/monitoring": [
+        "./dist/providers/monitoring/index.d.ts"
+      ],
+      "providers/payments": [
+        "./dist/providers/payments/index.d.ts"
+      ],
+      "providers/storage": [
+        "./dist/providers/storage/index.d.ts"
+      ],
+      "providers/tax": [
+        "./dist/providers/tax/index.d.ts"
       ]
     }
   },
@@ -70,6 +147,8 @@
     "benchmark:reliability": "npx vite-node benchmarks/reliability.ts",
     "benchmark:overhead": "npx vite-node benchmarks/pipeline-overhead.ts",
     "benchmark:startup": "npm run build && npx vite-node benchmarks/startup.ts",
+    "test:mutation": "stryker run",
+    "docs:api": "typedoc",
     "demo:failover": "npx vite-node demos/failover.ts",
     "demo:circuit-breaker": "npx vite-node demos/circuit-breaker.ts",
     "demo:schema-drift": "npx vite-node demos/schema-drift.ts",
@@ -140,10 +219,13 @@
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.8.1",
     "@opentelemetry/api": "^1.9.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^26.0.0",
     "@vitest/coverage-v8": "^4.1.8",
     "ai": "^6.0.208",
     "fast-check": "^4.8.0",
+    "typedoc": "^0.28.19",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }

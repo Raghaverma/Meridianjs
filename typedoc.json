@@ -1,0 +1,15 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/public.ts"],
+  "out": "docs/api",
+  "tsconfig": "tsconfig.json",
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "name": "Meridian",
+  "readme": "none"
+}

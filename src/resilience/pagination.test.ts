@@ -66,6 +66,38 @@ describe("OffsetPaginationStrategy", () => {
     const page3 = raw({ items: Array(defaultLimit).fill(1) });
     expect(s.extractCursor(page3)).toBe("300");
   });
+
+  it("buildNextRequest resolves limit from a numeric query value", () => {
+    const s = new OffsetPaginationStrategy("offset", "limit");
+    const { options } = s.buildNextRequest("/items", { query: { limit: 25 } }, "50");
+    expect(options.query).toEqual({ limit: "25", offset: "50" });
+  });
+
+  it("buildNextRequest resolves limit from a string query value", () => {
+    const s = new OffsetPaginationStrategy("offset", "limit");
+    const { options } = s.buildNextRequest("/items", { query: { limit: "25" } }, "50");
+    expect(options.query).toEqual({ limit: "25", offset: "50" });
+  });
+
+  it("buildNextRequest falls back to the default limit when none is given", () => {
+    const s = new OffsetPaginationStrategy("offset", "limit", undefined, 40);
+    const { endpoint, options } = s.buildNextRequest("/items", {}, "80");
+    expect(endpoint).toBe("/items");
+    expect(options.query).toEqual({ limit: "40", offset: "80" });
+  });
+
+  it("buildNextRequest preserves other options and query fields untouched", () => {
+    const s = new OffsetPaginationStrategy("offset", "limit");
+    const { options } = s.buildNextRequest(
+      "/items",
+      { method: "GET", query: { status: "active", limit: 10 } },
+      "10",
+    );
+    expect(options).toMatchObject({
+      method: "GET",
+      query: { status: "active", limit: "10", offset: "10" },
+    });
+  });
 });
 
 describe("property: extractTotal never returns NaN from a malformed header", () => {

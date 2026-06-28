@@ -69,8 +69,9 @@ export async function generate(opts: GeneratorOptions): Promise<void> {
     "",
     "Next steps:",
     `  1. Add "${provider}" to BUILTIN_ADAPTER_LOADERS in src/index.ts`,
-    "  2. Verify the error/rate-limit/pagination field names noted in adapter.ts and pagination.ts against the provider's docs",
-    `  3. npm test -- --reporter=verbose src/providers/${provider}/adapter.test.ts`,
+    `  2. Export the adapter class from src/providers/<category>/index.ts (creates the public "meridianjs/providers/<category>" subpath)`,
+    "  3. Verify the error/rate-limit/pagination field names noted in adapter.ts and pagination.ts against the provider's docs",
+    `  4. npm test -- --reporter=verbose src/providers/${provider}/adapter.test.ts`,
   ];
 
   for (const line of lines) {

@@ -206,11 +206,21 @@ jobs:
           path: dist/
       - name: Run benchmarks
         run: npm run benchmark 2>&1 | tee benchmark-results.txt
+      - name: Run startup benchmark (cold-process import/CLI timing)
+        # Reports against the <50ms import / <100ms CLI targets from the
+        # engineering roadmap. Informational, not a hard gate: absolute
+        # millisecond thresholds are sensitive to shared-runner CPU
+        # contention, so a strict fail-on-regression gate here would be
+        # flaky rather than reliable. npm run benchmark:startup already
+        # rebuilds dist/ — skip the redundant build this job already ran.
+        run: npx vite-node benchmarks/startup.ts 2>&1 | tee startup-results.txt
       - name: Upload benchmark results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: benchmark-${{ github.sha }}
-          path: benchmark-results.txt
+          path: |
+            benchmark-results.txt
+            startup-results.txt
           retention-days: 30
       - name: Post benchmark summary
         if: github.event_name == 'pull_request'
@@ -218,6 +228,10 @@ jobs:
           echo "## Benchmark Results" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat benchmark-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "## Startup Benchmark" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat startup-results.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
 # ─── Level 10: Security scanning ─────────────────────────────────────────────
@@ -247,9 +261,11 @@ jobs:
             --lockfile=package-lock.json
       - name: Check for hardcoded secrets
         run: |
-          # Fail if any API keys or tokens look hardcoded in src/
+          # Fail if any API keys or tokens look hardcoded in src/. Patterns
+          # mirror src/core/secret-redactor.ts (the runtime redaction layer)
+          # so source-code scanning and log/error redaction stay in sync.
           if grep -rn --include="*.ts" \
-            -E "(sk-[a-zA-Z0-9]{32,}|sk_live_[a-zA-Z0-9]+|AIza[0-9A-Za-z_-]{35}|Bearer [a-zA-Z0-9]{32,})" \
+            -E "(sk-[a-zA-Z0-9]{32,}|sk_live_[a-zA-Z0-9]+|AIza[0-9A-Za-z_-]{35}|Bearer [a-zA-Z0-9]{32,}|(AKIA|ASIA)[A-Z0-9]{16}|eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}|-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----)" \
             src/ 2>/dev/null | grep -v "test\|mock\|placeholder\|example\|\.test\.ts"; then
             echo "Potential hardcoded secret found. Review the above lines."
             exit 1

@@ -27,6 +27,18 @@ export class DebugRecorder implements ObservabilityAdapter {
   private log: RequestRecording[] = [];
   private pending = new Map<string, RequestRecording>();
   private rawData = new Map<string, RequestOptions>();
+  private readonly maxEntries: number;
+
+  /**
+   * `maxEntries` bounds the recording log with FIFO eviction (oldest first).
+   * Without a cap, leaving `debug.enable()` on for a long-running process —
+   * the documented use case is "enable, reproduce, inspect locally," but
+   * nothing stops someone from leaving it on in production — grows the log
+   * forever. Mirrors AnalyticsCollector's 1000-entry latency cap.
+   */
+  constructor(maxEntries = 1000) {
+    this.maxEntries = maxEntries;
+  }
 
   get enabled(): boolean {
     return this._enabled;
@@ -68,7 +80,7 @@ export class DebugRecorder implements ObservabilityAdapter {
         rec.options = rawOpts;
         this.rawData.delete(ctx.requestId);
       }
-      this.log.push(rec);
+      this.pushRecording(rec);
       this.pending.delete(ctx.requestId);
     }
   }
@@ -84,7 +96,7 @@ export class DebugRecorder implements ObservabilityAdapter {
         rec.options = rawOpts;
         this.rawData.delete(ctx.requestId);
       }
-      this.log.push(rec);
+      this.pushRecording(rec);
       this.pending.delete(ctx.requestId);
     }
   }
@@ -101,5 +113,12 @@ export class DebugRecorder implements ObservabilityAdapter {
     this.log = [];
     this.pending.clear();
     this.rawData.clear();
+  }
+
+  private pushRecording(rec: RequestRecording): void {
+    this.log.push(rec);
+    if (this.log.length > this.maxEntries) {
+      this.log.shift();
+    }
   }
 }

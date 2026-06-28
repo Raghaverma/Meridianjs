@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Scoped to core/resilience — the reliability primitives this project's own docs call 'the moat' — not the 46 provider adapters. Those are thin, largely-mechanical HTTP-mapping code already covered by the per-provider contract-test suite (npm run test:contracts); mutating them would cost hours of CI time for low signal. Run locally with `npm run test:mutation`; not wired into CI yet — see README note before enabling as a gate.",
+  "packageManager": "npm",
+  "reporters": ["html", "clear-text", "progress"],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/core/**/*.ts",
+    "src/resilience/**/*.ts",
+    "!src/core/**/*.test.ts",
+    "!src/resilience/**/*.test.ts"
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": null
+  }
+}

@@ -4,11 +4,46 @@ All notable changes to Meridian are documented here.
 
 ---
 
-## [Unreleased]
+## [0.5.0] — 2026-06-28
+
+An engineering-hardening pass across performance, reliability, and security — no new provider adapters. See the priority order in the project roadmap; this release covers lazy-loading/tree-shaking, stricter TypeScript, mutation/property/fuzz testing, and several real bugs the new testing surfaced.
+
+### Breaking
+
+- **Built-in adapter classes are no longer exported from the `meridianjs` root.** `import { StripeAdapter } from "meridianjs"` used to force-load all 46 provider adapter modules on every `import "meridianjs"`, even if you only use one provider — the actual root cause of the "library import" startup cost. Import from the category subpath instead:
+  ```ts
+  // Before
+  import { StripeAdapter } from "meridianjs";
+  // After
+  import { StripeAdapter } from "meridianjs/providers/payments";
+  ```
+  New subpaths: `meridianjs/providers/{ai,crm,healthcare,identity,logistics,maps,messaging,monitoring,payments,storage,tax}`. Config-driven usage (`providers: { stripe: { auth } }`, no adapter import) is unaffected. See [docs/adapters.md](docs/adapters.md).
 
 ### Added
 
 - **`meridian doctor`** — a read-only, severity-ranked health check. It reads what already lives on disk inside `.meridian/` (the contract registry's drift history and the reliability recordings) plus the runtime, and reports a single ranked list of findings: schemas with breaking changes or that have gone stale, recorded sessions where a circuit breaker opened / most requests failed / retries stormed / latency spiked, and which optional integrations (`ai`, `@grpc/grpc-js`, `@opentelemetry/api`) are installed. No network calls or running app required — the same disk-only contract as `meridian studio`. Exits non-zero on critical findings; `--strict` also fails on warnings (a drop-in CI gate), `--json` emits the full report. See [docs/doctor.md](docs/doctor.md).
+- **`AbortSignal` support on every request.** `RequestOptions.signal` cancels an in-flight request independently of the timeout; surfaces as a `MeridianError` (category `network`, `retryable: false`), distinct from a timeout error.
+- **Per-request `timeout` is now actually honored.** It was a documented `RequestOptions` field the pipeline silently ignored, always falling back to the pipeline-level default regardless of what a caller passed per-call.
+- **Pattern-based secret redaction** (`src/core/secret-redactor.ts`), layered on top of the existing key-name redaction in both the request sanitizer and the observability sanitizer. A `sk-...`, `Bearer ...`, AWS access key, JWT, or PEM private-key block embedded under any key name — not just `authorization`/`token`/`apiKey` — is now redacted from logs, headers, query params, and bodies unconditionally (not gated behind PII/India-mode flags). Verified with `fast-check` property tests fuzzing arbitrary key names and credential shapes.
+- **`fast-check`-based property and fuzz tests**: secret redaction (above), pagination's `extractTotal`, and a pipeline-level header fuzz test that throws hostile/oversized/CRLF-laced header values through the real request path and asserts every failure surfaces as a `MeridianError`, never a raw crash.
+- **Mutation testing** via Stryker (`npm run test:mutation`), scoped to `src/core` and `src/resilience` — the reliability primitives, not the 46 largely-mechanical provider adapters (already covered by the per-provider contract suite). Not wired into CI as a gate yet; current baseline and next steps are noted inline in `stryker.conf.json`.
+- **API reference generation** via TypeDoc (`npm run docs:api`), entry-pointed at `src/public.ts`. Surfaced and fixed several public types referenced by the public API but not themselves exported (`CircuitBreakerConfig`, `RateLimitConfig`, `RetryConfig`, `AdapterInput`, `BuiltRequest`, `RawResponse`, `StudioServerHandle`, `StudioServerOptions`, `ConsoleObservabilityConfig`).
+- **`PrometheusObservability` is now exported from the public API** (`meridianjs`) and has test coverage for the first time — it was fully implemented but unreachable from the documented `public.ts` surface and untested.
+- `benchmarks/startup.ts` (`npm run benchmark:startup`) — cold-subprocess measurement of library-import and CLI-startup time against the <50ms / <100ms targets, net of the Node process floor. Wired into CI as an informational report (not a hard gate — absolute-ms thresholds are sensitive to shared-runner contention).
+
+### Fixed
+
+- **Streaming requests (`.stream()`) leaked raw, unwrapped errors.** Unlike the regular pipeline path, the streaming code's `fetch()` call had no error handling at all — a network failure or a synchronous `Headers` validation throw propagated to the caller as a raw `TypeError` instead of the `MeridianError` every other failure path in the SDK returns.
+- **Any already-classified internal error (timeout, caller-aborted signal) was silently reclassified.** The pipeline's outer error handler always re-ran every error through `adapter.parseError()`, even one that was already a `MeridianError` — so, for example, a timeout's specific "Request timeout after Nms" message was being discarded and replaced with a generic adapter fallback message (e.g. GitHub's "Network request failed. Check your connection and try again.") on every timeout, silently, since the timeout feature was added.
+- **A malformed pagination `total` header could drive pagination to the hard page cap instead of stopping.** `Number.parseInt("garbage", 10)` is `NaN`, which is `!== null` but compares `false` against every number — `extractCursor`'s end-of-results check could then never fire. Affects both `OffsetPaginationStrategy` and `CursorPaginationStrategy`.
+- **`PrometheusObservability`'s cardinality-reduction endpoint normalization mangled UUIDs starting with a digit** (≈62.5% of random v4 UUIDs) — the numeric-ID regex ran first and partially consumed the UUID segment before the UUID regex got a chance to match.
+- **`DebugRecorder` and `ReliabilityRecorder` grew without bound.** Left enabled/recording in a long-running process, both accumulated entries forever. `DebugRecorder` now caps at `maxEntries` (default 1000) with FIFO eviction — safe, since each entry is independent. `ReliabilityRecorder` caps at `maxEvents` (default 50,000) and marks the session `truncated` instead of evicting — FIFO eviction would have silently corrupted the *middle* of an incident timeline used for replay/outage analysis.
+
+### Changed
+
+- All 46 built-in provider adapters now load via dynamic `import()` on first use (`BUILTIN_ADAPTER_LOADERS` in `src/index.ts`), instead of being eagerly imported at module scope — combined with the breaking change above, library-import time now passes the <50ms-over-floor target (was failing it).
+- `noImplicitOverride` and `useUnknownInCatchVariables` enabled in `tsconfig.json`. (`noPropertyAccessFromIndexSignature` was evaluated and rejected — it produced 500+ mechanical `body.x` → `body['x']` rewrites across provider response parsing, for no real safety gain over the existing `unknown`-typed index signatures.)
+- CI's hardcoded-secret grep now matches the same AWS-key/JWT/PEM-key patterns as the new runtime redactor, instead of only `sk-`/`AIza`/`Bearer`.
 
 ---
 

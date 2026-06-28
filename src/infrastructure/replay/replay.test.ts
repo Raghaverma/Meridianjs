@@ -147,6 +147,23 @@ describe("ReliabilityRecorder", () => {
     recorder.start("a");
     expect(() => recorder.start("b")).toThrow(/already active/);
   });
+
+  it("caps the timeline at maxEvents and marks the session truncated, instead of growing forever", () => {
+    // Regression: a session left running indefinitely accumulated events
+    // without bound. FIFO eviction would silently delete the middle of an
+    // incident timeline and corrupt replay/outage analysis, so the cap drops
+    // new events once reached and flags the session instead.
+    const recorder = new ReliabilityRecorder(undefined, 3);
+    recorder.start("long-running");
+    for (let i = 0; i < 5; i++) {
+      recorder.logRequest(requestCtx("github", "/a", `r${i}`));
+    }
+    const session = recorder.stop();
+
+    expect(session.events).toHaveLength(3);
+    expect(session.events.map((e) => e.requestId)).toEqual(["r0", "r1", "r2"]);
+    expect(session.truncated).toBe(true);
+  });
 });
 
 describe("ReliabilityStore", () => {

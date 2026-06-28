@@ -1,5 +1,6 @@
 import Fastify from "fastify";
-import { Meridian, MeridianError, StripeAdapter, WebhookVerifier } from "meridianjs";
+import { Meridian, MeridianError, WebhookVerifier } from "meridianjs";
+import { StripeAdapter } from "meridianjs/providers/payments";
 
 const app = Fastify({ logger: true });
 

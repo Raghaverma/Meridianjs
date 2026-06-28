@@ -149,4 +149,20 @@ describe("DebugRecorder", () => {
       r.recordMetric({ name: "m", value: 1, tags: {}, timestamp: new Date() });
     }).not.toThrow();
   });
+
+  it("evicts the oldest entry once maxEntries is exceeded, instead of growing forever", () => {
+    // Regression: a long-running process with debug.enable() left on grew
+    // this log without bound. FIFO-evicting here is safe (unlike the
+    // reliability recorder) because each entry is an independent debug
+    // recording, not part of a contiguous incident timeline.
+    const r = new DebugRecorder(3);
+    r.enable();
+    for (let i = 0; i < 5; i++) {
+      r.logRequest(reqCtx(`r${i}`));
+      r.logResponse(resCtx(`r${i}`));
+    }
+    const recordings = r.recordings();
+    expect(recordings).toHaveLength(3);
+    expect(recordings.map((rec) => rec.requestId)).toEqual(["r2", "r3", "r4"]);
+  });
 });

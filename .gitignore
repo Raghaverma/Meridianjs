@@ -6,6 +6,9 @@ dist/
 .env.local
 .meridian/
 coverage/
+docs/api/
+.stryker-tmp/
+reports/mutation/
 *.tsbuildinfo
 .claude/
 *.tgz

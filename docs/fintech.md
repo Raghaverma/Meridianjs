@@ -110,7 +110,8 @@ const link = createUpiDeepLink({
 ## Webhook verification
 
 ```ts
-import { RazorpayAdapter, WebhookVerifier } from "meridianjs";
+import { WebhookVerifier } from "meridianjs";
+import { RazorpayAdapter } from "meridianjs/providers/payments";
 
 // Timing-safe; throws/false on tamper. (Stripe webhooks additionally enforce a
 // timestamp tolerance to block replays.)

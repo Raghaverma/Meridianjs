@@ -158,7 +158,7 @@ app.post("/webhooks/stripe", express.raw({ type: "application/json" }), (req, re
 
 ```typescript
 // After
-import { StripeAdapter } from "meridianjs";
+import { StripeAdapter } from "meridianjs/providers/payments";
 const adapter = new StripeAdapter();
 
 app.post("/webhooks/stripe", express.raw({ type: "application/json" }), (req, res) => {
