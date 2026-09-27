@@ -216,20 +216,20 @@
     }
   },
   "devDependencies": {
-    "@ai-sdk/provider": "^3.0.10",
+    "@ai-sdk/provider": "^4.0.18",
     "@biomejs/biome": "^2.4.16",
     "@grpc/grpc-js": "^1.14.4",
     "@grpc/proto-loader": "^0.8.1",
     "@opentelemetry/api": "^1.9.1",
-    "@stryker-mutator/core": "^9.6.1",
-    "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/node": "^26.0.0",
-    "@vitest/coverage-v8": "^4.1.8",
-    "ai": "^6.0.208",
+    "@vitest/coverage-v8": "^5.0.1",
+    "ai": "^7.0.113",
     "esbuild": "^0.28.1",
     "fast-check": "^4.8.0",
     "typedoc": "^0.28.19",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.8"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }
